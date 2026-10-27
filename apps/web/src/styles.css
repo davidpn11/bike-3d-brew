@@ -67,7 +67,9 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 /* Pins */
 .pin-layer { position: absolute; inset: 0; pointer-events: none; }
 .pin {
-  position: absolute; left: 0; top: 0; pointer-events: auto;
+  /* Centered on (0, 0) by left/top; the per-frame position is the `translate` property, which is
+     applied outside `scale`, so active and draft pins grow in place instead of drifting. */
+  position: absolute; left: -13px; top: -13px; pointer-events: auto;
   width: 26px; height: 26px; padding: 0; border-radius: 50%;
   border: 2px solid #fff; background: var(--feature); color: #fff; font-size: 12px; font-weight: 700;
   box-shadow: 0 2px 8px rgb(0 0 0 / .45); transition: opacity .2s, scale .2s;
@@ -116,6 +118,21 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .editor, .details { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
 .details { border-color: var(--line); }
 .editor h2, .details h2 { margin: 0; }
+/* Edit → Model */
+.model-tools { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.model-tools summary { cursor: pointer; list-style: none; }
+.model-tools summary::-webkit-details-marker { display: none; }
+.model-tools summary h2 { display: inline; margin: 0; }
+.model-tools summary::before { content: '▸ '; color: var(--muted); }
+.model-tools[open] summary::before { content: '▾ '; }
+.model-tools .row button { flex: 1 1 auto; padding: 6px 8px; white-space: nowrap; }
+.axis-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 6px; font-size: 12px; color: var(--muted); }
+.axis-row > span:first-child { grid-column: 1 / -1; }
+.axis-row .pair { display: flex; }
+.axis-row .pair button { flex: 1; padding: 6px 0; border-radius: 0; }
+.axis-row .pair button:first-child { border-radius: 8px 0 0 8px; }
+.axis-row .pair button:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+
 label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
 input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); }
 .row { display: flex; gap: 8px; }

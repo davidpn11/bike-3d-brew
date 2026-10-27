@@ -83,7 +83,7 @@ export class PinLayer {
         continue;
       }
       el.style.display = '';
-      el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+      el.style.translate = `${p.x}px ${p.y}px`;
     }
     // A few occlusion checks per frame.
     const n = Math.min(entries.length, 4);

@@ -56,6 +56,32 @@ scene file), lists **hotspots** (named camera views: the zoomable areas) and **a
 (surface point + normal, title, body, kind `feature|spec|upgrade|note`, optional price and area).
 All coordinates are in model-root space.
 
+**Model transform.** The loader wraps the model so its native bounding box is centered on X/Z
+and rests on y = 0 (`centerOnGround`, deterministic per file); that frame is *model-root space*.
+`model.scale`, `model.rotation` (Euler XYZ, three.js convention) and `model.offset` are then
+applied to the root as `world = offset + R · (scale · p)`. Annotations and hotspot views stay in
+model-root space, so re-orienting a capture never detaches a comment. The overview camera is
+framed in world space (camera up is world +Y) and converted back.
+
+**Auto-orient** (`apps/web/src/scene/orient.ts`, pure, unit-tested). Target frame: +X front,
++Y up, +Z drive side, tyres on y = 0. Up to 50k strided vertices (≈3 ms for 1M vertices):
+
+1. PCA: smallest-variance axis = the bike's width, middle axis = candidate up.
+2. Up sign by votes: the centroid sits below mid-height (wheels), and the top band (handlebar) is
+   wider across than the bottom band (two tyre contact patches).
+3. Ground line: the longest downward-facing edge of the side-view convex hull (tangent across
+   both tyres) fixes the 5–15° tilt PCA leaves.
+4. Object Capture output is gravity-aligned, so if that up is within 6° of ±Y, Y is kept exactly
+   and only yaw changes (horizontal PCA).
+5. Front sign: the wide handlebar sits ahead of centre (plus a small vote for the drivetrain mass
+   behind it). Drive side follows from the right-handed frame.
+
+It runs once when a scene is opened with a non-demo model, no comments and no `model.rotation`
+(`shouldAutoOrient`); the offset is then recomputed from exact bounds so the bike stands on the
+ground. Edit → Model exposes the result plus manual rotate/flip/scale/nudge, each one store
+update with a small undo stack. Generate tilted test bundles with
+`node tools/fixtures/make-bike-capture.mjs --rotate 70,25,-40` (ASCII USD mesh in `model.usdz`).
+
 ## Open questions (verify on device)
 
 - Does `PhotogrammetrySession.Poses` return camera→model transforms in the same frame as the
