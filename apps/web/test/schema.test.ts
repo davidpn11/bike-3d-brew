@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SCHEMA, SceneValidationError, emptyScene, formatFromFilename, newId, parseScene } from '../src/scene/schema';
+import { SCHEMA, SceneValidationError, emptyScene, formatFromFilename, newId, parseCrop, parseScene } from '../src/scene/schema';
 
 const valid = {
   schema: SCHEMA,
@@ -103,5 +103,23 @@ describe('helpers', () => {
   it('creates empty scenes that validate', () => {
     const s = emptyScene({ url: 'a.glb', format: 'glb' }, 'Mine');
     expect(parseScene(s)).toEqual(s);
+  });
+
+  it('keeps a valid crop box and stays compatible with scenes without one', () => {
+    expect(parseScene(valid).crop).toBeUndefined();
+    const crop = { min: [-1, 0, -0.4], max: [1, 1.2, 0.4], enabled: true };
+    const s = parseScene({ ...valid, crop });
+    expect(s.crop).toEqual(crop);
+    expect(parseScene(JSON.parse(JSON.stringify(s)))).toEqual(s);
+    expect(parseScene({ ...valid, crop: { ...crop, enabled: false } }).crop?.enabled).toBe(false);
+  });
+
+  it('repairs or drops malformed crop boxes instead of rejecting the scene', () => {
+    expect(parseCrop({ min: [1, 1, 1], max: [0, 2, 0] })).toEqual({ min: [0, 1, 0], max: [1, 2, 1], enabled: true });
+    expect(parseCrop({ min: [0, 0, 0], max: [1, 0, 1] })).toBeUndefined();
+    expect(parseCrop({ min: [0, 0], max: [1, 1, 1] })).toBeUndefined();
+    expect(parseCrop({ min: [0, 0, NaN], max: [1, 1, 1] })).toBeUndefined();
+    expect(parseCrop('box')).toBeUndefined();
+    expect(parseScene({ ...valid, crop: { min: 'x' } }).crop).toBeUndefined();
   });
 });

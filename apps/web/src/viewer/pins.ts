@@ -77,7 +77,8 @@ export class PinLayer {
   private update(): void {
     const entries = [...this.pins.values()];
     for (const { el, annotation } of entries) {
-      const p = this.viewer.project(annotation.position);
+      // A comment on geometry the crop box hides would float in mid-air.
+      const p = this.viewer.inCrop(annotation.position) ? this.viewer.project(annotation.position) : null;
       if (!p) {
         el.style.display = 'none';
         continue;

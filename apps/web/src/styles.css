@@ -149,6 +149,13 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .axis-row .pair button { flex: 1; padding: 6px 0; border-radius: 0; }
 .axis-row .pair button:first-child { border-radius: 8px 0 0 8px; }
 .axis-row .pair button:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+.crop { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+.crop .row { align-items: center; }
+label.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
+label.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+.crop .hint { margin: 0; font-size: 12px; color: var(--muted); }
+.crop-row { display: grid; grid-template-columns: 34px repeat(3, 1fr); gap: 4px; align-items: center; font-size: 12px; color: var(--muted); }
+.crop-row input { padding: 5px 6px; font-size: 12px; min-width: 0; }
 
 label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
 input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); }
