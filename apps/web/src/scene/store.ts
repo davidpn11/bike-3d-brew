@@ -91,6 +91,11 @@ export class SceneStore {
     return this.current.annotations.filter((a) => (hotspotId ? a.hotspotId === hotspotId : true));
   }
 
+  /** The locally saved copy of another scene, e.g. a capture bundle dropped again. */
+  saved(id: string): BikeScene | null {
+    return SceneStore.restore(id, this.storage);
+  }
+
   toJSON(): string {
     return JSON.stringify(this.current, null, 2);
   }

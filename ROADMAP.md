@@ -16,7 +16,8 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 
 ## Milestone 2: Real captures into the viewer
 
-- [~] **Capture bundle import**: drop `*.bikecapture.zip` on the viewer, unzip in the browser (fflate), load `model.usdz`, read `manifest.json` and `poses.json`, name the scene from the manifest. Unit-test the bundle parser with a synthetic zip.
+- [x] **Capture bundle import**: drop `*.bikecapture.zip` on the viewer, unzip in the browser (fflate), load `model.usdz`, read `manifest.json` and `poses.json`, name the scene from the manifest. Unit-test the bundle parser with a synthetic zip.
+- [ ] **Keep captures across reloads**: cache the unzipped model of the last opened bundles in IndexedDB/OPFS (best effort, quota-aware) so a reload reopens a capture scene without re-dropping the `.bikecapture.zip`.
 - [ ] **USDZ robustness**: verify three.js `USDZLoader` against an Object Capture USDZ (binary USDC inside). If unsupported, document and add `tools/usdz-to-glb.py` (Blender headless) plus a clear in-app message. Add a small sample USDZ fixture if licensing allows (generate one, never commit customer captures).
 - [ ] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
 - [ ] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.

@@ -1,4 +1,5 @@
 import { viewForPoint } from '../scene/camera';
+import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
 import {
   ANNOTATION_KINDS,
   type Annotation,
@@ -50,6 +51,8 @@ export class App {
   /** Dropped model files by filename, so scenes can reference them by name. */
   private modelFiles = new Map<string, string>();
   private loadedModelKey = '';
+  /** The last capture bundle opened; its poses and image list feed the photo close-ups. */
+  capture: CaptureBundle | null = null;
 
   constructor(
     private store: SceneStore,
@@ -84,7 +87,8 @@ export class App {
     }
     const url = this.resolveModelUrl(ref);
     if (!url) {
-      this.toast(`Model “${ref.url}” is not loaded. Drop the file onto the viewer to reopen it.`, 'error', 0);
+      const bundle = bundleNameOf(ref.url);
+      this.toast(bundle ? `Drop “${bundle}” onto the viewer to reopen this capture.` : `Model “${ref.url}” is not loaded. Drop the file onto the viewer to reopen it.`, 'error', 0);
       return;
     }
     this.toast('Loading model…', 'info', 0);
@@ -177,7 +181,7 @@ export class App {
     );
     const fileInput = h('input', {
       type: 'file',
-      accept: '.glb,.gltf,.usdz,.ply,.json',
+      accept: '.zip,.glb,.gltf,.usdz,.ply,.json',
       hidden: true,
       onchange: (e: Event) => {
         const file = (e.target as HTMLInputElement).files?.[0];
@@ -187,7 +191,7 @@ export class App {
     const menu = h(
       'div',
       { class: 'actions' },
-      h('button', { type: 'button', onclick: () => fileInput.click(), title: 'Open a model (GLB, USDZ, PLY) or a scene JSON' }, 'Open…'),
+      h('button', { type: 'button', onclick: () => fileInput.click(), title: 'Open an iPhone capture (.bikecapture.zip), a model (GLB, USDZ, PLY) or a scene JSON' }, 'Open…'),
       h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.bike.json`, this.store.toJSON()) }, 'Export'),
       h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.png`, dataUrlToBlob(this.viewer.screenshot())) }, 'Snapshot'),
       h('button', { type: 'button', onclick: () => void this.focusHotspot(null) }, 'Reset view'),
@@ -473,6 +477,10 @@ export class App {
   }
 
   async openFile(file: File): Promise<void> {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      await this.openCapture(file);
+      return;
+    }
     if (file.name.toLowerCase().endsWith('.json')) {
       try {
         const scene = parseScene(JSON.parse(await file.text()));
@@ -485,7 +493,7 @@ export class App {
     }
     const format = formatFromFilename(file.name);
     if (!format) {
-      this.toast('Unsupported file. Use .glb, .gltf, .usdz, .ply or a .bike.json scene.', 'error');
+      this.toast('Unsupported file. Use a .bikecapture.zip, .glb, .gltf, .usdz, .ply or a .bike.json scene.', 'error');
       return;
     }
     const previous = this.modelFiles.get(file.name);
@@ -498,11 +506,43 @@ export class App {
     else await this.open(emptyScene({ url: file.name, format }, file.name.replace(/\.[^.]+$/, '')));
   }
 
+  /** Opens an iOS `*.bikecapture.zip`: the model is unzipped in memory, never uploaded. */
+  private async openCapture(file: File): Promise<void> {
+    this.toast(`Reading “${file.name}”…`, 'info', 0);
+    let bundle: CaptureBundle;
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (!looksLikeZip(bytes)) throw new Error('the file is not a zip.');
+      bundle = await readCaptureBundle(bytes);
+    } catch (err) {
+      this.toast(`Could not open capture: ${err instanceof Error ? err.message : String(err)}`, 'error', 0);
+      return;
+    }
+    const ref = captureModelRef(bundle, file.name);
+    const previous = this.modelFiles.get(ref.url);
+    if (previous) URL.revokeObjectURL(previous);
+    this.modelFiles.set(ref.url, URL.createObjectURL(new Blob([bundle.model.data as BlobPart])));
+    this.loadedModelKey = '';
+    this.capture = bundle;
+
+    // Re-dropping a bundle brings back the comments saved for it; keep any model transform.
+    const fresh = sceneFromCapture(bundle, file.name);
+    const current = this.store.scene;
+    const saved = current.id === fresh.id ? current : this.store.saved(fresh.id);
+    const scene = saved ? { ...saved, model: { ...saved.model, ...ref } } : fresh;
+    await this.open(scene, { frame: saved !== current });
+    if (this.loadedModelKey) {
+      const { manifest, poses, images, warnings } = bundle;
+      const facts = [`${images.length || manifest.imageCount || 0} photos`, poses ? `${poses.samples.length} camera poses` : 'no camera poses', manifest.mode === 'area' ? 'area mode' : null];
+      this.toast([`Opened capture “${scene.name}” · ${facts.filter(Boolean).join(' · ')}`, ...warnings].join('. '), warnings.length ? 'error' : 'info', warnings.length ? 8000 : 4500);
+    }
+  }
+
   private resolveModelUrl(ref: ModelRef): string | null {
     if (ref.format === 'demo') return ref.url;
     const dropped = this.modelFiles.get(ref.url);
     if (dropped) return dropped;
-    if (/^(blob:|data:)/.test(ref.url)) return null;
+    if (/^(blob:|data:|bundle:)/.test(ref.url)) return null;
     // Bare filenames without a known base (a scene saved from a dropped file) cannot be fetched.
     if (!ref.url.includes('/') && !/^https?:/.test(ref.url) && this.baseUrl === location.href) return null;
     return new URL(ref.url, this.baseUrl).href;

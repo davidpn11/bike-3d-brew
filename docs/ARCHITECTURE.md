@@ -37,6 +37,18 @@ The green background mode exists for compositing snapshots/videos in other tools
 | `images/`       | Object Capture HEIC photos |
 | `record.json`   | app-internal record |
 
+Importing in the browser (`apps/web/src/scene/capture.ts`): dropping a `*.bikecapture.zip`
+unzips it in memory with fflate; nothing is uploaded. The iOS exporter zips its staging folder
+(`NSFileCoordinator .forUploading`), so files usually sit under one top-level directory: the
+shallowest `manifest.json` defines the bundle root and `__MACOSX/` / `._*` entries are ignored.
+Only `manifest.json`, the model and `poses.json` are decompressed (size-capped); images are just
+listed. If `manifest.model` is missing, a `glb`/`gltf`/`usdz`/`ply` next to the manifest is used
+(GLB first, e.g. after `tools/usdz-to-glb.py`). A broken `poses.json` is a warning, not an error.
+
+The resulting scene gets a stable id (`capture-<name>-<createdAt digits>`) so dropping the same
+bundle again restores its saved areas and comments, and a model URL `bundle:<zip name>/<path>`,
+which is never fetched: after a reload the viewer asks for that zip to be dropped again.
+
 ### `bike-scene/1` (viewer JSON, `*.bike.json`)
 
 See `apps/web/src/scene/schema.ts`. A scene references its model by URL (relative to the
