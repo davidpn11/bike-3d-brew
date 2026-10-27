@@ -60,6 +60,7 @@ describe('readCaptureBundle', () => {
     expect(b.poses?.samples).toHaveLength(2);
     expect(b.poses?.samples[0]).toEqual({ sample: 0, file: 'IMG_0000.HEIC', transform: identity });
     expect(b.images).toEqual(['images/IMG_0000.HEIC', 'images/IMG_0001.HEIC']);
+    expect(b.root).toBe('export-1234/');
     expect(b.warnings).toEqual([]);
   });
 
@@ -72,6 +73,7 @@ describe('readCaptureBundle', () => {
       'poses.json': enc(poses),
     });
     const b = await readCaptureBundle(zip);
+    expect(b.root).toBe('');
     expect(b.manifest.name).toBe('Trek Domane SL6');
     expect(b.model.path).toBe('model.usdz');
   });
@@ -152,5 +154,17 @@ describe('capture scenes', () => {
   it('sniffs zip magic', () => {
     expect(looksLikeZip(bundle())).toBe(true);
     expect(looksLikeZip(enc('{"schema":1}'))).toBe(false);
+  });
+});
+
+describe('fixture generator', () => {
+  it('produces a bundle the importer reads', async () => {
+    const { makeBundle } = await import('../../../tools/fixtures/make-capture.mjs');
+    const b = await readCaptureBundle(makeBundle({ count: 6, closeups: false }));
+    expect(b.manifest.name).toBe('Fixture Road Bike');
+    expect(b.model.format).toBe('usdz');
+    expect(b.poses?.samples).toHaveLength(6);
+    expect(b.images).toHaveLength(6);
+    expect(b.warnings).toEqual([]);
   });
 });

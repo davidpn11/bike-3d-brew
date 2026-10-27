@@ -137,8 +137,7 @@ function extent(pts: Float64Array, count: number, mean: Vec3, axis: Vec3): Band 
  */
 function upSignScore(pts: Float64Array, count: number, mean: Vec3, up: Vec3, lateral: Vec3): { score: number } {
   const { lo, hi } = extent(pts, count, mean, up);
-  const h = hi - lo;
-  if (h <= 0) return { score: 0 };
+  const h = Math.max(hi - lo, 1e-12);
   // Centroid is at t = 0 (mean); mid-height is (lo + hi) / 2.
   const mass = clamp(((lo + hi) / 2 / h) * 6);
   let latTop = 0;
@@ -159,9 +158,9 @@ function upSignScore(pts: Float64Array, count: number, mean: Vec3, up: Vec3, lat
       nBot++;
     }
   }
-  const rTop = nTop ? Math.sqrt(latTop / nTop) : 0;
-  const rBot = nBot ? Math.sqrt(latBot / nBot) : 0;
-  const width = rTop + rBot > 0 ? (rTop - rBot) / (rTop + rBot) : 0;
+  const rTop = Math.sqrt(latTop / Math.max(nTop, 1));
+  const rBot = Math.sqrt(latBot / Math.max(nBot, 1));
+  const width = (rTop - rBot) / Math.max(rTop + rBot, 1e-12);
   return { score: 0.6 * mass + 0.8 * width };
 }
 
@@ -172,9 +171,8 @@ function upSignScore(pts: Float64Array, count: number, mean: Vec3, up: Vec3, lat
 function frontSignScore(pts: Float64Array, count: number, mean: Vec3, front: Vec3, up: Vec3, lateral: Vec3): number {
   const { lo, hi } = extent(pts, count, mean, up);
   const len = extent(pts, count, mean, front);
-  const h = hi - lo;
-  const L = len.hi - len.lo;
-  if (h <= 0 || L <= 0) return 0;
+  const h = Math.max(hi - lo, 1e-12);
+  const L = Math.max(len.hi - len.lo, 1e-12);
   let latMean = 0;
   for (let i = 0; i < count; i++) latMean += proj(pts, i, mean, lateral);
   latMean /= count;
@@ -189,7 +187,8 @@ function frontSignScore(pts: Float64Array, count: number, mean: Vec3, front: Vec
     wx += w * proj(pts, i, mean, front);
   }
   const mid = (len.lo + len.hi) / 2;
-  const bars = wSum > 0 ? clamp(((wx / wSum - mid) / L) * 4) : 0;
+  // The top band always holds the highest points, so wSum is only 0 for a perfectly flat top.
+  const bars = clamp(((wx / Math.max(wSum, 1e-300) - mid) / L) * 4);
   const mass = clamp((mid / L) * 8); // centroid (t = 0) behind the middle → positive
   return bars + 0.25 * mass;
 }
@@ -201,8 +200,7 @@ function frontSignScore(pts: Float64Array, count: number, mean: Vec3, front: Vec
 function refineUpFromGroundLine(pts: Float64Array, count: number, mean: Vec3, up: Vec3, lateral: Vec3): Vec3 {
   const along = normalize(cross(up, lateral));
   const hull = sideHull(pts, count, mean, along, up);
-  if (hull.length < 3) return up;
-  let best = -1;
+  // Stays [0, 1] (keep `up`) when no hull edge faces down within 40°.
   let bestLen = 0;
   let bestNormal: [number, number] = [0, 1];
   const maxTilt = Math.cos((40 * Math.PI) / 180);
@@ -211,19 +209,17 @@ function refineUpFromGroundLine(pts: Float64Array, count: number, mean: Vec3, up
     const [bx, by] = hull[(i + 1) % hull.length];
     const dx = bx - ax;
     const dy = by - ay;
+    // Monotone chain drops duplicate and collinear points, so no edge has zero length.
     const len = Math.hypot(dx, dy);
-    if (len === 0) continue;
     // Counter-clockwise hull: the outward normal is (dy, -dx). We want edges facing down (-up).
     const nx = dy / len;
     const ny = -dx / len;
     if (-ny < maxTilt) continue;
     if (len > bestLen) {
       bestLen = len;
-      best = i;
       bestNormal = [-nx, -ny];
     }
   }
-  if (best < 0) return up;
   return normalize(add(scale(along, bestNormal[0]), scale(up, bestNormal[1])));
 }
 
@@ -234,7 +230,7 @@ function refineUpFromGroundLine(pts: Float64Array, count: number, mean: Vec3, up
 function sideHull(pts: Float64Array, count: number, mean: Vec3, u: Vec3, v: Vec3): [number, number][] {
   const COLS = 1024;
   const { lo, hi } = extent(pts, count, mean, u);
-  const span = hi - lo || 1;
+  const span = Math.max(hi - lo, 1e-12);
   const minV = new Float64Array(COLS).fill(Infinity);
   const maxV = new Float64Array(COLS).fill(-Infinity);
   const minU = new Float64Array(COLS);
@@ -346,7 +342,7 @@ export function symmetricEigen(m: Mat3): { values: Vec3; vectors: [Vec3, Vec3, V
     ]) {
       if (Math.abs(a[p][q]) < 1e-300) continue;
       const theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
-      const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+      const t = (theta >= 0 ? 1 : -1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
       const c = 1 / Math.sqrt(t * t + 1);
       const s = t * c;
       for (let r = 0; r < 3; r++) {
@@ -440,7 +436,7 @@ const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const scale = (a: Vec3, s: number): Vec3 => [a[0] * s, a[1] * s, a[2] * s];
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 function normalize(a: Vec3): Vec3 {
-  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  const l = Math.max(Math.hypot(a[0], a[1], a[2]), 1e-300);
   return [a[0] / l, a[1] / l, a[2] / l];
 }
 const proj = (pts: Float64Array, i: number, mean: Vec3, axis: Vec3) =>

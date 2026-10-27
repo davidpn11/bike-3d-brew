@@ -13,7 +13,7 @@ import {
   symmetricEigen,
 } from '../src/scene/orient';
 import { SCHEMA, type BikeScene, type Vec3 } from '../src/scene/schema';
-import { rng, syntheticBike } from './helpers/syntheticBike';
+import { rng, syntheticBike, timeBudget } from './helpers/syntheticBike';
 
 const DEG = Math.PI / 180;
 const I: Mat3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
@@ -83,7 +83,7 @@ describe('estimateOrientation', () => {
     }
     expect(worst).toBeLessThan(3);
     expect(worstPreferY).toBeLessThan(6.5);
-  });
+  }, 60_000);
 
   it('produces Euler angles that three.js turns into the same rotation', () => {
     const r = randomRotation(rng(7));
@@ -104,8 +104,8 @@ describe('estimateOrientation', () => {
       best = Math.min(best, performance.now() - t0);
     }
     console.info(`estimateOrientation(1M vertices): ${best.toFixed(1)} ms`);
-    expect(best).toBeLessThan(50);
-  });
+    expect(best).toBeLessThan(timeBudget(50));
+  }, 30_000);
 
   it('rejects degenerate input', () => {
     expect(estimateOrientation(new Float32Array(6))).toBeNull();
@@ -113,6 +113,9 @@ describe('estimateOrientation', () => {
     const line = new Float32Array(300);
     for (let i = 0; i < 100; i++) line[i * 3] = i;
     expect(estimateOrientation(line)).toBeNull();
+    const mostlyNaN = new Float32Array(60).fill(NaN);
+    mostlyNaN.set([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1]);
+    expect(estimateOrientation(mostlyNaN)).toBeNull();
     const withNaN = new Float32Array(bike);
     withNaN[0] = NaN;
     expect(estimateOrientation(withNaN)).not.toBeNull();

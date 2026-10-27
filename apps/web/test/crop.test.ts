@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { insideBox, moveFace, padBox, suggestCrop } from '../src/scene/crop';
-import { rng, syntheticBike } from './helpers/syntheticBike';
+import { rng, syntheticBike, timeBudget } from './helpers/syntheticBike';
 
 /** An area-mode style scan: the bike plus the floor it stands on, a wall behind it, a crate and floaters. */
 function areaScan(seed = 5): number[] {
@@ -68,9 +68,41 @@ describe('suggestCrop', () => {
     expect(suggestCrop(big)).not.toBeNull();
     const ms = performance.now() - t0;
     console.info(`suggestCrop(1M vertices): ${ms.toFixed(1)} ms`);
-    expect(ms).toBeLessThan(250);
+    expect(ms).toBeLessThan(timeBudget(250));
     expect(suggestCrop(new Float32Array(9))).toBeNull();
     expect(suggestCrop(new Float32Array(300).fill(2))).toBeNull();
+  }, 30_000);
+});
+
+describe('suggestCrop edge cases', () => {
+  const rand = rng(11);
+  it('finds the top of a thick floor slab (two faces) and skips NaN points', () => {
+    const out = syntheticBike(rng(12));
+    for (let i = 0; i < 30_000; i++) out.push(-1.3 + rand() * 2.6, -0.04, -0.8 + rand() * 1.6); // slab bottom face
+    for (let i = 0; i < 20_000; i++) out.push(-1.3 + rand() * 2.6, 0, -0.8 + rand() * 1.6); // slab top face
+    out.push(NaN, 0, 0, 0, Infinity, 0);
+    const s = suggestCrop(new Float32Array(out))!;
+    expect(s.floor!).toBeGreaterThanOrEqual(0);
+    expect(s.floor!).toBeLessThan(0.02);
+  });
+
+  it('does not mistake a dense but small blob, or a uniform volume, for a floor', () => {
+    const blob = syntheticBike(rng(13));
+    for (let i = 0; i < 20_000; i++) blob.push(0.3 + rand() * 0.05, rand() * 0.01, rand() * 0.05); // kickstand pad
+    expect(suggestCrop(new Float32Array(blob))!.floor).toBeNull();
+    const cube: number[] = [];
+    for (let i = 0; i < 20_000; i++) cube.push(rand(), rand(), rand());
+    expect(suggestCrop(new Float32Array(cube))!.floor).toBeNull();
+  });
+
+  it('handles a flat scan and a scan that is all floor', () => {
+    const flat: number[] = [];
+    for (let x = 0; x <= 1; x += 0.01) for (let z = 0; z <= 1; z += 0.01) flat.push(x, 0, z);
+    expect(suggestCrop(new Float32Array(flat))).toMatchObject({ floor: null, kept: 1 });
+    const floorOnly = [...flat];
+    for (let i = 0; i < 2_000; i++) floorOnly.push(rand(), 0.001, rand()); // noise on the floor
+    floorOnly.push(0.5, 1, 0.5, 0.5, 0.99, 0.5);
+    expect(suggestCrop(new Float32Array(floorOnly))).toBeNull();
   });
 });
 

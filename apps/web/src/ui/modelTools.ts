@@ -137,8 +137,10 @@ export class ModelTools {
             'aria-label': `Crop ${corner} ${axis.toUpperCase()}`,
             value: crop ? String(crop[corner][i]) : '',
             onchange: (e: Event) => {
-              const value = Number((e.target as HTMLInputElement).value);
-              if (!crop || !Number.isFinite(value)) return;
+              const raw = (e.target as HTMLInputElement).value.trim();
+              const value = Number(raw);
+              // A cleared field reads as "" → 0; treat it as "no change", not as a corner at 0.
+              if (!crop || raw === '' || !Number.isFinite(value)) return;
               const next = { ...crop, [corner]: crop[corner].map((v, k) => (k === i ? value : v)) };
               const parsed = parseCrop(next);
               if (parsed) this.apply({ crop: parsed });

@@ -88,7 +88,7 @@ export function suggestCrop(positions: ArrayLike<number>, opts: SuggestOptions =
 
   // Voxel clusters above the floor.
   const RES = 64;
-  const cell = Math.max(...size) / RES || 1;
+  const cell = Math.max(...size) / RES; // > 0: checked above
   const dims = size.map((s) => Math.max(1, Math.min(RES + 1, Math.floor(s / cell) + 1)));
   const [nx, ny, nz] = dims;
   const occ = new Int32Array(nx * ny * nz);

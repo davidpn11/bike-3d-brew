@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["apps/web/src", "apps/web/test", "apps/web/vite.config.ts"]
+  "include": ["apps/web/src", "apps/web/test", "apps/web/e2e", "apps/web/vite.config.ts", "apps/web/playwright.config.ts"]
 }

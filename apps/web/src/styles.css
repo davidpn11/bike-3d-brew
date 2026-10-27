@@ -46,6 +46,23 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .segmented [data-bg='green'].on { background: var(--chroma); color: #fff; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
+/* Open menu: file picker plus the captures kept in this browser. */
+.open-menu { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: min(320px, calc(100vw - 20px));
+  display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); box-shadow: 0 12px 32px rgb(0 0 0 / .45);
+}
+.menu h3 { margin: 6px 4px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.menu .menu-file { text-align: left; }
+.stored { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 50vh; overflow-y: auto; }
+.stored li { display: flex; gap: 4px; }
+.stored .stored-open { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 8px; text-align: left; background: transparent; }
+.stored .stored-open span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stored small { color: var(--muted); white-space: nowrap; }
+.stored li.on .stored-open { border-color: var(--accent); }
+.menu .hint { margin: 2px 4px; font-size: 12px; color: var(--muted); }
+
 .layout { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
 .stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; }
 .viewport { position: absolute; inset: 0; }
@@ -145,6 +162,52 @@ input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(-
 .row { display: flex; gap: 8px; }
 .row > * { flex: 1; }
 
+/* Photo close-ups: posed capture photos that best show an area or a comment. */
+/* minmax(0, …) so a wide filmstrip scrolls inside its card instead of widening the panel. */
+.comments { grid-template-columns: minmax(0, 1fr); }
+.filmstrip {
+  display: flex; min-width: 0; max-width: 100%; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 0 6px;
+  overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.filmstrip .photo {
+  flex: none; width: 96px; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; scroll-snap-align: start;
+  border-radius: 8px; background: var(--surface-2); position: relative;
+}
+.filmstrip .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.filmstrip .photo:hover, .filmstrip .photo:focus-visible { border-color: var(--accent); }
+.filmstrip .photo.loading::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .06), transparent) 0 0 / 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+.filmstrip .photo.missing { opacity: .4; }
+.filmstrip .photo.missing::after { content: '—'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.comment .filmstrip { margin-top: 8px; }
+.comment .filmstrip .photo { width: 84px; }
+.photo-block .hint, .photos .hint { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.present-card .filmstrip { margin-top: 10px; }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / .94); display: grid; grid-template-rows: auto 1fr;
+  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+}
+.lightbox[hidden] { display: none; }
+.lightbox header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; color: var(--muted); }
+.lightbox .caption { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.lightbox .count { font-variant-numeric: tabular-nums; }
+.lightbox .lb-close { font-size: 22px; width: 40px; height: 40px; border-radius: 50%; padding: 0; }
+.lb-stage { position: relative; overflow: hidden; display: grid; place-items: center; touch-action: none; user-select: none; cursor: zoom-in; }
+.lightbox.zoomed .lb-stage { cursor: grab; }
+.lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center; will-change: transform; }
+.lb-stage .status { position: absolute; color: var(--muted); max-width: 320px; text-align: center; padding: 0 16px; }
+.lb-nav {
+  position: absolute; top: 50%; translate: 0 -50%; width: 48px; height: 48px; border-radius: 50%;
+  font-size: 26px; padding: 0; background: rgb(36 38 43 / .8);
+}
+.lb-nav.prev { left: 12px; }
+.lb-nav.next { right: 12px; }
+
 /* Presentation mode: full-bleed bike with a card that steps through areas. */
 body[data-mode='present'] .layout { grid-template-columns: 1fr; }
 body[data-mode='present'] .panel { display: none; }
@@ -175,4 +238,5 @@ body[data-mode='present'] .panel { display: none; }
   body[data-mode='present'] .layout { grid-template-rows: 1fr; }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
+  .menu { left: 0; right: auto; }
 }
