@@ -6,7 +6,8 @@
 //
 // - model.usdz: an ASCII USD layer with a simple low-poly bike (wheels, frame, fork, saddle, bar),
 //   deliberately NOT centered on the origin, like a real Object Capture reconstruction.
-// - poses.json: cameras orbiting the bike at two heights, camera→model, looking down -Z, +Y up.
+// - poses.json: cameras orbiting the bike at two heights plus close-ups of the key areas,
+//   camera→model, looking down -Z, +Y up.
 // - images/: one photo per pose. Placeholder PNGs unless --images supplies rendered ones
 //   (see tools/fixtures/render-photos.mjs).
 // - Everything nested in one folder, like NSFileCoordinator's .forUploading zip.
@@ -185,6 +186,30 @@ export function orbitPoses(count = 24) {
   return samples;
 }
 
+/** Close-ups a careful shooter adds after the orbits (bike coordinates, before MODEL_ORIGIN). */
+const CLOSEUPS = [
+  { target: [0.44, 0.66, 0], eye: [0.95, 0.75, 0.35] }, // fork crown / head tube
+  { target: [0.5, 0.34, 0], eye: [0.85, 0.45, 0.45] }, // front hub
+  { target: [-0.05, 0.3, 0.07], eye: [0.05, 0.45, 0.6] }, // chainring
+  { target: [-0.5, 0.34, 0.07], eye: [-0.7, 0.5, 0.55] }, // rear hub, drive side
+  { target: [0.46, 0.84, 0], eye: [0.2, 1.35, 0.3] }, // cockpit from above
+  { target: [-0.18, 0.82, 0], eye: [-0.5, 1.2, 0.4] }, // saddle
+  { target: [-0.17, 0.74, 0], eye: [-0.3, 0.85, -0.55] }, // seat cluster, non-drive side
+  { target: [0.42, 0.74, 0], eye: [0.6, 0.85, -0.6] }, // head tube, non-drive side
+];
+
+/** Orbit poses followed by close-ups, numbered like Object Capture samples. */
+export function capturePoses(orbit = 24, closeups = true) {
+  const samples = orbitPoses(orbit);
+  if (closeups) {
+    CLOSEUPS.forEach(({ target, eye }, k) => {
+      const i = orbit + k;
+      samples.push({ sample: i, file: `IMG_${String(i).padStart(4, '0')}`, transform: lookAtTransform(add(eye, MODEL_ORIGIN), add(target, MODEL_ORIGIN)) });
+    });
+  }
+  return samples;
+}
+
 // ------------------------------------------------------------------ images
 
 /** Minimal PNG encoder (RGB, no filtering) so placeholders need no image library. */
@@ -233,8 +258,9 @@ function hsl(h, s, l) {
 
 // ------------------------------------------------------------------ bundle
 
-export function makeBundle({ name = 'Fixture Road Bike', count = 24, images = null, folder = 'Fixture Road Bike 2026-10-27' } = {}) {
-  const samples = orbitPoses(count);
+export function makeBundle({ name = 'Fixture Road Bike', count = 24, closeups = true, images = null, folder = 'Fixture Road Bike 2026-10-27' } = {}) {
+  const samples = capturePoses(count, closeups);
+  count = samples.length;
   const files = {};
   samples.forEach((s, i) => {
     const supplied = images?.[i];
@@ -285,7 +311,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const out = resolve(args[0] ?? 'tools/fixtures/out/fixture.bikecapture.zip');
   mkdirSync(dirname(out), { recursive: true });
-  const zip = makeBundle({ images, count: images?.length || 24 });
+  const zip = makeBundle({ images, count: images ? Math.max(0, images.length - CLOSEUPS.length) : 24 });
   writeFileSync(out, zip);
   console.log(`wrote ${out} (${(zip.length / 1024).toFixed(0)} KB)`);
 }

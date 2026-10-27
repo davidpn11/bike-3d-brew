@@ -6,6 +6,7 @@ merges the stack to `main`, the Unreleased block becomes a dated release.
 ## Unreleased
 
 ### Added
+- Photo close-ups: for the active area, the active comment and each Present step, a filmstrip of the capture photos that best show it (ranked from `poses.json`), with a full-screen viewer (swipe, arrows, pinch/zoom). Photos are read lazily from the zip, HEIC is decoded natively or by a lazily loaded WASM worker, and thumbnails are kept in the capture cache. (#6)
 - Captures survive reloads: opened `*.bikecapture.zip` bundles are kept in browser storage (OPFS, IndexedDB fallback, LRU under a quota-aware budget) and reopen automatically; "Open…" lists stored captures with size and a forget button. Synthetic fixture generator in `tools/fixtures/`. (#5)
 - Docs & progress site (Fumadocs, `apps/docs`) generated from the repo's markdown: home dashboard with roadmap progress per milestone, latest changes and build commit; "How to test" guide; offline search. `tools/publish-pages.sh` publishes it with the viewer (under `/app/`) and a synthetic test bundle to the `gh-pages` branch; `tools/make-test-bundle.mjs` writes a synthetic `*.bikecapture.zip`. The Actions-based `pages.yml` deploy is removed. (#4)
 - USDZ robustness: Object Capture USDZ (binary USDC) loads with textures; fixes three.js r186 crate decoding of inline vectors/halves/negative ints, ~10× faster mesh build for large captures, lazy-loaded USD code, clear fallback to `tools/usdz-to-glb.py`. Synthetic fixture generator `tools/fixtures/make-usdc.py`. (#3)

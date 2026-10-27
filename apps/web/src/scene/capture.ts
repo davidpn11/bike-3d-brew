@@ -41,8 +41,10 @@ export interface CaptureBundle {
   manifest: CaptureManifest;
   model: { path: string; format: ModelFormat; data: Uint8Array };
   poses: CapturePoses | null;
-  /** Bundle-relative image paths (not decompressed). */
+  /** Bundle-relative image paths (not decompressed; see zipIndex.ts for lazy access). */
   images: string[];
+  /** Folder of manifest.json inside the zip ('' for a flat zip): zip path = root + bundle-relative path. */
+  root: string;
   /** Non-fatal problems worth surfacing, e.g. an unreadable poses.json. */
   warnings: string[];
 }
@@ -146,7 +148,7 @@ export async function readCaptureBundle(bytes: Uint8Array, limits: ReadLimits = 
 
   const imageDir = manifest.images.endsWith('/') ? manifest.images : `${manifest.images}/`;
   const images = [...byPath.keys()].filter((p) => p.startsWith(imageDir) && !p.endsWith('/')).sort();
-  return { manifest, model: { path: modelPath, format, data }, poses, images, warnings };
+  return { manifest, model: { path: modelPath, format, data }, poses, images, root, warnings };
 }
 
 /** The `bike-scene/1` model URL for a bundle's model. Never fetchable: the bundle must be dropped again. */

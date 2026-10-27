@@ -2,6 +2,12 @@
 
 Things an agent cannot do (hardware, accounts, decisions). Newest first.
 
+- **Decide on the HEIC decoder license**: photo close-ups decode HEIC in Chrome/Firefox with
+  `libheif-js` (LGPL-3.0), shipped as a separate, lazily loaded worker chunk. Fine for a private
+  tool; before a public release, either confirm LGPL compliance (unmodified library in its own
+  file, notice in the about/credits) or remove it once the iOS app exports JPEGs (see ROADMAP).
+- **Close-ups on a real capture**: open a real `.bikecapture.zip` with a few areas and check that
+  each area's first photos really show it, in Chrome (WASM HEIC path) and iPhone Safari (native).
 - **Real Object Capture USDZ in the viewer** (needs a real capture): drop the `model.usdz` (or
   the `.bikecapture.zip`) on the viewer and compare with Quick Look on the Mac/iPhone: textures
   present and not flipped, size in meters, bike upright, normal-map bumps not exaggerated. The

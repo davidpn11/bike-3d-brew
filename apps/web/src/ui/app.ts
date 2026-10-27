@@ -1,6 +1,7 @@
 import { viewForPoint } from '../scene/camera';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
 import { type CachedCapture, type CaptureCache, formatBytes } from '../scene/captureCache';
+import { type RankTarget, type RankedPhoto, rankPhotos } from '../scene/photos';
 import {
   ANNOTATION_KINDS,
   type Annotation,
@@ -17,10 +18,13 @@ import {
 } from '../scene/schema';
 import type { SceneStore } from '../scene/store';
 import { requestPersistence } from '../storage/backends';
+import { sourceToModelRoot } from '../viewer/captureSpace';
 import { centerOnGround, loadModel, loadWarnings } from '../viewer/loaders';
 import { PinLayer } from '../viewer/pins';
 import type { Viewer } from '../viewer/Viewer';
 import { download, h, slugify } from './dom';
+import { PhotoLibrary } from './photoLibrary';
+import { Lightbox, filmstrip } from './photoViewer';
 
 export type Mode = 'view' | 'edit' | 'present';
 
@@ -58,6 +62,12 @@ export class App {
   /** Bundles kept in browser storage so capture scenes survive reloads (newest first). */
   storedCaptures: CachedCapture[] = [];
   private openMenu = false;
+  /** Photos of the open capture (`captureUrl`), and the matrix from pose space into model-root space. */
+  private photos: PhotoLibrary | null = null;
+  private captureUrl = '';
+  private captureSpace: number[] | null = null;
+  private rankCache = new Map<string, RankedPhoto[]>();
+  private lightbox = new Lightbox();
 
   constructor(
     private store: SceneStore,
@@ -107,6 +117,9 @@ export class App {
       const object = await loadModel(url, ref.format);
       this.viewer.setModel(centerOnGround(object), ref);
       this.loadedModelKey = key;
+      this.captureSpace = ref.url === this.captureUrl ? sourceToModelRoot(this.viewer.modelRoot) : null;
+      this.rankCache.clear();
+      this.render();
       this.modelWarnings = loadWarnings(object);
       if (this.modelWarnings.length) this.toast(this.modelWarnings.join(' '), 'error', 8000);
       else this.toast(restored ? `Reopened “${restored.manifest.name}” from this browser’s storage.` : '');
@@ -313,6 +326,10 @@ export class App {
       ),
     );
 
+    const activeArea = scene.hotspots.find((x) => x.id === this.activeHotspot);
+    const areaPhotos = activeArea ? this.photoStrip(activeArea.name, this.areaTarget(activeArea)) : null;
+    if (areaPhotos) sections.push(h('section', { class: 'photos' }, h('h2', {}, `${activeArea!.name} photos`), areaPhotos));
+
     if (this.draft) sections.push(this.commentEditor(scene, this.draft));
 
     const list = this.activeHotspot ? this.store.annotationsFor(this.activeHotspot) : scene.annotations;
@@ -356,6 +373,7 @@ export class App {
         h('div', { class: 'meta' }, h('span', { class: 'kind' }, KIND_LABEL[a.kind]), area && !this.activeHotspot ? h('span', { class: 'area' }, area.name) : null, a.price ? h('span', { class: 'price' }, a.price) : null),
         h('strong', {}, a.title || 'Untitled'),
         a.body ? h('p', {}, a.body) : null,
+        a.id === this.activeAnnotation ? this.photoStrip(a.title || 'Comment', { point: a.position, side: a.normal }) : null,
         editing
           ? h(
               'span',
@@ -460,7 +478,45 @@ export class App {
         h('button', { type: 'button', 'aria-label': 'Next area', onclick: () => this.goToStep(this.presentStep + 1) }, '›'),
       ),
       details,
+      hotspot ? (this.photoStrip(hotspot.name, this.areaTarget(hotspot)) ?? '') : '',
     );
+  }
+
+  // ---------------------------------------------------------------- photo close-ups
+
+  /** An area's target, seen from the side its saved camera view looks from. */
+  private areaTarget(hs: Hotspot): RankTarget {
+    const { position: p, target: t } = hs.view;
+    return { point: t, side: [p[0] - t[0], p[1] - t[1], p[2] - t[2]] };
+  }
+
+  /** Capture photos that best show a point, as a filmstrip; null when there is nothing to show. */
+  private photoStrip(label: string, target: RankTarget): HTMLElement | null {
+    const capture = this.capture;
+    const lib = this.photos;
+    if (!capture?.poses || !lib || !this.captureSpace || this.store.scene.model.url !== this.captureUrl) return null;
+    const key = JSON.stringify(target);
+    let ranked = this.rankCache.get(key);
+    if (!ranked) {
+      ranked = rankPhotos(capture.poses.samples, capture.images, target, { toModel: this.captureSpace, limit: 8 });
+      this.rankCache.set(key, ranked);
+    }
+    if (!ranked.length) return null;
+    const photos = ranked;
+    const strip = filmstrip(photos, lib, (i) => this.lightbox.open(photos, i, lib, label), label);
+    if (lib.hasZip) return strip;
+    const bundle = bundleNameOf(this.captureUrl);
+    return h('div', { class: 'photo-block' }, strip, h('p', { class: 'hint' }, `Photos kept in this browser. Drop “${bundle}” to load any others.`));
+  }
+
+  /** Points the photo close-ups at a capture; the zip (if any) is read lazily, photo by photo. */
+  private setCapture(bundle: CaptureBundle, url: string, zip: Blob | null, stored: Promise<unknown>): void {
+    this.photos?.dispose();
+    this.capture = bundle;
+    this.captureUrl = url;
+    this.captureSpace = null;
+    this.rankCache.clear();
+    this.photos = new PhotoLibrary({ url, zip, root: bundle.root, cache: this.cache, stored });
   }
 
   // ---------------------------------------------------------------- editing actions
@@ -531,6 +587,7 @@ export class App {
       if (this.openMenu && !(e.target as HTMLElement)?.closest?.('.open-menu')) this.toggleOpenMenu(false);
     });
     window.addEventListener('keydown', (e) => {
+      if (this.lightbox.handleKey(e)) return e.preventDefault();
       if (e.key === 'Escape' && this.openMenu) return this.toggleOpenMenu(false);
       if ((e.target as HTMLElement)?.closest?.('input, textarea, select')) return;
       if (this.mode === 'present') {
@@ -591,7 +648,8 @@ export class App {
     if (previous) URL.revokeObjectURL(previous);
     this.modelFiles.set(ref.url, URL.createObjectURL(new Blob([bundle.model.data as BlobPart])));
     this.loadedModelKey = '';
-    this.capture = bundle;
+    let markStored = () => {};
+    this.setCapture(bundle, ref.url, file, new Promise<void>((resolve) => (markStored = resolve)));
 
     // Re-dropping a bundle brings back the comments saved for it; keep any model transform.
     const fresh = sceneFromCapture(bundle, file.name);
@@ -599,7 +657,8 @@ export class App {
     const saved = current.id === fresh.id ? current : this.store.saved(fresh.id);
     const scene = saved ? { ...saved, model: { ...saved.model, ...ref } } : fresh;
     await this.open(scene, { frame: saved !== current });
-    if (this.loadedModelKey) void this.keepCapture(bundle, ref.url, scene.id);
+    if (this.loadedModelKey) void this.keepCapture(bundle, ref.url, scene.id).finally(markStored);
+    else markStored();
     if (this.loadedModelKey) {
       const { manifest, poses, images } = bundle;
       const warnings = [...bundle.warnings, ...this.modelWarnings];
@@ -626,11 +685,11 @@ export class App {
     const restored = await cache?.restore(url, sceneId);
     if (!restored) return null;
     const { entry, manifest, poses, model } = restored;
-    const bundle: CaptureBundle = { manifest, poses, images: entry.images, warnings: [], model: { path: entry.modelPath, format: entry.format, data: model } };
+    const bundle: CaptureBundle = { manifest, poses, images: entry.images, root: '', warnings: [], model: { path: entry.modelPath, format: entry.format, data: model } };
     const previous = this.modelFiles.get(url);
     if (previous) URL.revokeObjectURL(previous);
     this.modelFiles.set(url, URL.createObjectURL(new Blob([model as BlobPart])));
-    this.capture = bundle;
+    this.setCapture(bundle, url, null, Promise.resolve());
     return bundle;
   }
 

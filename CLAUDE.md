@@ -16,7 +16,7 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
 - `apps/docs/`: Fumadocs (Next.js static export) docs + progress site. Own `package.json`; its pages are
   generated from the repo's markdown by `scripts/sync-content.mjs` (README, ROADMAP, CHANGELOG, `docs/*.md`),
   so edit the markdown, never `apps/docs/content/`.
-- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`; `tools/fixtures/make-capture.mjs` USDZ-based fixture bundle).
+- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`; `tools/fixtures/make-capture.mjs` USDZ-based fixture bundle, `render-photos.mjs` renders its photos from the poses).
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 
@@ -32,6 +32,7 @@ npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: 
 npm run docs:build  # → apps/docs/out/
 node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
 tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
+# Before publishing, set docs/credits.json spentUsd from get_session usage.cost_usd (credit counter on the site).
 ```
 
 The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
