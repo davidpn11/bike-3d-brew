@@ -188,24 +188,113 @@ input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(-
 body[data-mode='present'] .layout { grid-template-columns: 1fr; }
 body[data-mode='present'] .panel { display: none; }
 .present-card {
-  position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); translate: -50% 0;
-  width: min(560px, calc(100% - 24px)); max-height: 45%; overflow-y: auto;
-  background: rgb(17 18 20 / .9); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px;
+  position: absolute; z-index: 5; left: 50%; translate: -50% 0;
+  bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
+  width: min(560px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); max-height: 46%; overflow-y: auto;
+  overscroll-behavior: contain; touch-action: pan-y;
+  background: rgb(17 18 20 / .92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--line); border-radius: 18px; padding: 10px 12px 12px;
+  box-shadow: 0 18px 40px rgb(0 0 0 / .35);
 }
-.present-card header { display: flex; align-items: center; gap: 12px; }
-.present-card header div { flex: 1; text-align: center; display: grid; }
-.present-card header small { color: var(--muted); }
-.present-card header strong { font-size: 18px; }
-.present-card header button { font-size: 22px; width: 44px; height: 44px; border-radius: 50%; }
-.present-card ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
-.present-card li { padding: 8px 10px; border-radius: 10px; border-left: 4px solid var(--feature); background: var(--surface); cursor: pointer; }
-.present-card li[data-kind='upgrade'] { border-left-color: var(--upgrade); }
-.present-card li[data-kind='spec'] { border-left-color: #6b7280; }
-.present-card li[data-kind='note'] { border-left-color: var(--note); }
-.present-card li.on { outline: 1px solid var(--accent); }
-.present-card li .price { float: right; }
-.present-card li p { margin: 4px 0 0; color: #c9cacf; }
-.present-card .lede { text-align: center; color: var(--muted); margin: 8px 0 2px; }
+.present-card header { display: flex; align-items: center; gap: 10px; }
+.present-card header div { flex: 1; min-width: 0; text-align: center; display: grid; }
+.present-card header small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.present-card header strong { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.present-card header button { flex: none; font-size: 24px; line-height: 1; width: 48px; height: 48px; border-radius: 50%; padding: 0; }
+.present-sub { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+.dots { display: flex; flex-wrap: wrap; justify-content: center; }
+/* 28 px hit area around an 8 px dot. */
+.dots button { width: 28px; height: 28px; padding: 0; border: 0; background: none; display: grid; place-items: center; border-radius: 50%; }
+.dots button::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #5b5e66; transition: width .2s, background .2s; }
+.dots button.on::after { width: 20px; border-radius: 4px; background: var(--accent); }
+.present-card .play { width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 12px; color: var(--muted); }
+.present-card .play.on { color: var(--text); border-color: var(--accent); }
+.kiosk-bar { position: sticky; top: -10px; height: 3px; margin: -10px -12px 7px; border-radius: 18px 18px 0 0; overflow: hidden; }
+.kiosk-bar.run::after { content: ''; display: block; height: 100%; background: var(--accent); transform-origin: left; animation: kiosk var(--kiosk-ms, 8s) linear forwards; }
+@keyframes kiosk { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.present-card ul.notes { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 8px; }
+.present-card li.note {
+  min-height: 44px; padding: 10px 12px; border-radius: 12px; border-left: 4px solid var(--feature); background: var(--surface); cursor: pointer;
+}
+.present-card li.note[data-kind='upgrade'] { border-left-color: var(--upgrade); }
+.present-card li.note[data-kind='spec'] { border-left-color: #6b7280; }
+.present-card li.note[data-kind='note'] { border-left-color: var(--note); }
+.present-card li.note.on { outline: 2px solid var(--accent); outline-offset: -1px; }
+.present-card li.note:focus-visible { outline: 2px solid var(--accent); }
+.present-card li.note > strong { font-size: 15px; }
+.present-card li.note .price { float: right; margin-left: 8px; }
+.present-card .lede { text-align: center; color: var(--muted); margin: 6px 0 2px; }
+
+/* Markdown-lite comment bodies. */
+.md { color: #c9cacf; }
+.md p { margin: 4px 0 0; }
+.md ul { margin: 4px 0 0; padding-left: 18px; }
+.md li { margin: 2px 0; }
+.md strong { color: var(--text); }
+.md li::marker { color: var(--accent); }
+
+/* Leader lines from the area's pins to the Present card (under the card, over the bike). */
+.leader-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
+.leader-layer line { stroke: rgb(255 255 255 / .55); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.leader-layer circle { fill: rgb(255 255 255 / .7); }
+.leader-layer line.active { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: none; }
+.leader-layer circle.active { fill: var(--accent); }
+.leader-layer .off { display: none; }
+.viewport[data-background='studio'] ~ .leader-layer line:not(.active) { stroke: rgb(17 18 20 / .45); }
+.viewport[data-background='studio'] ~ .leader-layer circle:not(.active) { fill: rgb(17 18 20 / .55); }
+body:not([data-mode='present']) .leader-layer { display: none; }
+.pin-layer { z-index: 3; }
+.toast { z-index: 7; }
+
+/* Read-only customer link (?view=present): only the bike, its name and price, and Share. */
+body[data-readonly='true'] .topbar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+body[data-readonly='true'] .topbar .brand strong { font-size: 17px; }
+body[data-readonly='true'] .stage.dropping::after { display: none; }
+.link-error {
+  position: absolute; inset: 0; z-index: 6; display: grid; place-content: center; gap: 4px; padding: 24px; text-align: center;
+  background: var(--bg);
+}
+.link-error strong { font-size: 18px; }
+.link-error p { margin: 4px auto 0; max-width: 420px; color: #c9cacf; }
+.link-error .hint { color: var(--muted); }
+
+/* Share dialog */
+.share-dialog { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / .6); }
+.share-dialog[hidden] { display: none; }
+.share-box {
+  width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; display: grid; gap: 10px; padding: 16px;
+  border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 24px 60px rgb(0 0 0 / .5);
+}
+.share-box header { display: flex; align-items: center; justify-content: space-between; }
+.share-box h2 { margin: 0; font-size: 17px; }
+.share-box p { margin: 0; color: #c9cacf; }
+.share-box .close { width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 20px; }
+.share-url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.share-actions { flex-wrap: wrap; }
+.share-actions > * { flex: 1 1 auto; text-align: center; }
+a.button {
+  display: inline-block; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: inherit; text-decoration: none;
+}
+.share-status { font-size: 13px; min-height: 1.2em; }
+.share-status[data-tone='ok'] { color: #86efac; }
+.share-status[data-tone='warn'] { color: #fde68a; }
+.share-warn { padding: 8px 10px; border-radius: 10px; border: 1px solid #a16207; background: rgb(161 98 7 / .15); font-size: 13px; }
+.share-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: #c9cacf; }
+.share-steps code { font-size: 12px; word-break: break-all; color: var(--text); }
+.share-package { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.share-package small { color: var(--muted); }
+button.share { border-color: var(--accent); }
+
+/* Comment reordering in Edit mode: drag handle plus ↑ ↓ buttons. */
+.comment .drag {
+  flex: none; align-self: stretch; display: grid; place-items: center; width: 18px; margin: -4px -4px -4px -6px;
+  color: var(--muted); cursor: grab; touch-action: none; user-select: none; letter-spacing: -3px; font-size: 13px;
+}
+.comment .drag:hover { color: var(--text); }
+.comments.reordering .comment { transition: transform .15s; }
+.comments .comment.dragging { transition: none; position: relative; z-index: 2; border-color: var(--accent); box-shadow: 0 10px 24px rgb(0 0 0 / .5); cursor: grabbing; }
+.row-actions .move { min-width: 30px; }
+.row-actions .move:disabled { opacity: .35; cursor: default; }
 
 /* Phones: panel becomes a bottom sheet under the bike. */
 @media (max-width: 760px) {
@@ -215,4 +304,18 @@ body[data-mode='present'] .panel { display: none; }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
   .menu { left: 0; right: auto; }
+  /* Present on phones: the card is a bottom sheet and the bike renders in the space above it. */
+  body[data-mode='present'] .viewport { bottom: max(0px, calc(var(--present-card-h, 0px) - 20px)); }
+  .present-card {
+    left: 0; right: 0; bottom: 0; translate: none; width: auto; max-height: 50%;
+    border-width: 1px 0 0; border-radius: 20px 20px 0 0; background: var(--surface); box-shadow: 0 -10px 30px rgb(0 0 0 / .25);
+    padding: 8px max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+  .kiosk-bar { top: -8px; margin: -8px -12px 5px; border-radius: 20px 20px 0 0; }
+  .present-card header strong { font-size: 18px; }
+  /* Present mode is customer-facing: keep the top bar to the bike, the modes and Share. */
+  body[data-mode='present'] .topbar .segmented[aria-label='Background'],
+  body[data-mode='present'] .topbar .actions > :not(.share) { display: none; }
+  body[data-readonly='true'] .topbar { flex-wrap: nowrap; }
+  body[data-readonly='true'] .topbar .brand { flex-direction: column; gap: 0; }
 }
