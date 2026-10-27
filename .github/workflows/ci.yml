@@ -16,8 +16,43 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      # Unit tests with coverage; fails when coverage drops below the thresholds in apps/web/vite.config.ts.
+      - run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "const t=require('./coverage/coverage-summary.json').total;console.log('### Unit test coverage\n\n| | % |\n|---|---|\n'+['lines','statements','functions','branches'].map(k=>'| '+k+' | '+t[k].pct+' |').join('\n'))" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Two shards in parallel: SwiftShader renders on the CPU, so wall time scales with test count.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Headless shell only: the suite renders WebGL with SwiftShader, no GPU needed.
+      - run: npx playwright install --with-deps --only-shell chromium
+      # The Playwright web server builds dist/ and serves it with `vite preview`.
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/2
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
 
   # Docs + progress site (apps/docs, Fumadocs static export). Its deps live in apps/docs only,
   # so the web job's `npm ci` stays lean. Publishing is done by tools/publish-pages.sh, not CI.

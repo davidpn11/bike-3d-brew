@@ -12,7 +12,11 @@
     "preview": "vite preview --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config apps/web/vite.config.ts",
+    "test:coverage": "vitest run --config apps/web/vite.config.ts --coverage",
     "test:watch": "vitest --config apps/web/vite.config.ts",
+    "e2e": "playwright test --config apps/web/playwright.config.ts",
+    "e2e:ui": "playwright test --config apps/web/playwright.config.ts --ui",
+    "fixtures": "node tools/fixtures/make-capture-bundle.mjs",
     "fixture:capture": "node tools/fixtures/make-capture.mjs",
     "fixture:photos": "node tools/fixtures/render-photos.mjs && node tools/fixtures/make-capture.mjs tools/fixtures/out/fixture-photos.bikecapture.zip --images tools/fixtures/out/photos",
     "docs:dev": "npm --prefix apps/docs run dev",
@@ -24,8 +28,11 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "happy-dom": "^21.0.4",
     "fake-indexeddb": "^6.2.6",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

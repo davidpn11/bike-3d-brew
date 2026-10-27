@@ -9,4 +9,9 @@ xcuserdata/
 DerivedData/
 # Captures are private: extract exports here, never commit them
 data/captures-in/
+# Test output
+coverage/
+test-results/
+playwright-report/
+apps/web/e2e/.fixtures/
 tools/fixtures/out/
