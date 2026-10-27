@@ -1,0 +1,33 @@
+name: BikeCapture
+options:
+  bundleIdPrefix: com.bike3dbrew
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  BikeCapture:
+    type: application
+    platform: iOS
+    sources: [BikeCapture]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bike3dbrew.capture
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: BikeCapture/Info.plist
+      properties:
+        CFBundleDisplayName: Bike Capture
+        NSCameraUsageDescription: Bike Capture uses the camera and LiDAR scanner to build a 3D model of the bike.
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown]
+        UIRequiredDeviceCapabilities: [arkit]
