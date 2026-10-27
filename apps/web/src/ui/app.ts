@@ -2,6 +2,7 @@ import { viewForPoint } from '../scene/camera';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
 import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
 import { type CachedCapture, type CaptureCache, formatBytes } from '../scene/captureCache';
+import { KIOSK_DEFAULTS } from '../scene/kiosk';
 import { type RankTarget, type RankedPhoto, rankPhotos } from '../scene/photos';
 import {
   ANNOTATION_KINDS,
@@ -17,6 +18,7 @@ import {
   formatFromFilename,
   parseScene,
 } from '../scene/schema';
+import { type Published, type SharePackageInput, type ViewParams, publishedPhotoUrls, shareOption } from '../scene/share';
 import type { SceneStore } from '../scene/store';
 import { requestPersistence } from '../storage/backends';
 import { sourceToModelRoot } from '../viewer/captureSpace';
@@ -25,7 +27,11 @@ import { PinLayer } from '../viewer/pins';
 import type { Viewer } from '../viewer/Viewer';
 import { download, h } from './dom';
 import { PhotoLibrary } from './photoLibrary';
-import { Lightbox, filmstrip } from './photoViewer';
+import { markdownBlock } from './markdown';
+import { type PhotoSource, Lightbox, filmstrip } from './photoViewer';
+import { PresentView } from './present';
+import { dragReorder } from './reorder';
+import { ShareDialog } from './share';
 
 export type Mode = 'view' | 'edit' | 'present';
 
@@ -53,7 +59,10 @@ export class App {
   private draft: Draft | null = null;
   private draftPin: HTMLDivElement;
   private toastEl: HTMLDivElement;
-  private presentEl: HTMLDivElement;
+  private present: PresentView;
+  private shareDialog = new ShareDialog();
+  /** The published scene this page was opened with (`?scene=`), for the share link. */
+  published: Published | null = null;
   private pins: PinLayer;
   /** Dropped model files by filename, so scenes can reference them by name. */
   private modelFiles = new Map<string, string>();
@@ -81,8 +90,8 @@ export class App {
     this.pins = new PinLayer(viewer, els.stage, (id) => this.focusAnnotation(id));
     this.draftPin = h('div', { class: 'pin draft', hidden: true }, '+');
     this.toastEl = h('div', { class: 'toast', role: 'status', hidden: true });
-    this.presentEl = h('div', { class: 'present-card', hidden: true });
-    els.stage.append(this.draftPin, this.toastEl, this.presentEl);
+    els.stage.append(this.draftPin, this.toastEl);
+    this.present = new PresentView(viewer, els.stage, { go: (step) => this.goToStep(step), focus: (id) => void this.focusAnnotation(id) }, KIOSK_DEFAULTS);
     viewer.onFrame(() => this.positionDraftPin());
 
     store.subscribe(() => this.render());
@@ -129,13 +138,25 @@ export class App {
     }
   }
 
+  /** Applies URL parameters (auto-advance timing). The customer link (`?view=present`) never builds an App: see present/BikePresenter. */
+  configure(params: ViewParams): void {
+    this.present.kiosk.configure({ interval: params.interval, idle: params.idle });
+    this.render();
+  }
+
+  /** Auto-advance through the areas (kiosk); `?kiosk=1` or the ▶ button in Present mode. */
+  startKiosk(): void {
+    this.setMode('present');
+    if (this.mode === 'present') this.present.kiosk.play();
+  }
+
   setMode(mode: Mode): void {
     if (this.mode === mode) return;
     this.mode = mode;
     this.draft = null;
     document.body.dataset.mode = mode;
     if (mode === 'present') this.goToStep(0);
-    else this.presentEl.hidden = true;
+    else this.present.hide();
     if (mode === 'edit') this.toast('Edit mode: tap the bike to pin a comment.', 'info');
     this.render();
   }
@@ -185,6 +206,7 @@ export class App {
   goToStep(step: number): void {
     const steps = this.presentSteps();
     this.presentStep = wrapStep(step, steps.length);
+    this.present.kiosk.restart();
     const hotspot = steps[this.presentStep];
     void this.focusHotspot(hotspot ? hotspot.id : null);
   }
@@ -192,6 +214,8 @@ export class App {
   // ---------------------------------------------------------------- top bar
 
   private renderTopbar(scene: BikeScene): void {
+    const brand = h('div', { class: 'brand' }, h('strong', {}, scene.name), scene.price ? h('span', { class: 'price' }, scene.price) : null);
+    const share = h('button', { type: 'button', class: 'share', title: 'Send this bike to a customer', onclick: () => void this.share() }, 'Share');
     const bg = h(
       'div',
       { class: 'segmented', role: 'group', 'aria-label': 'Background' },
@@ -239,10 +263,11 @@ export class App {
       h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.bike.json`, this.store.toJSON()) }, 'Export'),
       h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.png`, dataUrlToBlob(this.viewer.screenshot())) }, 'Snapshot'),
       h('button', { type: 'button', onclick: () => void this.focusHotspot(null) }, 'Reset view'),
+      share,
       fileInput,
     );
     this.els.topbar.replaceChildren(
-      h('div', { class: 'brand' }, h('strong', {}, scene.name), scene.price ? h('span', { class: 'price' }, scene.price) : null),
+      brand,
       modes,
       bg,
       menu,
@@ -328,7 +353,7 @@ export class App {
     );
 
     const activeArea = scene.hotspots.find((x) => x.id === this.activeHotspot);
-    const areaPhotos = activeArea ? this.photoStrip(activeArea.name, this.areaTarget(activeArea)) : null;
+    const areaPhotos = activeArea ? this.photoStrip(activeArea.name, this.areaTarget(activeArea), activeArea) : null;
     if (areaPhotos) sections.push(h('section', { class: 'photos' }, h('h2', {}, `${activeArea!.name} photos`), areaPhotos));
 
     if (this.draft) sections.push(this.commentEditor(scene, this.draft));
@@ -342,7 +367,7 @@ export class App {
         h('h2', {}, 'Comments'),
         list.length === 0
           ? h('p', { class: 'empty' }, editing ? 'Tap the bike to pin a comment here.' : 'No comments for this area yet.')
-          : h('ol', { class: 'comments' }, ...list.map((a) => this.commentCard(a, numberOf.get(a.id) ?? 0, editing))),
+          : this.commentList(list, numberOf, editing),
       ),
     );
     this.els.panel.replaceChildren(...sections);
@@ -362,24 +387,34 @@ export class App {
     );
   }
 
-  private commentCard(a: Annotation, n: number, editing: boolean): HTMLElement {
+  private commentList(list: Annotation[], numberOf: Map<string, number>, editing: boolean): HTMLElement {
+    const ol = h('ol', { class: 'comments' }, ...list.map((a, i) => this.commentCard(a, numberOf.get(a.id) ?? 0, editing, i, list)));
+    // Order is what customers see in Present mode (and the pin numbers); moves stay within the shown area.
+    if (editing) dragReorder(ol, '.drag', (id, to) => this.store.moveAnnotation(id, to, list.map((x) => x.id)));
+    return ol;
+  }
+
+  private commentCard(a: Annotation, n: number, editing: boolean, index = 0, list: Annotation[] = []): HTMLElement {
     const area = this.store.scene.hotspots.find((x) => x.id === a.hotspotId);
     return h(
       'li',
       { class: `comment${a.id === this.activeAnnotation ? ' on' : ''}`, dataset: { id: a.id, kind: a.kind }, onclick: () => void this.focusAnnotation(a.id) },
+      editing ? h('span', { class: 'drag', title: 'Drag to reorder', 'aria-hidden': 'true' }, '⋮⋮') : null,
       h('span', { class: 'num' }, String(n)),
       h(
         'div',
         { class: 'body' },
         h('div', { class: 'meta' }, h('span', { class: 'kind' }, KIND_LABEL[a.kind]), area && !this.activeHotspot ? h('span', { class: 'area' }, area.name) : null, a.price ? h('span', { class: 'price' }, a.price) : null),
         h('strong', {}, a.title || 'Untitled'),
-        a.body ? h('p', {}, a.body) : null,
+        a.body ? markdownBlock(a.body) : null,
         a.id === this.activeAnnotation ? this.photoStrip(a.title || 'Comment', { point: a.position, side: a.normal }) : null,
         editing
           ? h(
               'span',
               { class: 'row-actions' },
               h('button', { type: 'button', onclick: (e: Event) => (e.stopPropagation(), this.editComment(a)) }, 'Edit'),
+              h('button', { type: 'button', class: 'move', 'aria-label': `Move “${a.title}” up`, disabled: index === 0, onclick: (e: Event) => (e.stopPropagation(), this.moveComment(a, index - 1, list)) }, '↑'),
+              h('button', { type: 'button', class: 'move', 'aria-label': `Move “${a.title}” down`, disabled: index === list.length - 1, onclick: (e: Event) => (e.stopPropagation(), this.moveComment(a, index + 1, list)) }, '↓'),
               h('button', { type: 'button', class: 'danger', onclick: (e: Event) => (e.stopPropagation(), this.deleteComment(a)) }, 'Delete'),
             )
           : null,
@@ -451,36 +486,70 @@ export class App {
   private renderPresent(scene: BikeScene): void {
     const steps = this.presentSteps();
     const hotspot = steps[this.presentStep];
-    const notes = hotspot ? this.store.annotationsFor(hotspot.id) : [];
-    this.presentEl.hidden = false;
-    const details = hotspot
-      ? notes.length
-        ? h(
-            'ul',
-            {},
-            ...notes.map((a) =>
-              h(
-                'li',
-                { class: a.id === this.activeAnnotation ? 'on' : '', dataset: { kind: a.kind }, onclick: () => void this.focusAnnotation(a.id) },
-                h('strong', {}, a.title),
-                a.price ? h('span', { class: 'price' }, a.price) : null,
-                a.body ? h('p', {}, a.body) : null,
-              ),
-            ),
-          )
-        : ''
-      : h('p', { class: 'lede' }, presentLede(scene));
-    this.presentEl.replaceChildren(
-      h(
-        'header',
-        {},
-        h('button', { type: 'button', 'aria-label': 'Previous area', onclick: () => this.goToStep(this.presentStep - 1) }, '‹'),
-        h('div', {}, h('small', {}, `${this.presentStep + 1} / ${steps.length}`), h('strong', {}, hotspot ? hotspot.name : scene.name)),
-        h('button', { type: 'button', 'aria-label': 'Next area', onclick: () => this.goToStep(this.presentStep + 1) }, '›'),
-      ),
-      details,
-      hotspot ? (this.photoStrip(hotspot.name, this.areaTarget(hotspot)) ?? '') : '',
-    );
+    this.present.render({
+      scene,
+      steps,
+      step: this.presentStep,
+      notes: hotspot ? this.store.annotationsFor(hotspot.id) : [],
+      active: this.activeAnnotation,
+      lede: presentLede(scene),
+      photos: hotspot ? this.photoStrip(hotspot.name, this.areaTarget(hotspot), hotspot) : null,
+    });
+  }
+
+  // ---------------------------------------------------------------- sharing
+
+  private async share(): Promise<void> {
+    const scene = this.store.scene;
+    await this.shareDialog.share({
+      option: shareOption(scene, this.published, location.href),
+      sceneName: scene.name,
+      packageInput: () => this.sharePackageInput(),
+      toast: (m, tone, ms) => this.toast(m, tone, ms),
+    });
+  }
+
+  /** The model bytes and the best close-ups of each area, for a `.bikeshare.zip`. */
+  private async sharePackageInput(): Promise<SharePackageInput> {
+    const scene = this.store.scene;
+    const fetchBytes = async (url: string) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`could not read ${url} (${res.status})`);
+      return new Uint8Array(await res.arrayBuffer());
+    };
+    let model: SharePackageInput['model'];
+    if (scene.model.format !== 'demo') {
+      const url = this.resolveModelUrl(scene.model);
+      if (!url) throw new Error('the model is not loaded. Open the capture (or model file) first.');
+      model = { bytes: await fetchBytes(url), format: scene.model.format };
+    }
+    const photos = new Map<string, Uint8Array[]>();
+    for (const hs of scene.hotspots) {
+      const jpegs: Uint8Array[] = [];
+      for (const url of await this.areaPhotoUrls(hs)) {
+        const bytes = await fetchBytes(url).catch(() => null);
+        if (bytes && bytes[0] === 0xff && bytes[1] === 0xd8) jpegs.push(bytes);
+      }
+      if (jpegs.length) photos.set(hs.id, jpegs);
+    }
+    return { scene, model, photos };
+  }
+
+  /** Up to three JPEG URLs of an area's best close-ups: from the open capture, or a published scene's own. */
+  private async areaPhotoUrls(hs: Hotspot): Promise<string[]> {
+    const capture = this.capture;
+    const lib = this.photos;
+    if (capture?.poses && lib && this.captureSpace && this.store.scene.model.url === this.captureUrl) {
+      const ranked = rankPhotos(capture.poses.samples, capture.images, this.areaTarget(hs), { toModel: this.captureSpace, limit: 3 });
+      const urls = await Promise.all(ranked.map((p) => lib.get(p.path, 'full')));
+      return urls.filter((u): u is string => !!u);
+    }
+    return this.publishedPhotos(hs).slice(0, 3);
+  }
+
+  /** A published scene's own close-ups (`Hotspot.photos`), resolved against the scene URL. */
+  private publishedPhotos(hs: Hotspot): string[] {
+    return publishedPhotoUrls(hs.photos, this.baseUrl, location.href);
   }
 
   // ---------------------------------------------------------------- photo close-ups
@@ -492,10 +561,14 @@ export class App {
   }
 
   /** Capture photos that best show a point, as a filmstrip; null when there is nothing to show. */
-  private photoStrip(label: string, target: RankTarget): HTMLElement | null {
+  private photoStrip(label: string, target: RankTarget, area?: Hotspot): HTMLElement | null {
     const capture = this.capture;
     const lib = this.photos;
-    if (!capture?.poses || !lib || !this.captureSpace || this.store.scene.model.url !== this.captureUrl) return null;
+    if (!capture?.poses || !lib || !this.captureSpace || this.store.scene.model.url !== this.captureUrl) {
+      const items = (area ? this.publishedPhotos(area) : []).map((path) => ({ path }));
+      if (!items.length) return null;
+      return filmstrip(items, URL_PHOTOS, (i) => this.lightbox.open(items, i, URL_PHOTOS, label), label);
+    }
     const key = JSON.stringify(target);
     let ranked = this.rankCache.get(key);
     if (!ranked) {
@@ -546,6 +619,12 @@ export class App {
     this.render();
   }
 
+  private moveComment(a: Annotation, to: number, list: Annotation[]): void {
+    this.store.moveAnnotation(a.id, to, list.map((x) => x.id));
+    // Keep keyboard focus on the moved comment so repeated presses keep moving it.
+    queueMicrotask(() => this.panelCard(a.id)?.querySelector<HTMLButtonElement>('.move:not(:disabled)')?.focus());
+  }
+
   private deleteComment(a: Annotation): void {
     if (!confirm(`Delete comment “${a.title}”?`)) return;
     if (this.activeAnnotation === a.id) this.activeAnnotation = null;
@@ -589,12 +668,15 @@ export class App {
     });
     window.addEventListener('keydown', (e) => {
       if (this.lightbox.handleKey(e)) return e.preventDefault();
+      if (this.shareDialog.isOpen) return;
       if (e.key === 'Escape' && this.openMenu) return this.toggleOpenMenu(false);
       if ((e.target as HTMLElement)?.closest?.('input, textarea, select')) return;
       if (this.mode === 'present') {
+        if (e.key !== 'k') this.present.kiosk.interact();
         if (e.key === 'ArrowRight' || e.key === ' ') this.goToStep(this.presentStep + 1);
         else if (e.key === 'ArrowLeft') this.goToStep(this.presentStep - 1);
         else if (e.key === 'Escape') this.setMode('view');
+        else if (e.key === 'k') this.present.kiosk.toggle();
       } else if (e.key === 'Escape' && this.draft) {
         this.draft = null;
         this.render();
@@ -745,6 +827,9 @@ export class App {
     return this.els.panel.querySelector(`[data-id="${CSS.escape(id)}"]`);
   }
 }
+
+/** Published close-ups are plain URLs: nothing to decode or cache. */
+const URL_PHOTOS: PhotoSource = { errors: new Map(), get: (path) => Promise.resolve(path) };
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const { mime, bytes } = dataUrlToBytes(dataUrl);

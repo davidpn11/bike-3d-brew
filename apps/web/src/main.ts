@@ -1,5 +1,6 @@
 import './styles.css';
-import { type Annotation, type BikeScene, type Hotspot, SCHEMA, parseScene } from './scene/schema';
+import { type Annotation, type BikeScene, type Hotspot, SCHEMA } from './scene/schema';
+import { checkSceneUrl, loadPublishedScene, readViewParams } from './scene/share';
 import { SceneStore, safeLocalStorage } from './scene/store';
 import { openCaptureCache } from './storage/backends';
 import { App } from './ui/app';
@@ -14,8 +15,16 @@ const $ = (id: string) => document.getElementById(id)!;
 
 const viewer = new Viewer($('viewport'));
 const params = new URLSearchParams(location.search);
-const sceneUrl = params.get('scene');
-const baseUrl = sceneUrl ? new URL(sceneUrl, location.href).href : location.href;
+const view = readViewParams(location.search);
+const sceneUrl = view.scene;
+// An invalid ?scene= is reported by boot(); until then the page itself is the base.
+let sceneHref: string | null = null;
+try {
+  sceneHref = sceneUrl ? checkSceneUrl(sceneUrl, location.href) : null;
+} catch {
+  /* reported below */
+}
+const baseUrl = sceneHref ?? location.href;
 
 const store = new SceneStore(emptyDemo(), storage);
 store.subscribe((s) => {
@@ -29,6 +38,7 @@ store.subscribe((s) => {
 const cache = openCaptureCache().catch(() => null);
 const app = new App(store, viewer, { topbar: $('topbar'), stage: $('stage'), panel: $('panel') }, baseUrl, cache);
 document.body.dataset.mode = 'view';
+app.configure(view);
 
 // Test hook for the Playwright suite (docs/TESTING.md): dev server or `?e2e` only, so tests can
 // wait on app state and find pickable points on the canvas instead of sleeping or guessing pixels.
@@ -43,11 +53,10 @@ boot()
 
 async function boot(): Promise<void> {
   if (sceneUrl) {
-    const res = await fetch(sceneUrl);
-    if (!res.ok) throw new Error(`Could not load scene ${sceneUrl} (${res.status})`);
-    const remote = parseScene(await res.json());
-    // Local edits to a published scene win until the user exports them.
-    await app.open(params.has('fresh') ? remote : (SceneStore.restore(remote.id, storage) ?? remote));
+    const { scene: remote } = await loadPublishedScene(sceneUrl, location.href);
+    app.published = { param: sceneUrl, scene: remote };
+    // Local edits to a published scene win until the user exports them (customers get present/customer.ts instead).
+    await app.open(view.fresh ? remote : (SceneStore.restore(remote.id, storage) ?? remote));
   } else {
     const lastId = storage?.getItem(LAST_KEY);
     const saved = lastId ? SceneStore.restore(lastId, storage) : null;
@@ -59,8 +68,10 @@ async function boot(): Promise<void> {
     await app.open(demo ?? emptyDemo());
     if (!demo) seedDemo();
   }
-  if (params.get('mode') === 'present') app.setMode('present');
+  if (view.present) app.setMode('present');
+  if (view.kiosk) app.startKiosk();
 }
+
 
 function emptyDemo(): BikeScene {
   return {
@@ -89,9 +100,9 @@ function seedDemo(): void {
     { part: 'fork', dir: [1, 0.2, 0.6], note: { title: 'Full-carbon tapered fork', body: 'Tapered 1⅛"–1½" steerer for precise steering; clearance for 32 mm tyres.', kind: 'feature', hotspotId: 'hs-fork' } },
     { part: 'fork', dir: [0.4, -0.2, 1], note: { title: '12 mm thru-axle', body: 'Stiffer than quick release and keeps disc rotors perfectly aligned.', kind: 'spec', hotspotId: 'hs-fork' } },
     { part: 'drivetrain', dir: [0, 0, 1], note: { title: 'Shimano 105 Di2 12-speed', body: 'Electronic shifting: crisp, maintenance-free gear changes.', kind: 'feature', hotspotId: 'hs-drivetrain' } },
-    { part: 'drivetrain', dir: [-0.3, 0.2, 1], note: { title: 'Upgrade to Ultegra Di2', body: '180 g lighter, wider range cassette.', kind: 'upgrade', price: '+$900', hotspotId: 'hs-drivetrain' } },
+    { part: 'drivetrain', dir: [-0.3, 0.2, 1], note: { title: 'Upgrade to Ultegra Di2', body: '**180 g lighter**, with a wider-range cassette for climbs.', kind: 'upgrade', price: '+$900', hotspotId: 'hs-drivetrain' } },
     { part: 'cockpit', dir: [0.3, 1, 0.3], note: { title: 'Integrated carbon cockpit', body: 'Hidden cables, aero profile and a cleaner look.', kind: 'feature', hotspotId: 'hs-cockpit' } },
-    { part: 'saddle', dir: [0, 1, 0.2], note: { title: 'Fizik Argo saddle', body: 'Short-nose design, swap free within 30 days if it doesn’t fit.', kind: 'note', hotspotId: 'hs-saddle' } },
+    { part: 'saddle', dir: [0, 1, 0.2], note: { title: 'Fizik Argo saddle', body: 'Short-nose design for an aggressive position.\n- Swap free within **30 days** if it doesn’t fit\n- *Pressure-mapped* fitting in store', kind: 'note', hotspotId: 'hs-saddle' } },
     { part: 'front-wheel', dir: [0.2, 0.9, 0.6], note: { title: 'Carbon 45 mm wheelset', body: 'Tubeless-ready, aero rim depth.', kind: 'upgrade', price: '+$600', hotspotId: 'hs-front-wheel' } },
   ];
   const annotations: Annotation[] = [];
