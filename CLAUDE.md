@@ -12,7 +12,10 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
   - `src/viewer/`: three.js (`Viewer.ts`, `loaders.ts`, `pins.ts`, `demoBike.ts`).
   - `src/ui/app.ts`: modes (view / edit / present), panel, comment editor, file drop.
 - `apps/ios/`: SwiftUI capture app (`project.yml` for xcodegen). Object Capture → `model.usdz` + `poses.json` → `*.bikecapture.zip` (`bike-capture/1`).
-- `tools/`: offline helpers (e.g. USDZ → GLB).
+- `apps/docs/`: Fumadocs (Next.js static export) docs + progress site. Own `package.json`; its pages are
+  generated from the repo's markdown by `scripts/sync-content.mjs` (README, ROADMAP, CHANGELOG, `docs/*.md`),
+  so edit the markdown, never `apps/docs/content/`.
+- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`).
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 
@@ -24,7 +27,13 @@ npm run dev         # http://localhost:5190
 npm run typecheck
 npm test            # vitest, apps/web/test
 npm run build       # → dist/
+npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: npm --prefix apps/docs ci)
+npm run docs:build  # → apps/docs/out/
+node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
+tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
 ```
+
+The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
 
 The iOS app cannot be built on Linux. CI (`.github/workflows/ios.yml`) compiles it unsigned on
 macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
@@ -73,7 +82,9 @@ Sessions are started on a schedule with no human watching. Each session:
 5. **Finish.** Flip the item to `[x]`, add any follow-ups you discovered as new `[ ]` items in
    the right milestone, update docs, and mark the PR ready for review. PR body: what/why, how
    verified, screenshots (described), known gaps, and "Stacked on #N" with the PR below it.
-   Check CI on your PR before ending; if red, fix and push.
+   Check CI on your PR before ending; if red, fix and push. Then run
+   `tools/publish-pages.sh --source <your-branch>` from the stack tip so the owner's site stays
+   current, and add a row for your PR to "What each PR adds" in `docs/TESTING-GUIDE.md`.
 6. If an item needs hardware or a human decision (e.g. a real iPhone capture, a hosting
    account), do what can be done, document the remaining manual step in the PR and
    `docs/MANUAL-STEPS.md`, and move on to the next item.
