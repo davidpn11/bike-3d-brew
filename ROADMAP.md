@@ -5,6 +5,12 @@ session / one PR. Protocol is in [CLAUDE.md](CLAUDE.md#autonomous-session-protoc
 
 Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an open or merged PR).
 
+## Milestone 0: Project ops
+
+- [x] **Docs & progress site**: Fumadocs static site (`apps/docs`) generated from the repo's markdown, with a roadmap progress dashboard and a "How to test" guide, published with the viewer to GitHub Pages by `tools/publish-pages.sh` (site at `/bike-3d-brew/`, viewer at `/bike-3d-brew/app/`).
+- [ ] **Auto-publish on develop**: a workflow (`contents: write`) that runs `tools/publish-pages.sh --source develop` on every push to `develop`, so the site stays current even when no agent session runs.
+- [ ] **PR previews**: publish each open stack PR under `/bike-3d-brew/pr/<n>/` (docs + viewer) and link them from the Progress page, so the owner can test a PR before merging it.
+
 ## Milestone 1: Foundation (PR 1)
 
 - [x] Web viewer: three.js, orbit, fly-to areas, background modes (clear / chroma green / studio / dark)
@@ -20,7 +26,9 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] **Keep captures across reloads**: cache the unzipped model of the last opened bundles in IndexedDB/OPFS (best effort, quota-aware) so a reload reopens a capture scene without re-dropping the `.bikecapture.zip`.
 - [ ] **Capture cache on real Safari / iOS**: verify OPFS `createWritable()` vs. the IndexedDB fallback, quota numbers and `persist()` behavior on iPhone Safari and a home-screen web app; tune the 500 MB budget for phones.
 - [ ] **Cache large models without a main-thread copy**: write models to OPFS from a worker (`createSyncAccessHandle`) or straight from the dropped `File` stream, so a 300 MB capture does not briefly double memory on phones.
-- [ ] **USDZ robustness**: verify three.js `USDZLoader` against an Object Capture USDZ (binary USDC inside). If unsupported, document and add `tools/usdz-to-glb.py` (Blender headless) plus a clear in-app message. Add a small sample USDZ fixture if licensing allows (generate one, never commit customer captures).
+- [x] **USDZ robustness**: three r186 reads binary USDC; `apps/web/src/viewer/usd/` fixes its inline-value decoding, speeds up large meshes ~10×, waits for packed textures and falls back to a `tools/usdz-to-glb.py` hint. Synthetic Object-Capture-like fixtures from `tools/fixtures/make-usdc.py`.
+- [ ] **Verify a real Object Capture USDZ**: load a real `model.usdz` (owner's iPhone, see docs/MANUAL-STEPS.md), compare against Quick Look; turn anything off into a fixture-based test (synthetic re-creation, never the capture itself).
+- [ ] **Weld USDZ meshes**: three expands face-varying meshes to 3 vertices per triangle (~3M vertices for a 1M-triangle capture); merge identical corners into an indexed geometry to cut GPU memory, and consider decimating for phones.
 - [ ] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
 - [ ] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.
 - [ ] **Photo close-ups per area**: use `poses.json` to find the capture photos that look most directly at each area target (angle + distance score) and show them as a filmstrip under the area; tap to open full screen. HEIC → JPEG conversion at export time on iOS if browsers can't decode HEIC.
