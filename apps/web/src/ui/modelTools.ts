@@ -1,23 +1,28 @@
-import { estimateOrientation, rotateAboutWorld } from '../scene/orient';
-import type { BikeScene, ModelRef, Vec3 } from '../scene/schema';
+import { type Box, padBox, suggestCrop } from '../scene/crop';
+import { estimateOrientation, matrixFromEulerXYZ, rotateAboutWorld } from '../scene/orient';
+import { type BikeScene, type CropBox, type ModelRef, type Vec3, parseCrop } from '../scene/schema';
 import type { SceneStore } from '../scene/store';
 import type { Viewer } from '../viewer/Viewer';
 import { h } from './dom';
 
 export const AUTO_ORIENT_NOTE = 'Auto-oriented. Undo in Edit → Model';
+export const AREA_CROP_NOTE = 'Area-mode capture: turn on Crop in Edit → Model to hide the room around the bike';
 
 type Axis = 'x' | 'y' | 'z';
 const AXES: Axis[] = ['x', 'y', 'z'];
 const NUDGE = 0.01; // 1 cm in world meters
 const HISTORY = 30;
 
+type Snapshot = Pick<BikeScene, 'model' | 'crop'>;
+
 /**
- * Edit → Model: orientation, scale and position of the loaded model. Every action writes
- * `model.rotation/scale/offset` in one store update; comments and areas live in model-root
- * space, so they move with the bike. Keeps its own small undo stack of model transforms.
+ * Edit → Model: orientation, scale and position of the loaded model, and its crop box. Every
+ * action writes `model.rotation/scale/offset` or `crop` in one store update; comments, areas and
+ * the crop box live in model-root space, so they move with the bike. Keeps its own small undo
+ * stack of these model settings.
  */
 export class ModelTools {
-  private history: ModelRef[] = [];
+  private history: Snapshot[] = [];
   private open = true;
 
   constructor(
@@ -98,14 +103,102 @@ export class ModelTools {
       axisRow('Move 1 cm', (axis, sign) =>
         button(`${axis.toUpperCase()}${sign > 0 ? '+' : '−'}`, `Move ${sign > 0 ? '+' : '−'}1 cm along ${axis.toUpperCase()}`, () => this.nudge(axis, sign)),
       ),
+      this.cropSection(scene.crop),
     );
     return details;
+  }
+
+  /** Commits a crop box dragged in the viewport (one store update per drag). */
+  commitCrop(box: Box): void {
+    this.apply({ crop: { min: box.min.map(round) as Vec3, max: box.max.map(round) as Vec3, enabled: true } });
+  }
+
+  /**
+   * "Fit to bike" for the current model, ignoring any crop: floor slab and background clusters
+   * removed. Up is world +Y expressed in model-root space, so it also works after auto-orient.
+   */
+  suggestCropBox(): Box | null {
+    const m = matrixFromEulerXYZ(this.store.scene.model.rotation ?? [0, 0, 0]);
+    const s = suggestCrop(this.viewer.sampleSurface(), { up: [m[3], m[4], m[5]] });
+    return s ? { min: s.min, max: s.max } : null;
+  }
+
+  private cropSection(crop: CropBox | undefined): HTMLElement {
+    const fields = (corner: 'min' | 'max') =>
+      h(
+        'div',
+        { class: 'crop-row' },
+        h('span', {}, corner === 'min' ? 'Min' : 'Max'),
+        ...AXES.map((axis, i) =>
+          h('input', {
+            type: 'number',
+            step: '0.01',
+            name: `crop-${corner}-${axis}`,
+            'aria-label': `Crop ${corner} ${axis.toUpperCase()}`,
+            value: crop ? String(crop[corner][i]) : '',
+            onchange: (e: Event) => {
+              const value = Number((e.target as HTMLInputElement).value);
+              if (!crop || !Number.isFinite(value)) return;
+              const next = { ...crop, [corner]: crop[corner].map((v, k) => (k === i ? value : v)) };
+              const parsed = parseCrop(next);
+              if (parsed) this.apply({ crop: parsed });
+            },
+          }),
+        ),
+      );
+    return h(
+      'div',
+      { class: 'crop' },
+      h(
+        'div',
+        { class: 'row' },
+        h(
+          'label',
+          { class: 'toggle' },
+          h('input', { type: 'checkbox', name: 'crop', checked: !!crop?.enabled, onchange: (e: Event) => this.setCropEnabled((e.target as HTMLInputElement).checked) }),
+          'Crop',
+        ),
+        h('button', { type: 'button', title: 'Box the bike: drop the floor and anything not attached to it', onclick: () => this.fitCrop() }, 'Fit to bike'),
+        crop ? h('button', { type: 'button', class: 'danger', title: 'Remove the crop box', onclick: () => this.setCropGrounded(undefined) }, 'Clear') : null,
+      ),
+      crop?.enabled ? h('p', { class: 'hint' }, 'Drag the orange handles on the box faces, or type the corners (model units).') : null,
+      crop ? fields('max') : null,
+      crop ? fields('min') : null,
+    );
+  }
+
+  private setCropEnabled(enabled: boolean): void {
+    const crop = this.store.scene.crop;
+    if (crop) {
+      this.setCropGrounded({ ...crop, enabled });
+      return;
+    }
+    if (enabled) this.fitCrop();
+  }
+
+  private fitCrop(): void {
+    let box = this.suggestCropBox();
+    if (!box) {
+      const bounds = this.viewer.boundsOf();
+      if (!bounds) return;
+      box = padBox({ min: bounds.min.toArray(), max: bounds.max.toArray() }, 0.02);
+    }
+    this.setCropGrounded({ ...box, enabled: true });
+  }
+
+  /**
+   * Turning the crop on or off changes what the bike stands on (an area scan's floor slab is cut
+   * away), so the visible part is re-centered on the ground in the same undoable update.
+   */
+  private setCropGrounded(crop: CropBox | undefined): void {
+    this.viewer.setCrop(crop);
+    this.apply({ crop, offset: this.viewer.groundedOffset(this.store.scene.model) }, true);
   }
 
   private measured = { key: '', cm: null as number | null };
   /** Overall length in cm. Exact bounds walk every vertex, so memoize per transform. */
   private lengthCm(model: ModelRef): number | null {
-    const key = JSON.stringify([model.url, model.rotation, model.scale]);
+    const key = JSON.stringify([model.url, model.rotation, model.scale, this.viewer.getCrop()]);
     if (key !== this.measured.key) {
       const box = this.viewer.boundsWith(model);
       // Longest horizontal side, so it still means "length" while the bike is turned 90°.
@@ -142,15 +235,16 @@ export class ModelTools {
       return;
     }
     // An explicit identity rotation stops the next load from auto-orienting the capture again.
-    this.store.update({ model: { ...prev, rotation: prev.rotation ?? [0, 0, 0] } });
+    this.store.update({ model: { ...prev.model, rotation: prev.model.rotation ?? [0, 0, 0] }, crop: prev.crop });
     this.reframe();
   }
 
-  private apply(patch: Partial<Pick<ModelRef, 'rotation' | 'scale' | 'offset'>>, reframe = false): void {
-    const current = this.store.scene.model;
-    this.history.push(current);
+  private apply(patch: Partial<Pick<ModelRef, 'rotation' | 'scale' | 'offset'>> & { crop?: CropBox }, reframe = false): void {
+    const { model, crop } = this.store.scene;
+    this.history.push({ model, crop });
     if (this.history.length > HISTORY) this.history.shift();
-    this.store.update({ model: { ...current, ...patch } });
+    const { crop: nextCrop, ...transform } = patch;
+    this.store.update('crop' in patch ? { model: { ...model, ...transform }, crop: nextCrop } : { model: { ...model, ...transform } });
     if (reframe) this.reframe();
   }
 

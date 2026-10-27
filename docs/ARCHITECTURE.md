@@ -63,6 +63,20 @@ applied to the root as `world = offset + R · (scale · p)`. Annotations and hot
 model-root space, so re-orienting a capture never detaches a comment. The overview camera is
 framed in world space (camera up is world +Y) and converted back.
 
+**Crop box** (`crop?: { min, max, enabled }`, model-root space, optional and lenient: a
+malformed crop is dropped, swapped corners are reordered). The viewer turns it into six world
+clipping planes on the model's own materials (local clipping, shadows clipped too), recomputed only
+when the model transform or the box changes. Raycasts skip hits outside the box (no comments on
+cropped-away parts, no occlusion by them), pins outside it are hidden, and exact bounds (framing,
+on-ground, auto-orient samples) only count kept vertices. Edit mode shows the box with one handle
+per face (`viewer/cropBox.ts`): pointer events in the capture phase, so mouse and touch drags never
+orbit the camera; the face moves along its axis to the point nearest the pointer ray, clipping
+live, and the store is updated once on release. "Fit to bike" (`scene/crop.ts`, pure) samples
+points along triangle edges, cuts above the floor slab (a dense, wide band in the lower third of
+the up axis) and keeps the largest 26-connected voxel cluster with a 2% margin. Area-mode captures
+get that box pre-computed but disabled, a hint in the toast, and auto-orient waits until the crop
+is on. Turning the crop on/off or fitting it re-grounds the visible part.
+
 **Auto-orient** (`apps/web/src/scene/orient.ts`, pure, unit-tested). Target frame: +X front,
 +Y up, +Z drive side, tyres on y = 0. Up to 50k strided vertices (≈3 ms for 1M vertices):
 

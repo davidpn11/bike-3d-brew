@@ -21,7 +21,7 @@ const { values: args } = parseArgs({
     rotate: { type: 'string', default: '70,25,-40' }, // Euler XYZ degrees
     offset: { type: 'string', default: '0.4,1.2,-0.3' }, // meters
     mode: { type: 'string', default: 'object' },
-    ground: { type: 'boolean', default: false }, // add a floor slab + clutter, like an area-mode scan
+    ground: { type: 'boolean', default: false }, // add a floor slab + clutter, like an area-mode scan (tessellated like a scanned mesh)
   },
 });
 const nums = (s) => s.split(',').map(Number);
@@ -29,12 +29,12 @@ const nums = (s) => s.split(',').map(Number);
 const bike = createDemoBike();
 const parts = [bike];
 if (args.ground) {
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 1.6, 26, 1, 16), new THREE.MeshStandardMaterial({ color: 0x8a7f72 }));
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 1.6, 52, 1, 32), new THREE.MeshStandardMaterial({ color: 0x8a7f72 }));
   floor.position.set(0, -0.02, 0);
   // Background clutter a room scan picks up: a wall strip and a box away from the bike.
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.2, 0.04), new THREE.MeshStandardMaterial({ color: 0xb9c2c9 }));
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.2, 0.04, 26, 12, 1), new THREE.MeshStandardMaterial({ color: 0xb9c2c9 }));
   wall.position.set(0, 0.6, -0.8);
-  const crate = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshStandardMaterial({ color: 0x9b6b3d }));
+  const crate = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3, 4, 4, 4), new THREE.MeshStandardMaterial({ color: 0x9b6b3d }));
   crate.position.set(1.1, 0.15, 0.55);
   parts.push(floor, wall, crate);
 }

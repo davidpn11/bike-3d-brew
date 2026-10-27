@@ -20,7 +20,7 @@ import { centerOnGround, loadModel } from '../viewer/loaders';
 import { PinLayer } from '../viewer/pins';
 import type { Viewer } from '../viewer/Viewer';
 import { download, h, slugify } from './dom';
-import { AUTO_ORIENT_NOTE, ModelTools } from './modelTools';
+import { AREA_CROP_NOTE, AUTO_ORIENT_NOTE, ModelTools } from './modelTools';
 
 export type Mode = 'view' | 'edit' | 'present';
 
@@ -56,8 +56,8 @@ export class App {
   /** The last capture bundle opened; its poses and image list feed the photo close-ups. */
   capture: CaptureBundle | null = null;
   private modelTools: ModelTools;
-  /** Set when the last open() auto-oriented a fresh capture, so its toast can say so. */
-  private autoOriented = false;
+  /** What the last open() did on its own (auto-orient, crop suggestion), for the capture toast. */
+  private openNote = '';
 
   constructor(
     private store: SceneStore,
@@ -67,6 +67,7 @@ export class App {
   ) {
     this.pins = new PinLayer(viewer, els.stage, (id) => this.focusAnnotation(id));
     this.modelTools = new ModelTools(store, viewer, (m, tone, ms) => this.toast(m, tone, ms));
+    viewer.cropEditor.onCommit = (box) => this.modelTools.commitCrop(box);
     this.draftPin = h('div', { class: 'pin draft', hidden: true }, '+');
     this.toastEl = h('div', { class: 'toast', role: 'status', hidden: true });
     this.presentEl = h('div', { class: 'present-card', hidden: true });
@@ -83,10 +84,21 @@ export class App {
     if (scene.id !== this.store.scene.id) this.modelTools.clearHistory();
     this.store.replace(scene);
     await this.syncModel(scene.model);
+    this.openNote = '';
+    const loaded = this.loadedModelKey === `${scene.model.format}:${scene.model.url}`;
+    // Area-mode scans include the floor and the room: suggest a crop box (off until the user turns
+    // it on) and only auto-orient once cropped, since the room would dominate the orientation.
+    const area = this.capture?.manifest.mode === 'area' && bundleNameOf(scene.model.url) !== null;
+    if (loaded && area && !this.store.scene.crop) {
+      const box = this.modelTools.suggestCropBox();
+      if (box) this.store.update({ crop: { ...box, enabled: false } });
+      this.openNote = AREA_CROP_NOTE;
+    }
     // A fresh capture can arrive lying at any angle: stand it up once, visibly and undoably.
-    this.autoOriented = this.loadedModelKey === `${scene.model.format}:${scene.model.url}` && shouldAutoOrient(this.store.scene) && this.modelTools.autoOrient();
-    if (this.autoOriented) this.toast(AUTO_ORIENT_NOTE, 'info', 6000);
-    if (opts.frame !== false || this.autoOriented) this.viewer.setView(this.viewer.overviewView());
+    const orient = loaded && shouldAutoOrient(this.store.scene) && (!area || !!this.store.scene.crop?.enabled) && this.modelTools.autoOrient();
+    if (orient) this.openNote = AUTO_ORIENT_NOTE;
+    if (this.openNote) this.toast(this.openNote, 'info', 6000);
+    if (opts.frame !== false || orient) this.viewer.setView(this.viewer.overviewView());
   }
 
   async syncModel(ref: ModelRef): Promise<void> {
@@ -127,6 +139,8 @@ export class App {
     const scene = this.store.scene;
     this.viewer.applyTransform(scene.model);
     this.viewer.setBackground(scene.background);
+    this.viewer.setCrop(scene.crop);
+    this.viewer.cropEditor.setVisible(this.mode === 'edit' && scene.model.format !== 'demo');
     this.pins.setAnnotations(scene.annotations);
     this.pins.filter(this.activeHotspot ? this.store.annotationsFor(this.activeHotspot).map((a) => a.id) : null);
     this.pins.setActive(this.activeAnnotation);
@@ -546,7 +560,7 @@ export class App {
     if (this.loadedModelKey) {
       const { manifest, poses, images, warnings } = bundle;
       const facts = [`${images.length || manifest.imageCount || 0} photos`, poses ? `${poses.samples.length} camera poses` : 'no camera poses', manifest.mode === 'area' ? 'area mode' : null];
-      this.toast([`Opened capture “${scene.name}” · ${facts.filter(Boolean).join(' · ')}`, ...warnings, this.autoOriented ? AUTO_ORIENT_NOTE : ''].filter(Boolean).join('. '), warnings.length ? 'error' : 'info', warnings.length ? 8000 : 4500);
+      this.toast([`Opened capture “${scene.name}” · ${facts.filter(Boolean).join(' · ')}`, ...warnings, this.openNote].filter(Boolean).join('. '), warnings.length ? 'error' : 'info', warnings.length ? 8000 : 4500);
     }
   }
 
