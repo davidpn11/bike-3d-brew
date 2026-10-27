@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import RealityKit
+import SwiftUI // ObjectCaptureSession lives in the RealityKit + SwiftUI overlay
 
 /// Drives one guided Object Capture session around a bike.
 ///
