@@ -47,7 +47,31 @@ listed. If `manifest.model` is missing, a `glb`/`gltf`/`usdz`/`ply` next to the 
 
 The resulting scene gets a stable id (`capture-<name>-<createdAt digits>`) so dropping the same
 bundle again restores its saved areas and comments, and a model URL `bundle:<zip name>/<path>`,
-which is never fetched: after a reload the viewer asks for that zip to be dropped again.
+which is never fetched: it is resolved from memory or from the capture cache below, and only
+when neither has it does the viewer ask for that zip to be dropped again.
+
+### Capture cache (browser storage)
+
+So a capture scene survives a reload, every successfully opened bundle is kept in the browser
+(`apps/web/src/scene/captureCache.ts`, pure logic; `apps/web/src/storage/backends.ts`, storage):
+
+- **What**: the model bytes, `manifest.json`, `poses.json` and the image list. Lazily extracted
+  files (photos, thumbnails) can be added to an entry later (`putFile`) and are evicted with it.
+  The zip itself is not kept (HEIC photos make it hundreds of MB).
+- **Where**: OPFS (`navigator.storage.getDirectory()`, folder `bike-captures/`, flat
+  percent-encoded file names), falling back to IndexedDB (`bike-3d-brew` / `files`) when OPFS is
+  missing, has no `createWritable()` (older Safari) or refuses a probe write. Neither → no cache,
+  the old "drop the zip again" behavior. `navigator.storage.persist()` is requested once per page
+  load, on the first store.
+- **Keys**: one entry per `bundle:` model URL; files live under `cap-<slug>-<fnv1a(url)>/…` and an
+  `index.json` lists entries (validated on read). An entry remembers the scene id it was opened
+  as, so a different bike exported with the same zip filename never loads the wrong model.
+- **Budget**: LRU by last use, `min(500 MB, 50% of the quota − other usage)` from
+  `navigator.storage.estimate()`. A bundle larger than the whole budget is simply not cached.
+- **Failure**: every call is best effort. Any storage error leaves the app as if the cache did
+  not exist; entries whose files vanished (browser eviction) are dropped from the index.
+- **UI**: "Open…" becomes a small menu once something is stored: "Choose a file…" plus the stored
+  captures (name, size, × to forget).
 
 ### `bike-scene/1` (viewer JSON, `*.bike.json`)
 

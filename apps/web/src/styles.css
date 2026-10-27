@@ -46,6 +46,23 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .segmented [data-bg='green'].on { background: var(--chroma); color: #fff; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
+/* Open menu: file picker plus the captures kept in this browser. */
+.open-menu { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: min(320px, calc(100vw - 20px));
+  display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); box-shadow: 0 12px 32px rgb(0 0 0 / .45);
+}
+.menu h3 { margin: 6px 4px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.menu .menu-file { text-align: left; }
+.stored { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 50vh; overflow-y: auto; }
+.stored li { display: flex; gap: 4px; }
+.stored .stored-open { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 8px; text-align: left; background: transparent; }
+.stored .stored-open span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stored small { color: var(--muted); white-space: nowrap; }
+.stored li.on .stored-open { border-color: var(--accent); }
+.menu .hint { margin: 2px 4px; font-size: 12px; color: var(--muted); }
+
 .layout { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
 .stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; }
 .viewport { position: absolute; inset: 0; }
@@ -151,4 +168,5 @@ body[data-mode='present'] .panel { display: none; }
   body[data-mode='present'] .layout { grid-template-rows: 1fr; }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
+  .menu { left: 0; right: auto; }
 }
