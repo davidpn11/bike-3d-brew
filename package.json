@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config apps/web/vite.config.ts",
     "test:watch": "vitest --config apps/web/vite.config.ts",
+    "fixture:capture": "node tools/fixtures/make-capture.mjs",
     "docs:dev": "npm --prefix apps/docs run dev",
     "docs:build": "npm --prefix apps/docs run build"
   },
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
+    "fake-indexeddb": "^6.2.6",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"

@@ -10,12 +10,13 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
 - `apps/web/`: Vite + TypeScript + three.js viewer/editor (no UI framework; `ui/dom.ts` `h()` helper).
   - `src/scene/`: pure logic (`schema.ts` = `bike-scene/1` format + validation, `store.ts`, `camera.ts`). Unit-tested in `apps/web/test/`.
   - `src/viewer/`: three.js (`Viewer.ts`, `loaders.ts`, `pins.ts`, `demoBike.ts`).
+  - `src/storage/`: browser storage adapters (OPFS / IndexedDB) behind interfaces defined in `src/scene/`.
   - `src/ui/app.ts`: modes (view / edit / present), panel, comment editor, file drop.
 - `apps/ios/`: SwiftUI capture app (`project.yml` for xcodegen). Object Capture → `model.usdz` + `poses.json` → `*.bikecapture.zip` (`bike-capture/1`).
 - `apps/docs/`: Fumadocs (Next.js static export) docs + progress site. Own `package.json`; its pages are
   generated from the repo's markdown by `scripts/sync-content.mjs` (README, ROADMAP, CHANGELOG, `docs/*.md`),
   so edit the markdown, never `apps/docs/content/`.
-- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`).
+- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`; `tools/fixtures/make-capture.mjs` USDZ-based fixture bundle).
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 

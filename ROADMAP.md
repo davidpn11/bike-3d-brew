@@ -23,7 +23,9 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 ## Milestone 2: Real captures into the viewer
 
 - [x] **Capture bundle import**: drop `*.bikecapture.zip` on the viewer, unzip in the browser (fflate), load `model.usdz`, read `manifest.json` and `poses.json`, name the scene from the manifest. Unit-test the bundle parser with a synthetic zip.
-- [ ] **Keep captures across reloads**: cache the unzipped model of the last opened bundles in IndexedDB/OPFS (best effort, quota-aware) so a reload reopens a capture scene without re-dropping the `.bikecapture.zip`.
+- [x] **Keep captures across reloads**: cache the unzipped model of the last opened bundles in IndexedDB/OPFS (best effort, quota-aware) so a reload reopens a capture scene without re-dropping the `.bikecapture.zip`.
+- [ ] **Capture cache on real Safari / iOS**: verify OPFS `createWritable()` vs. the IndexedDB fallback, quota numbers and `persist()` behavior on iPhone Safari and a home-screen web app; tune the 500 MB budget for phones.
+- [ ] **Cache large models without a main-thread copy**: write models to OPFS from a worker (`createSyncAccessHandle`) or straight from the dropped `File` stream, so a 300 MB capture does not briefly double memory on phones.
 - [x] **USDZ robustness**: three r186 reads binary USDC; `apps/web/src/viewer/usd/` fixes its inline-value decoding, speeds up large meshes ~10×, waits for packed textures and falls back to a `tools/usdz-to-glb.py` hint. Synthetic Object-Capture-like fixtures from `tools/fixtures/make-usdc.py`.
 - [ ] **Verify a real Object Capture USDZ**: load a real `model.usdz` (owner's iPhone, see docs/MANUAL-STEPS.md), compare against Quick Look; turn anything off into a fixture-based test (synthetic re-creation, never the capture itself).
 - [ ] **Weld USDZ meshes**: three expands face-varying meshes to 3 vertices per triangle (~3M vertices for a 1M-triangle capture); merge identical corners into an indexed geometry to cut GPU memory, and consider decimating for phones.

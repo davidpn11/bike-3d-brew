@@ -154,3 +154,15 @@ describe('capture scenes', () => {
     expect(looksLikeZip(enc('{"schema":1}'))).toBe(false);
   });
 });
+
+describe('fixture generator', () => {
+  it('produces a bundle the importer reads', async () => {
+    const { makeBundle } = await import('../../../tools/fixtures/make-capture.mjs');
+    const b = await readCaptureBundle(makeBundle({ count: 6 }));
+    expect(b.manifest.name).toBe('Fixture Road Bike');
+    expect(b.model.format).toBe('usdz');
+    expect(b.poses?.samples).toHaveLength(6);
+    expect(b.images).toHaveLength(6);
+    expect(b.warnings).toEqual([]);
+  });
+});

@@ -9,3 +9,4 @@ xcuserdata/
 DerivedData/
 # Captures are private: extract exports here, never commit them
 data/captures-in/
+tools/fixtures/out/
