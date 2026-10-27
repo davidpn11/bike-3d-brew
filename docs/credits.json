@@ -1,0 +1,6 @@
+{
+  "budgetUsd": 100,
+  "spentUsd": 85.84,
+  "updatedAt": "2026-10-27T22:16:00Z",
+  "source": "Claude Code cloud session usage (session + its agents), read by the orchestrating session and updated on each publish."
+}

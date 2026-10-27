@@ -32,6 +32,7 @@ npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: 
 npm run docs:build  # → apps/docs/out/
 node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
 tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
+# Before publishing, set docs/credits.json spentUsd from get_session usage.cost_usd (credit counter on the site).
 ```
 
 The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
