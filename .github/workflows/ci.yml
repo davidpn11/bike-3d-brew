@@ -18,3 +18,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # Docs + progress site (apps/docs, Fumadocs static export). Its deps live in apps/docs only,
+  # so the web job's `npm ci` stays lean. Publishing is done by tools/publish-pages.sh, not CI.
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/docs/package-lock.json
+      - run: npm --prefix apps/docs ci
+      - run: npm --prefix apps/docs test
+      - run: npm --prefix apps/docs run typecheck
+      - run: npm --prefix apps/docs run build
