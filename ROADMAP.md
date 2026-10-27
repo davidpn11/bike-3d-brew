@@ -23,7 +23,11 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [ ] **USDZ robustness**: verify three.js `USDZLoader` against an Object Capture USDZ (binary USDC inside). If unsupported, document and add `tools/usdz-to-glb.py` (Blender headless) plus a clear in-app message. Add a small sample USDZ fixture if licensing allows (generate one, never commit customer captures).
 - [ ] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
 - [ ] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.
-- [ ] **Photo close-ups per area**: use `poses.json` to find the capture photos that look most directly at each area target (angle + distance score) and show them as a filmstrip under the area; tap to open full screen. HEIC → JPEG conversion at export time on iOS if browsers can't decode HEIC.
+- [x] **Photo close-ups per area**: use `poses.json` to find the capture photos that look most directly at each area target (angle + distance score) and show them as a filmstrip under the area; tap to open full screen. HEIC → JPEG conversion at export time on iOS if browsers can't decode HEIC.
+- [ ] **iOS JPEG photo export**: write `images/*.jpg` (or a `photos/` folder of 2048 px JPEGs) next to the HEICs in the bundle so Chrome/Firefox skip the 2 MB WASM HEIC decoder and decoding is instant; the web side already prefers whatever decodes natively.
+- [ ] **Validate close-ups on a real capture**: confirm Object Capture poses share the USDZ frame and the 65° landscape intrinsics assumption (portrait captures, EXIF rotation); read real intrinsics if the iOS app can export them.
+- [ ] **Occlusion-aware close-ups**: raycast from each candidate camera to the target against the loaded mesh and drop photos where the bike hides it.
+- [ ] **Pin favourite close-ups**: let staff star photos for an area (the schema already has `Hotspot.photos`) and show starred ones first, also in shared links.
 
 ## Milestone 3: Sales experience
 

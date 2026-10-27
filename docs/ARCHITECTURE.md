@@ -80,9 +80,36 @@ scene file), lists **hotspots** (named camera views: the zoomable areas) and **a
 (surface point + normal, title, body, kind `feature|spec|upgrade|note`, optional price and area).
 All coordinates are in model-root space.
 
+### Photo close-ups
+
+For the active area (its view target, preferring cameras on the side its saved view looks from),
+the active comment (its pin, preferring cameras in front of its surface normal) and each Present
+step, the viewer shows a filmstrip of the capture photos that best show that point; tapping one
+opens a full-screen viewer (arrows / swipe, pinch / wheel / double-tap zoom, Esc).
+
+- **Spaces.** A pose is a column-major camera→reconstruction matrix, camera looking down -Z,
+  +Y up. Scene positions are in model-root space. `Viewer.setModel` adds `centerOnGround(object)`
+  to the model root, so `modelRoot ⟵ reconstruction` is the loaded object's local matrix (the
+  centering shift plus any root transform the loader applied) times the identity wrapper:
+  `src/viewer/captureSpace.ts`. The scene's `model.rotation/scale/offset` sit on the model root
+  itself and never enter the mapping. A unit test runs the fixture USDZ through three's
+  `USDLoader` + `centerOnGround` and checks the expected close-ups win.
+- **Ranking** (`src/scene/photos.ts`, pure): keep photos whose frustum contains the target
+  (assumed iPhone wide camera, 65° × 51°, landscape sensor; poses carry no intrinsics), drop
+  cameras behind the surface (`side` hint), score `0.45·centered + 0.35·closeness + 0.2·facing`
+  (closeness relative to the nearest usable photo, so units do not matter), and skip near-duplicate
+  viewpoints. Occlusion is not tested.
+- **Photos** (`src/ui/photoLibrary.ts`): extracted one at a time from the dropped zip via its
+  central directory (`src/scene/zipIndex.ts`: the `File` stays on disk, nothing else is inflated),
+  decoded natively (`createImageBitmap`, then `<img>`; Safari reads HEIC), else HEIC goes to a
+  module worker that lazily loads libheif (`libheif-js`, WASM, ~2 MB, LGPL-3.0, only fetched when a
+  HEIC photo is shown). Results are downscaled to JPEG (360 px thumbnails, 2048 px full) and added
+  to the capture cache entry, so after a reload the photos already seen still show without the zip.
+
 ## Open questions (verify on device)
 
 - Does `PhotogrammetrySession.Poses` return camera→model transforms in the same frame as the
-  USDZ? (Assumed; validate by projecting a pin into the matching photo.)
+  USDZ? (Assumed, and the photo close-ups depend on it; validate by checking that an area's top
+  close-up really shows that area on a real capture.)
 - Does three.js `USDZLoader` read Object Capture USDZ (binary USDC)? Otherwise convert to GLB.
 - Bike size vs. Object Capture's bounding box limits: area mode is the fallback.

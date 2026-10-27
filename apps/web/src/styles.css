@@ -138,6 +138,52 @@ input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(-
 .row { display: flex; gap: 8px; }
 .row > * { flex: 1; }
 
+/* Photo close-ups: posed capture photos that best show an area or a comment. */
+/* minmax(0, …) so a wide filmstrip scrolls inside its card instead of widening the panel. */
+.comments { grid-template-columns: minmax(0, 1fr); }
+.filmstrip {
+  display: flex; min-width: 0; max-width: 100%; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 0 6px;
+  overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.filmstrip .photo {
+  flex: none; width: 96px; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; scroll-snap-align: start;
+  border-radius: 8px; background: var(--surface-2); position: relative;
+}
+.filmstrip .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.filmstrip .photo:hover, .filmstrip .photo:focus-visible { border-color: var(--accent); }
+.filmstrip .photo.loading::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .06), transparent) 0 0 / 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+.filmstrip .photo.missing { opacity: .4; }
+.filmstrip .photo.missing::after { content: '—'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.comment .filmstrip { margin-top: 8px; }
+.comment .filmstrip .photo { width: 84px; }
+.photo-block .hint, .photos .hint { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.present-card .filmstrip { margin-top: 10px; }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / .94); display: grid; grid-template-rows: auto 1fr;
+  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+}
+.lightbox[hidden] { display: none; }
+.lightbox header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; color: var(--muted); }
+.lightbox .caption { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.lightbox .count { font-variant-numeric: tabular-nums; }
+.lightbox .lb-close { font-size: 22px; width: 40px; height: 40px; border-radius: 50%; padding: 0; }
+.lb-stage { position: relative; overflow: hidden; display: grid; place-items: center; touch-action: none; user-select: none; cursor: zoom-in; }
+.lightbox.zoomed .lb-stage { cursor: grab; }
+.lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center; will-change: transform; }
+.lb-stage .status { position: absolute; color: var(--muted); max-width: 320px; text-align: center; padding: 0 16px; }
+.lb-nav {
+  position: absolute; top: 50%; translate: 0 -50%; width: 48px; height: 48px; border-radius: 50%;
+  font-size: 26px; padding: 0; background: rgb(36 38 43 / .8);
+}
+.lb-nav.prev { left: 12px; }
+.lb-nav.next { right: 12px; }
+
 /* Presentation mode: full-bleed bike with a card that steps through areas. */
 body[data-mode='present'] .layout { grid-template-columns: 1fr; }
 body[data-mode='present'] .panel { display: none; }

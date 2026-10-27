@@ -13,7 +13,7 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
   - `src/storage/`: browser storage adapters (OPFS / IndexedDB) behind interfaces defined in `src/scene/`.
   - `src/ui/app.ts`: modes (view / edit / present), panel, comment editor, file drop.
 - `apps/ios/`: SwiftUI capture app (`project.yml` for xcodegen). Object Capture → `model.usdz` + `poses.json` → `*.bikecapture.zip` (`bike-capture/1`).
-- `tools/`: offline helpers (e.g. USDZ → GLB). `tools/fixtures/make-capture.mjs` generates a synthetic `*.bikecapture.zip`.
+- `tools/`: offline helpers (e.g. USDZ → GLB). `tools/fixtures/make-capture.mjs` generates a synthetic `*.bikecapture.zip`; `render-photos.mjs` renders its photos from the poses.
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 
