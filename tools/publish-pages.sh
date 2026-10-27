@@ -71,8 +71,9 @@ touch "$site/.nojekyll"
 # or a credential.
 leaks="$(find "$site" -type f \( -iname '*.usdz' -o -iname '*.heic' -o -iname '*.mov' -o -iname '*.pem' -o -iname '.env*' \
   -o \( -iname '*.bikecapture.zip' -not -name 'synthetic-bike.bikecapture.zip' \) \) -print)"
-if grep -rIlE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}' "$site" >/dev/null 2>&1; then
-  leaks+=$'\n'"(secret-looking strings in: $(grep -rIlE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}' "$site" | tr '\n' ' '))"
+# AWS key ids must stand alone: inlined WASM (e.g. libheif-js) is base64 and contains "AKIA…" runs.
+if grep -rIlE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|(^|[^A-Za-z0-9+/])AKIA[0-9A-Z]{16}([^A-Za-z0-9+/=]|$)' "$site" >/dev/null 2>&1; then
+  leaks+=$'\n'"(secret-looking strings in: $(grep -rIlE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|(^|[^A-Za-z0-9+/])AKIA[0-9A-Z]{16}([^A-Za-z0-9+/=]|$)' "$site" | tr '\n' ' '))"
 fi
 if [[ -n "${leaks//[$'\n ']/}" ]]; then
   echo "publish-pages: refusing to publish, these look private:" >&2
