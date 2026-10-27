@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { createMDX } from 'fumadocs-mdx/next';
 
 // GitHub Pages serves the site from https://davidpn11.github.io/bike-3d-brew/, so every URL is
@@ -14,10 +15,12 @@ const config = {
   trailingSlash: true,
   images: { unoptimized: true },
   reactStrictMode: true,
-  // tools/publish-pages.sh passes the commit, so republishing the same commit is a no-op diff.
+  // tools/publish-pages.sh passes the commit, so republishing the same commit barely changes files.
   generateBuildId: async () => process.env.DOCS_BUILD_ID || null,
   // Plain <a> links (live demo under /app/, search index) need the prefix on the client too.
   env: { NEXT_PUBLIC_BASE_PATH: basePath },
+  // apps/docs has its own lockfile next to the root one; keep Next from guessing the repo root.
+  turbopack: { root: fileURLToPath(new URL('.', import.meta.url)) },
 };
 
 export default withMDX(config);

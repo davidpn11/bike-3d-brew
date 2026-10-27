@@ -12,7 +12,7 @@
 #
 # Safe to run repeatedly from any branch: builds the current checkout, commits into a temporary
 # worktree of origin/gh-pages (your checkout and branches are untouched), and skips the commit
-# when nothing changed.
+# when nothing changed (Shiki highlighting can still differ run to run in rare spots).
 set -euo pipefail
 
 source_note=""
@@ -45,7 +45,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Pin timestamps and build ids to the commit so republishing the same commit changes nothing.
+# Pin timestamps and build ids to the commit so republishing the same commit is (nearly) a no-op.
 export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
 export DOCS_BUILT_AT="$(git log -1 --format=%cI)"
 export DOCS_BUILD_ID="$sha"
