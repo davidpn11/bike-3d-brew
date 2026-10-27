@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { collectErrors, dropFile, fixture, modelPoint, openApp, openViaPicker, readDownload, scene, snap, tapCanvas, toast, waitForModel, waitReady } from './helpers';
+import { USDC_FIXTURE, blockCaptureStorage, collectErrors, dropFile, fixture, modelPoint, openApp, openViaPicker, readDownload, scene, snap, tapCanvas, toast, waitForModel, waitReady } from './helpers';
 
 const CAPTURE_ID = 'capture-fixture-gravel-bike-20260102030405';
 
@@ -86,7 +86,9 @@ test.describe('capture bundles', () => {
     await expect(toast(page)).toContainText('Opened capture “Fixture Flat Bike”');
   });
 
-  test('re-dropping a bundle after a reload restores its comments', async ({ page }) => {
+  test('without capture storage, re-dropping a bundle after a reload restores its comments', async ({ page }) => {
+    // With OPFS/IndexedDB the capture reopens by itself (capture-cache.spec.ts); this is the fallback.
+    await blockCaptureStorage(page);
     await openApp(page);
     await openViaPicker(page, fixture('bike.bikecapture.zip'));
     await expect(toast(page)).toContainText('Opened capture');
@@ -118,6 +120,28 @@ test.describe('capture bundles', () => {
     await expect(toast(page)).toContainText('samples[0]');
     await expect(toast(page)).toHaveAttribute('data-tone', 'error');
     await waitForModel(page);
+  });
+
+  test('a binary USDC package like Object Capture output loads textured', async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
+    await openApp(page);
+    await dropFile(page, USDC_FIXTURE);
+    await expect(page.locator('#topbar .brand strong')).toHaveText('object-capture-like');
+    await waitForModel(page);
+    const info = await page.evaluate(() => {
+      const maps: { map: boolean; normal: boolean; w: number }[] = [];
+      type Mat = { map?: { image?: { width: number } }; normalMap?: unknown };
+      window.__bike!.viewer.modelRoot.traverse((o) => {
+        const mesh = o as unknown as { isMesh?: boolean; material: Mat };
+        if (mesh.isMesh) maps.push({ map: !!mesh.material.map, normal: !!mesh.material.normalMap, w: mesh.material.map?.image?.width ?? 0 });
+      });
+      return maps;
+    });
+    expect(info).toHaveLength(1);
+    expect(info[0]).toMatchObject({ map: true, normal: true });
+    expect(info[0].w).toBeGreaterThan(0); // the PNG really decoded
+    await snap(page, testInfo, 'usdc-textured');
+    expect(errors).toEqual([]);
   });
 
   test('dropping a bare model file starts a new bike', async ({ page }) => {

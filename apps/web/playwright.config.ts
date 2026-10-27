@@ -39,7 +39,13 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     // iPhone 14 viewport, touch and user agent, in Chromium (WebKit is not installed on CI runners).
     // DPR 1 instead of 3: SwiftShader renders on the CPU and 9x the pixels made every step crawl.
-    { name: 'mobile', use: { ...devices['iPhone 14'], deviceScaleFactor: 1, browserName: 'chromium', defaultBrowserType: 'chromium' } },
+    // Only the specs where layout and touch matter; file handling and storage are viewport-independent
+    // and run on desktop only, which keeps the suite (and CI) fast.
+    {
+      name: 'mobile',
+      testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts'],
+      use: { ...devices['iPhone 14'], deviceScaleFactor: 1, browserName: 'chromium', defaultBrowserType: 'chromium' },
+    },
   ],
   webServer: {
     // The production build, like GitHub Pages serves it. E2E_SKIP_BUILD reuses an existing dist/.

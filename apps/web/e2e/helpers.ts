@@ -20,6 +20,19 @@ declare global {
 
 export const FIXTURE_DIR = fileURLToPath(new URL('./.fixtures', import.meta.url));
 export const fixture = (name: string) => `${FIXTURE_DIR}/${name}`;
+/** Committed binary USDC (crate) package shaped like Object Capture output: textured, one mesh. */
+export const USDC_FIXTURE = fileURLToPath(new URL('../test/fixtures/object-capture-like.usdz', import.meta.url));
+/** Bundle with rendered photos (global-setup.ts); PHOTO_ORBIT orbit shots plus the generator's close-ups. */
+export const PHOTO_BUNDLE = 'bike-photos.bikecapture.zip';
+export const PHOTO_ORBIT = 16;
+
+/** Makes the capture cache unavailable (no OPFS, no IndexedDB), as in some private modes. */
+export async function blockCaptureStorage(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    delete (StorageManager.prototype as { getDirectory?: unknown }).getDirectory;
+    Object.defineProperty(window, 'indexedDB', { configurable: true, get: () => undefined });
+  });
+}
 
 /** Console errors and uncaught exceptions; tests assert this stays empty. */
 export function collectErrors(page: Page): string[] {

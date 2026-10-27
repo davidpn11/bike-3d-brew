@@ -29,6 +29,11 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Two shards in parallel: SwiftShader renders on the CPU, so wall time scales with test count.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,11 +44,11 @@ jobs:
       # Headless shell only: the suite renders WebGL with SwiftShader, no GPU needed.
       - run: npx playwright install --with-deps --only-shell chromium
       # The Playwright web server builds dist/ and serves it with `vite preview`.
-      - run: npm run e2e
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/2
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/

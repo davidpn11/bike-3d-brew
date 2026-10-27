@@ -121,6 +121,19 @@ describe('readCaptureBundle', () => {
   });
 });
 
+describe('bundle layout', () => {
+  it('uses the shallowest manifest when a bundle nests another export', async () => {
+    const zip = zipSync({
+      'outer/inner/manifest.json': enc({ ...manifest, name: 'Inner' }),
+      'outer/manifest.json': enc({ ...manifest, name: 'Outer' }),
+      'outer/model.usdz': modelBytes,
+      'outer/inner/model.usdz': modelBytes,
+    });
+    const b = await readCaptureBundle(zip);
+    expect(b.manifest.name).toBe('Outer');
+  });
+});
+
 describe('parseManifest / parsePoses', () => {
   it('fills safe defaults', () => {
     const m = parseManifest({ schema: CAPTURE_SCHEMA, name: '  ', mode: 'weird', imageCount: -3 });

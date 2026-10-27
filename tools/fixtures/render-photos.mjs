@@ -4,6 +4,9 @@
 //
 //   node tools/fixtures/render-photos.mjs [outDir] && node tools/fixtures/make-capture.mjs out.zip --images outDir
 //
+// Also importable: `renderPhotos(poses, { executablePath })` returns JPEG bytes per pose (the E2E
+// global setup uses it to build `bike-photos.bikecapture.zip`).
+//
 // Uses headless Chromium through Playwright (not a project dependency: it resolves a local or
 // global install) with three.js from node_modules. Intrinsics match the ranking's assumption
 // (src/scene/photos.ts IPHONE_WIDE: 65° horizontal, 4:3, landscape).
@@ -26,7 +29,6 @@ function playwright() {
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const threeDir = resolve(here, '../../node_modules/three/build');
-const outDir = resolve(process.argv[2] ?? 'tools/fixtures/out/photos');
 const W = 640;
 const H = 480;
 const H_FOV = 65;
@@ -85,19 +87,33 @@ window.render = (meshes, poses, w, h, hFov) => {
 window.ready = true;
 </script></body></html>`;
 
-const { chromium } = playwright();
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const tab = await browser.newPage();
-await tab.route('https://fixture.local/**', (route) => {
-  const name = new URL(route.request().url()).pathname.slice(1);
-  if (name === 'index.html') return route.fulfill({ contentType: 'text/html', body: page });
-  return route.fulfill({ contentType: 'text/javascript', body: readFileSync(join(threeDir, name)) });
-});
-await tab.goto('https://fixture.local/index.html');
-await tab.waitForFunction(() => window.ready);
-const poses = capturePoses(24);
-const shots = await tab.evaluate(([meshes, poses, w, h, fov]) => window.render(meshes, poses, w, h, fov), [buildBike(), poses, W, H, H_FOV]);
-await browser.close();
-mkdirSync(outDir, { recursive: true });
-shots.forEach((url, i) => writeFileSync(join(outDir, `${poses[i].file}.jpg`), Buffer.from(url.split(',')[1], 'base64')));
-console.log(`wrote ${shots.length} photos to ${outDir}`);
+/**
+ * Renders the fixture bike once per pose. Returns `{ file, data }` JPEGs in pose order.
+ * `executablePath` lets callers use a preinstalled Chromium (PW_CHROMIUM_PATH).
+ */
+export async function renderPhotos(poses, { executablePath } = {}) {
+  const { chromium } = playwright();
+  const browser = await chromium.launch({ executablePath: executablePath || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  try {
+    const tab = await browser.newPage();
+    await tab.route('https://fixture.local/**', (route) => {
+      const name = new URL(route.request().url()).pathname.slice(1);
+      if (name === 'index.html') return route.fulfill({ contentType: 'text/html', body: page });
+      return route.fulfill({ contentType: 'text/javascript', body: readFileSync(join(threeDir, name)) });
+    });
+    await tab.goto('https://fixture.local/index.html');
+    await tab.waitForFunction(() => window.ready);
+    const shots = await tab.evaluate(([meshes, poses, w, h, fov]) => window.render(meshes, poses, w, h, fov), [buildBike(), poses, W, H, H_FOV]);
+    return shots.map((url, i) => ({ file: poses[i].file, data: new Uint8Array(Buffer.from(url.split(',')[1], 'base64')) }));
+  } finally {
+    await browser.close();
+  }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const outDir = resolve(process.argv[2] ?? 'tools/fixtures/out/photos');
+  const photos = await renderPhotos(capturePoses(24), { executablePath: process.env.PW_CHROMIUM_PATH });
+  mkdirSync(outDir, { recursive: true });
+  for (const { file, data } of photos) writeFileSync(join(outDir, `${file}.jpg`), data);
+  console.log(`wrote ${photos.length} photos to ${outDir}`);
+}

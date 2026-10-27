@@ -18,19 +18,54 @@ Fixtures for both come from one generator: `tools/fixtures/make-capture-bundle.m
 - three.js code that needs no WebGL (loaders, `centerOnGround`, the demo bike's geometry) is
   tested in Node too (`viewer-node.test.ts`). three's `FileLoader` needs a `ProgressEvent`
   stub in Node; the test file installs one. Models are passed as `data:` URLs.
-- DOM code (`ui/dom.ts`, `viewer/pins.ts`) opts into happy-dom with a first-line comment
-  `// @vitest-environment happy-dom` and uses a fake `Viewer` with just the methods it calls.
-- `Viewer.ts`, `ui/app.ts` and `main.ts` need a real WebGL page, so they are excluded from unit
-  coverage and covered by the E2E suite instead.
+- DOM code (`ui/dom.ts`, `viewer/pins.ts`, `ui/photoViewer.ts`, `ui/photoLibrary.ts`,
+  `ui/photoDecode.ts`) opts into happy-dom with a first-line comment
+  `// @vitest-environment happy-dom`. Browser APIs happy-dom lacks are stubbed per test:
+  `createImageBitmap`, `<img>.decode`, `OffscreenCanvas`, `Worker` (photoDecode), pointer capture
+  (lightbox gestures), a fake `Viewer` (pins). Decoding itself is mocked in `photoLibrary.test.ts`.
+- Storage: `storage/backends.ts` runs against `fake-indexeddb` and a small in-memory OPFS
+  (`FakeDir` in `backends.test.ts`); `navigator` is replaced with `vi.stubGlobal`.
+- Zip parsing: `zipIndex.test.ts` hand-builds zips byte by byte (zip64 records and extra fields,
+  foreign extras, odd methods, lying sizes), branches fflate never writes.
+- USD: `usdz.test.ts` loads the committed binary USDC fixtures (`apps/web/test/fixtures/`, made
+  by `tools/fixtures/make-usdc.py` with Pixar USD); `usd-units.test.ts` drives the crate
+  decoders and composer fast paths directly for encodings the fixtures do not contain.
+
+### What is not unit-tested, and why
+
+Excluded from coverage in `apps/web/vite.config.ts`, each covered by the E2E suite instead:
+
+| File | Why it cannot run in Node |
+| --- | --- |
+| `src/main.ts` | page bootstrap: the whole DOM plus WebGL |
+| `src/ui/app.ts` | UI controller driving the WebGL `Viewer` |
+| `src/viewer/Viewer.ts` | `WebGLRenderer`, `OrbitControls`, `ResizeObserver` |
+| `src/ui/heic.worker.ts` | a Web Worker running libheif WASM |
+| `src/**/*.d.ts` | type declarations only |
 
 ### Coverage
 
 `npm run test:coverage` writes `coverage/` (text summary, HTML report, `coverage-summary.json`).
 Thresholds in `apps/web/vite.config.ts` are a ratchet set just under the current numbers,
-globally and for `src/scene/**`; CI fails when coverage drops below them. When you raise
+globally and for `src/scene/**`; CI fails when coverage drops below them (and the web job
+prints the totals in its step summary). At the time of writing: lines 99.8%, statements 98.9%,
+functions 98%, branches 92.8%. When you raise
 coverage, raise the thresholds in the same PR. Never lower them to make a PR pass.
 
 ## Fixtures
+
+Four generators, each with a job. All output is synthetic; no real capture is ever committed.
+
+| Generator | Output | Used by |
+| --- | --- | --- |
+| `tools/fixtures/make-capture-bundle.mjs` | the bundle variants below (USDZ, GLB, flat, broken…), deterministic | E2E (global setup), `fixtures.test.ts`, `viewer-node.test.ts`, `npm run fixtures` |
+| `tools/fixtures/make-capture.mjs` (+ `render-photos.mjs`) | a USDZ bundle off-origin like a real reconstruction, orbit + close-up poses, placeholder or **rendered** photos | `photos.test.ts`, `capture.test.ts`, E2E photo close-ups (`bike-photos.bikecapture.zip`), `npm run fixture:photos` |
+| `tools/fixtures/make-usdc.py` | binary USDC (crate) packages in `apps/web/test/fixtures/` (committed, small) | `usdz.test.ts`, E2E "binary USDC loads textured"; needs Pixar USD to regenerate |
+| `tools/make-test-bundle.mjs` | GLB bundle "Synthetic test bike" | the sample on the Pages site (`tools/publish-pages.sh`), manual testing |
+
+Folding the three JS generators into one is a ROADMAP follow-up.
+
+### `make-capture-bundle.mjs`
 
 ```sh
 npm run fixtures                      # writes apps/web/e2e/.fixtures/ (gitignored)
@@ -53,12 +88,21 @@ committed. What it makes:
 
 The photos are PNG stand-ins: real captures have HEIC, which Node cannot encode.
 
+### Rendered-photo bundle
+
+The E2E global setup (`apps/web/e2e/global-setup.ts`) also renders the `make-capture.mjs` bike
+from each of its poses with `render-photos.mjs` (headless Chromium, three.js, the iPhone wide
+camera's field of view) and writes `bike-photos.bikecapture.zip`, so photo close-ups are ranked
+and shown from real images of the fixture.
+
 ## End-to-end tests
 
 Playwright drives the **production build** (`vite build` + `vite preview` on port 4190, started
-by the config's `webServer`) in two projects: `desktop` (1280×800) and `mobile` (iPhone 14
-viewport with touch, DPR 1 to keep CPU rendering fast). WebGL runs on SwiftShader
-(`--use-angle=swiftshader --enable-unsafe-swiftshader`), so no GPU is needed.
+by the config's `webServer`) in two projects: `desktop` (1280×800, every spec) and `mobile`
+(iPhone 14 viewport with touch, DPR 1 to keep CPU rendering fast; only the specs where layout and
+touch matter: view, edit, present, photos). WebGL runs on SwiftShader
+(`--use-angle=swiftshader --enable-unsafe-swiftshader`), so no GPU is needed. CI splits the
+suite into two parallel shards (`--shard=1/2`, `2/2`).
 
 ```sh
 npm run e2e                                   # all projects
@@ -120,3 +164,13 @@ missing.
   via picker and drag-and-drop (USDZ, GLB, flat); re-drop after reload restores comments;
   broken poses warning; bare model drop; error toasts for seven kinds of bad files.
 - `storage.spec.ts`: everything still works with `localStorage` throwing.
+- `capture-cache.spec.ts`: a reload reopens the last capture from OPFS with its comments; the
+  Open menu lists stored captures (most recent first, size, current one marked), switches between
+  them, closes on Esc / outside click, "Choose a file…", forgets them; forgotten means a reload
+  asks for the zip again. `files.spec.ts` keeps the re-drop flow with capture storage blocked
+  (`blockCaptureStorage()`).
+- `photos.spec.ts`: a saved area shows its best photos (all thumbnails decode), the lightbox
+  steps with ←/→ and ‹ › with wrap-around, Esc closes only the lightbox; Present mode shows the
+  strip; after a reload the thumbnails come from browser storage.
+- `files.spec.ts` also drops the committed binary USDC fixture and checks it renders with its
+  diffuse and normal textures decoded.
