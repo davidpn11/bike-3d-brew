@@ -1,5 +1,6 @@
 import { viewForPoint } from '../scene/camera';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
+import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
 import {
   ANNOTATION_KINDS,
   type Annotation,
@@ -18,7 +19,7 @@ import type { SceneStore } from '../scene/store';
 import { centerOnGround, loadModel } from '../viewer/loaders';
 import { PinLayer } from '../viewer/pins';
 import type { Viewer } from '../viewer/Viewer';
-import { download, h, slugify } from './dom';
+import { download, h } from './dom';
 
 export type Mode = 'view' | 'edit' | 'present';
 
@@ -147,7 +148,7 @@ export class App {
     this.render();
     this.panelCard(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const hotspot = this.store.scene.hotspots.find((h) => h.id === a.hotspotId);
-    const radius = hotspot ? dist(hotspot.view.position, hotspot.view.target) * 0.75 : 0.6;
+    const radius = hotspot ? distance(hotspot.view.position, hotspot.view.target) * 0.75 : 0.6;
     await this.viewer.flyTo(viewForPoint(a.position, a.normal, this.viewer.getView().position, Math.max(0.25, radius)));
   }
 
@@ -157,7 +158,7 @@ export class App {
 
   goToStep(step: number): void {
     const steps = this.presentSteps();
-    this.presentStep = (step + steps.length) % steps.length;
+    this.presentStep = wrapStep(step, steps.length);
     const hotspot = steps[this.presentStep];
     void this.focusHotspot(hotspot ? hotspot.id : null);
   }
@@ -386,7 +387,7 @@ export class App {
             ),
           )
         : ''
-      : h('p', { class: 'lede' }, [scene.brand, scene.modelName, scene.year].filter(Boolean).join(' · ') || 'Swipe through the highlights →');
+      : h('p', { class: 'lede' }, presentLede(scene));
     this.presentEl.replaceChildren(
       h(
         'header',
@@ -532,20 +533,13 @@ export class App {
     const scene = saved ? { ...saved, model: { ...saved.model, ...ref } } : fresh;
     await this.open(scene, { frame: saved !== current });
     if (this.loadedModelKey) {
-      const { manifest, poses, images, warnings } = bundle;
-      const facts = [`${images.length || manifest.imageCount || 0} photos`, poses ? `${poses.samples.length} camera poses` : 'no camera poses', manifest.mode === 'area' ? 'area mode' : null];
-      this.toast([`Opened capture “${scene.name}” · ${facts.filter(Boolean).join(' · ')}`, ...warnings].join('. '), warnings.length ? 'error' : 'info', warnings.length ? 8000 : 4500);
+      const { message, tone, ms } = captureSummary(scene.name, bundle);
+      this.toast(message, tone, ms);
     }
   }
 
   private resolveModelUrl(ref: ModelRef): string | null {
-    if (ref.format === 'demo') return ref.url;
-    const dropped = this.modelFiles.get(ref.url);
-    if (dropped) return dropped;
-    if (/^(blob:|data:|bundle:)/.test(ref.url)) return null;
-    // Bare filenames without a known base (a scene saved from a dropped file) cannot be fetched.
-    if (!ref.url.includes('/') && !/^https?:/.test(ref.url) && this.baseUrl === location.href) return null;
-    return new URL(ref.url, this.baseUrl).href;
+    return resolveModelUrl(ref, this.modelFiles, this.baseUrl, location.href);
   }
 
   // ---------------------------------------------------------------- helpers
@@ -570,29 +564,7 @@ export class App {
   }
 }
 
-function dist(a: Vec3, b: Vec3): number {
-  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-}
-
-/** The area whose camera target is closest to a point: a good default for new comments. */
-export function nearestHotspot(hotspots: Hotspot[], p: Vec3): Hotspot | undefined {
-  let best: Hotspot | undefined;
-  let bestD = Infinity;
-  for (const hs of hotspots) {
-    const d = dist(hs.view.target, p);
-    if (d < bestD) {
-      bestD = d;
-      best = hs;
-    }
-  }
-  return best;
-}
-
 function dataUrlToBlob(dataUrl: string): Blob {
-  const [head, b64] = dataUrl.split(',');
-  const mime = head.match(/:(.*?);/)?.[1] ?? 'image/png';
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
+  const { mime, bytes } = dataUrlToBytes(dataUrl);
+  return new Blob([bytes as BlobPart], { type: mime });
 }
