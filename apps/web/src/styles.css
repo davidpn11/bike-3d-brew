@@ -82,16 +82,18 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .viewport[data-background='green'] { background: var(--chroma); }
 
 /* Pins */
-.pin-layer { position: absolute; inset: 0; pointer-events: none; }
+/* Pins move by transform only (compositor); the layer's contents never affect the page layout. */
+.pin-layer { position: absolute; inset: 0; pointer-events: none; contain: layout style size; }
 .pin {
   position: absolute; left: 0; top: 0; pointer-events: auto;
   width: 26px; height: 26px; padding: 0; border-radius: 50%;
   border: 2px solid #fff; background: var(--feature); color: #fff; font-size: 12px; font-weight: 700;
-  box-shadow: 0 2px 8px rgb(0 0 0 / .45); transition: opacity .2s, scale .2s;
+  box-shadow: 0 2px 8px rgb(0 0 0 / .45); transition: opacity .2s, scale .2s; will-change: transform;
 }
 .pin[data-kind='spec'] { background: #6b7280; }
 .pin[data-kind='upgrade'] { background: var(--upgrade); }
 .pin[data-kind='note'] { background: var(--note); color: #111; }
+.pin.offscreen { visibility: hidden; }
 .pin.occluded { opacity: .35; }
 .pin.filtered { opacity: .12; pointer-events: none; }
 .pin.active { scale: 1.25; outline: 3px solid var(--accent); outline-offset: 2px; opacity: 1; }

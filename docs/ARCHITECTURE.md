@@ -91,7 +91,8 @@ We reuse those parsers and patch what fails on real-world files:
 - `composer.ts` (`FastUSDComposer`): typed-array fast path for all-triangle meshes. Stock three took
   ~1.4–2.2 s to build a 1M-triangle mesh (JS arrays per index); this takes ~0.2 s, same output.
 - `usdz.ts` (`loadUsd`): unzips only USD layers and images, takes the first layer as root (falls back
-  to the first USD layer anywhere), composes, waits for textures (blob URLs created and revoked by
+  to the first USD layer anywhere), composes, welds the face-varying expansion back into an indexed
+  mesh (`../weld.ts`: 2.9M → 0.49M vertices for 1M triangles), waits for textures (blob URLs created and revoked by
   three per image), halves three's normal-map strength for the standard scale 2 / bias -1 decode,
   and reports undecodable textures as warnings instead of failing.
 
@@ -101,6 +102,26 @@ stays on the main thread: a worker would save the ~0.2 s parse but pay ~0.07 s s
 the spec table back, and the build step needs three.js objects on the main thread anyway. The USD
 code (~70 KB min) is a lazy chunk loaded on the first USDZ. Anything that still fails shows an error
 pointing to `tools/usdz-to-glb.py`. Fixtures are synthetic (`apps/web/test/fixtures/README.md`).
+
+### Rendering and performance (`apps/web/src/viewer/`)
+
+Details and measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
+- **Render on demand** (`renderScheduler.ts`): the animation loop only runs while something changes.
+  Viewer methods (`setModel`, `setView`, `applyTransform`, `setBackground`, resize, controls input,
+  fly-to) call `viewer.requestRender()`; **code that mutates the three.js scene directly must call it
+  too**. The shadow map is redrawn only on `requestRender()` (scene changes), never for camera-only
+  frames. Frame listeners (`onFrame`, pins) run after drawn frames only.
+- **Quality** (`quality.ts`): pixel ratio ≤ 2 (1.5 on phones for captures over 400k triangles),
+  MSAA only at 1×, smaller hard shadows on phones; `?quality=low|high` overrides.
+- **Raycasts** (`bvh.ts`): after the first frame of a model, meshes over 5k triangles get a
+  three-mesh-bvh hierarchy (built in `bvh.worker.ts` for big meshes, indirect so the GPU index buffer
+  is untouched). `viewer.raycastReady` tells the pins when occlusion tests are cheap.
+- **Pins** (`pins.ts`): allocation-free projection against a cached viewport size, transform-only
+  writes for pins that moved, `offscreen` class for pins behind the camera or off the stage,
+  occlusion raycasts under a 3 ms per-frame budget that finish on idle animation frames.
+- **GLB decoders** (`loaders.ts`, `gltfInfo.ts`): `extensionsUsed` decides which of Meshopt, Draco
+  and KTX2/Basis is imported; their WASM ships in the build (no CDN).
 
 ### `bike-scene/1` (viewer JSON, `*.bike.json`)
 

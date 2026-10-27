@@ -94,6 +94,20 @@ describe('parseCrate', () => {
       expect(b.geometry.groups).toEqual(a.geometry.groups);
     }
   });
+
+  it('welds to an indexed mesh that draws exactly the same triangles', async () => {
+    const { FastUSDComposer } = await import('../src/viewer/usd/composer');
+    for (const name of [OBJECT_CAPTURE, ZUP_SUBSETS]) {
+      const layer = parseCrate(unzipSync(fixture(name))['baked_mesh.usdc']);
+      const [expanded] = meshesOf(new FastUSDComposer().compose(layer, {}, {}, ''));
+      const { object } = await loadUsd(fixture(name));
+      const [welded] = meshesOf(object);
+      expect(welded.geometry.index).toBeTruthy();
+      const flat = welded.geometry.toNonIndexed();
+      for (const attr of ['position', 'normal', 'uv']) expect(flat.getAttribute(attr).array).toEqual(expanded.geometry.getAttribute(attr).array);
+      expect(welded.geometry.groups).toEqual(expanded.geometry.groups);
+    }
+  });
 });
 
 describe('loadUsd', () => {
@@ -104,10 +118,13 @@ describe('loadUsd', () => {
 
     const [mesh] = meshesOf(object);
     const geo = mesh.geometry;
-    expect(geo.getAttribute('position').count).toBe(3240);
-    expect(geo.getAttribute('normal').count).toBe(3240);
+    // Welded: 1080 triangles index far fewer than 3 × 1080 distinct corners.
+    expect(geo.index?.count).toBe(3240);
+    expect(stats.vertices.before).toBe(3240);
+    expect(stats.vertices.after).toBe(geo.getAttribute('position').count);
+    expect(stats.vertices.after).toBeLessThan(3240 / 2);
+    expect(geo.getAttribute('normal').count).toBe(stats.vertices.after);
     const uv = geo.getAttribute('uv');
-    expect(uv.count).toBe(3240);
     const us = Array.from({ length: uv.count }, (_, i) => uv.getX(i));
     const vs = Array.from({ length: uv.count }, (_, i) => uv.getY(i));
     expect(Math.min(...us)).toBeCloseTo(0.02, 3);
