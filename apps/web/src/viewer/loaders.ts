@@ -1,16 +1,22 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
-import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js';
 import type { ModelFormat } from '../scene/schema';
 import { createDemoBike } from './demoBike';
 
 export class ModelLoadError extends Error {}
 
+const CONVERT_HINT = 'Convert it to GLB with tools/usdz-to-glb.py (Blender) and drop the .glb instead.';
+
+/** Non-fatal problems found while loading (e.g. a texture that did not decode), for the UI to show. */
+export function loadWarnings(object: THREE.Object3D): string[] {
+  return (object.userData.loadWarnings as string[] | undefined) ?? [];
+}
+
 /**
- * Loads a model into a plain Object3D. Object Capture exports USDZ (meters, +Y up),
- * which three.js reads directly for most captures; GLB is the most reliable format
- * (see tools/usdz-to-glb.py). PLY covers raw meshes and point clouds.
+ * Loads a model into a plain Object3D. Object Capture exports USDZ with a binary USDC layer
+ * (meters, +Y up), read by ./usd (three's USD parsers plus fixes); GLB stays the most portable
+ * format (see tools/usdz-to-glb.py). PLY covers raw meshes and point clouds.
  */
 export async function loadModel(url: string, format: ModelFormat): Promise<THREE.Object3D> {
   try {
@@ -22,11 +28,8 @@ export async function loadModel(url: string, format: ModelFormat): Promise<THREE
         const gltf = await new GLTFLoader().loadAsync(url);
         return gltf.scene;
       }
-      case 'usdz': {
-        const group = await new USDZLoader().loadAsync(url);
-        if (!hasMeshes(group)) throw new ModelLoadError('USDZ loaded but contains no meshes three.js can read. Convert it to GLB with tools/usdz-to-glb.py.');
-        return group;
-      }
+      case 'usdz':
+        return await loadUsdz(url);
       case 'ply':
         return plyToObject(await new PLYLoader().loadAsync(url));
     }
@@ -36,12 +39,30 @@ export async function loadModel(url: string, format: ModelFormat): Promise<THREE
   }
 }
 
-function hasMeshes(obj: THREE.Object3D): boolean {
-  let found = false;
-  obj.traverse((o) => {
-    if ((o as THREE.Mesh).isMesh) found = true;
-  });
-  return found;
+async function loadUsdz(url: string): Promise<THREE.Object3D> {
+  // The USD parsers are ~70 KB of minified JS that only captures need, so they load on first use.
+  const [{ loadUsd }, bytes] = await Promise.all([import('./usd/usdz'), fetchBytes(url)]);
+  let result: Awaited<ReturnType<typeof loadUsd>>;
+  try {
+    result = await loadUsd(bytes);
+  } catch (err) {
+    throw new ModelLoadError(`Could not read this USDZ (${err instanceof Error ? err.message : String(err)}). ${CONVERT_HINT}`);
+  }
+  const { object, stats, warnings } = result;
+  if (!stats.meshes || !stats.triangles) throw new ModelLoadError(`This USDZ has no mesh the viewer can show. ${CONVERT_HINT}`);
+  const ms = stats.ms;
+  console.info(
+    `USDZ ${stats.rootLayer}${stats.crate ? ' (binary)' : ''}: ${stats.meshes} mesh(es), ${Math.round(stats.triangles)} triangles, ` +
+      `${stats.textures.loaded} textures; unzip ${ms.unzip.toFixed(0)} ms, parse ${ms.parse.toFixed(0)} ms, build ${ms.compose.toFixed(0)} ms, textures ${ms.textures.toFixed(0)} ms`,
+  );
+  object.userData.loadWarnings = warnings;
+  return object;
+}
+
+async function fetchBytes(url: string): Promise<Uint8Array> {
+  const res = await fetch(url);
+  if (!res.ok) throw new ModelLoadError(`Could not download the model (HTTP ${res.status}).`);
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 function plyToObject(geometry: THREE.BufferGeometry): THREE.Object3D {
