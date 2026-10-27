@@ -105,6 +105,11 @@ export class Viewer {
     return this.background;
   }
 
+  /** True while a fly-to animation is running (E2E tests wait on it instead of sleeping). */
+  get flying(): boolean {
+    return this.flight !== null;
+  }
+
   /** Replaces the displayed model; `object` should already be centered (see centerOnGround). */
   setModel(object: THREE.Object3D, ref: ModelRef): void {
     for (const child of [...this.modelRoot.children]) {
@@ -224,6 +229,9 @@ export class Viewer {
     this.camera.position.copy(this.toWorld(view.position));
     this.controls.target.copy(this.toWorld(view.target));
     this.controls.update();
+    // pick() and project() read the camera matrices, which otherwise only refresh on the next
+    // rendered frame: a tap right after an instant (reduced-motion) fly-to would miss the model.
+    this.camera.updateMatrixWorld();
   }
 
   flyTo(view: CameraView, duration = 900): Promise<void> {

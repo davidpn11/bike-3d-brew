@@ -1,6 +1,7 @@
 import './styles.css';
 import { type Annotation, type BikeScene, type Hotspot, SCHEMA, parseScene } from './scene/schema';
 import { SceneStore, safeLocalStorage } from './scene/store';
+import { openCaptureCache } from './storage/backends';
 import { App } from './ui/app';
 import { DEMO_HOTSPOTS } from './viewer/demoBike';
 import { Viewer } from './viewer/Viewer';
@@ -24,10 +25,21 @@ store.subscribe((s) => {
     /* ignore */
   }
 });
-const app = new App(store, viewer, { topbar: $('topbar'), stage: $('stage'), panel: $('panel') }, baseUrl);
+// Never rejects: no usable storage just means captures must be re-dropped after a reload.
+const cache = openCaptureCache().catch(() => null);
+const app = new App(store, viewer, { topbar: $('topbar'), stage: $('stage'), panel: $('panel') }, baseUrl, cache);
 document.body.dataset.mode = 'view';
 
-boot().catch((err) => app.toast(err instanceof Error ? err.message : String(err), 'error', 0));
+// Test hook for the Playwright suite (docs/TESTING.md): dev server or `?e2e` only, so tests can
+// wait on app state and find pickable points on the canvas instead of sleeping or guessing pixels.
+const testHook = import.meta.env.DEV || params.has('e2e') ? { app, store, viewer, ready: false } : null;
+if (testHook) (window as unknown as { __bike: typeof testHook }).__bike = testHook;
+
+boot()
+  .catch((err) => app.toast(err instanceof Error ? err.message : String(err), 'error', 0))
+  .finally(() => {
+    if (testHook) testHook.ready = true;
+  });
 
 async function boot(): Promise<void> {
   if (sceneUrl) {
