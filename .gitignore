@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+# iOS
+apps/ios/*.xcodeproj/
+apps/ios/build/
+xcuserdata/
+DerivedData/
+# Captures are private: extract exports here, never commit them
+data/captures-in/
