@@ -10,7 +10,7 @@ Capture bikes with an iPhone, show them as background-free 3D models, zoom into 
 npm ci && npm run dev   # open http://localhost:5190, the demo bike loads with sample comments
 ```
 
-Drop a `.glb`, `.usdz` or `.ply` onto the viewer to use your own capture. Switch to **Edit** to
+Drop a `.bikecapture.zip` from the iPhone app (or a `.glb`, `.usdz`, `.ply`) onto the viewer to use your own capture. Switch to **Edit** to
 tap the bike and add comments, save camera views as areas; **Present** steps through areas for
 a customer.
 

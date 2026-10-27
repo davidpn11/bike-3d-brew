@@ -51,4 +51,12 @@ describe('SceneStore', () => {
     storage.setItem('bike-scene:b1', '{nope');
     expect(SceneStore.restore('b1', storage)).toBeNull();
   });
+
+  it('reads saved copies of other scenes', () => {
+    const storage = new MemoryStorage();
+    new SceneStore({ ...base(), id: 'capture-1', name: 'Saved' }, storage).update({ price: '$1' });
+    const store = new SceneStore(base(), storage);
+    expect(store.saved('capture-1')?.price).toBe('$1');
+    expect(store.saved('nope')).toBeNull();
+  });
 });
