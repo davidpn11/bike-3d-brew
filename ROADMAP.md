@@ -51,7 +51,11 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 
 - [ ] **Gaussian splat support**: load `.spz` / splat `.ply` (Scaniverse, Polycam, Luma) via Spark (`@sparkjsdev/spark`) for photoreal paint and chrome; crop box + pins work the same.
 - [ ] **Performance**: Draco/Meshopt compression, KTX2 textures, lazy loading, 60 fps on iPhone Safari with 50 pins.
-- [ ] **E2E tests**: Playwright smoke test (load demo, fly to Fork, add comment, export JSON) in CI.
+- [x] **E2E tests**: Playwright suite (desktop + iPhone viewport, SwiftShader WebGL) covering view, edit, present, export/import, capture-bundle drop and re-drop, error toasts, blocked storage, snapshot; synthetic capture-bundle fixture generator; unit coverage with ratcheting thresholds; CI jobs. See [docs/TESTING.md](docs/TESTING.md).
+- [ ] **E2E coverage for app code**: collect V8 coverage from Chromium during the Playwright run (`page.coverage`) and merge it with the unit report, so `ui/app.ts`, `Viewer.ts` and `main.ts` count toward the coverage ratchet.
+- [ ] **Render on demand**: only render when the camera, model or pins change (idle stage at 0 fps). Saves phone battery and makes the E2E suite much faster on SwiftShader (today every frame costs ~150–250 ms on CPU).
+- [ ] **WebKit E2E project**: run the suite in Playwright WebKit (closest to iPhone Safari) on a macOS runner or with WebKit's Linux deps; the `mobile` project is Chromium with an iPhone viewport today.
+- [ ] **Move USDZ loading to `USDLoader`**: three r186 deprecates `USDZLoader` (console warning on every capture); `USDLoader` reads the same files.
 - [ ] **Docs**: end-to-end guide with screenshots: capture → build → export → annotate → share.
 
 ## Ideas parking lot

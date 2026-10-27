@@ -27,7 +27,16 @@ store.subscribe((s) => {
 const app = new App(store, viewer, { topbar: $('topbar'), stage: $('stage'), panel: $('panel') }, baseUrl);
 document.body.dataset.mode = 'view';
 
-boot().catch((err) => app.toast(err instanceof Error ? err.message : String(err), 'error', 0));
+// Test hook for the Playwright suite (docs/TESTING.md): dev server or `?e2e` only, so tests can
+// wait on app state and find pickable points on the canvas instead of sleeping or guessing pixels.
+const testHook = import.meta.env.DEV || params.has('e2e') ? { app, store, viewer, ready: false } : null;
+if (testHook) (window as unknown as { __bike: typeof testHook }).__bike = testHook;
+
+boot()
+  .catch((err) => app.toast(err instanceof Error ? err.message : String(err), 'error', 0))
+  .finally(() => {
+    if (testHook) testHook.ready = true;
+  });
 
 async function boot(): Promise<void> {
   if (sceneUrl) {

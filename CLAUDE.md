@@ -12,7 +12,8 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
   - `src/viewer/`: three.js (`Viewer.ts`, `loaders.ts`, `pins.ts`, `demoBike.ts`).
   - `src/ui/app.ts`: modes (view / edit / present), panel, comment editor, file drop.
 - `apps/ios/`: SwiftUI capture app (`project.yml` for xcodegen). Object Capture → `model.usdz` + `poses.json` → `*.bikecapture.zip` (`bike-capture/1`).
-- `tools/`: offline helpers (e.g. USDZ → GLB).
+- `apps/web/e2e/`: Playwright suite; `window.__bike` test hook (only with `?e2e` or in dev).
+- `tools/`: offline helpers (e.g. USDZ → GLB) and `tools/fixtures/` (synthetic capture bundles for tests).
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 
@@ -23,8 +24,14 @@ npm ci
 npm run dev         # http://localhost:5190
 npm run typecheck
 npm test            # vitest, apps/web/test
+npm run test:coverage  # + V8 coverage; fails under the thresholds in apps/web/vite.config.ts
 npm run build       # → dist/
+npm run e2e         # Playwright, apps/web/e2e (builds + serves dist/ itself)
+npm run fixtures    # synthetic *.bikecapture.zip fixtures → apps/web/e2e/.fixtures/
 ```
+
+Testing is documented in `docs/TESTING.md`. In agent containers Chromium is preinstalled: run
+E2E with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e` and never `playwright install`.
 
 The iOS app cannot be built on Linux. CI (`.github/workflows/ios.yml`) compiles it unsigned on
 macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
@@ -33,7 +40,9 @@ macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
 
 - Positions in scene JSON (annotations, hotspot views) are in **model-root space**, so changing
   `model.rotation/scale/offset` keeps comments attached. Convert with `Viewer.toWorld/toModel`.
-- Pure logic goes in `src/scene/` with tests; three.js code stays in `src/viewer/`.
+- Pure logic goes in `src/scene/` with tests; three.js code stays in `src/viewer/`. UI decisions
+  (defaults, messages, URL rules) go in `src/scene/helpers.ts`, not inline in `ui/app.ts`.
+- New UI flows get an E2E test; coverage thresholds only go up.
 - Untrusted input (imported JSON, URLs, bundles) goes through a validating parser (`parseScene`).
 - Every storage access is wrapped in try/catch (private mode, quotas).
 - Match the existing code style (2-space TS, Prettier-ish 160 cols, sparse comments that explain *why*).
@@ -66,8 +75,8 @@ Sessions are started on a schedule with no human watching. Each session:
    Claim it immediately: push a first commit that flips it to `[~]` and open a **draft** PR
    titled `[roadmap] <item name>` whose base is the tip branch, so a parallel session sees the
    claim and stacks on you instead.
-4. **Build it properly.** Small, reviewable diff. Add/extend unit tests. Run `npm run typecheck`,
-   `npm test`, `npm run build`. For UI changes, drive the app with Playwright (Chromium is
+4. **Build it properly.** Small, reviewable diff. Add/extend unit and E2E tests. Run `npm run typecheck`,
+   `npm run test:coverage`, `npm run build`, `npm run e2e`. For UI changes, drive the app with Playwright (Chromium is
    preinstalled; launch with `--use-angle=swiftshader --enable-unsafe-swiftshader`) and check
    screenshots. For Swift, re-read the diff carefully against Apple's API, since only CI compiles it.
 5. **Finish.** Flip the item to `[x]`, add any follow-ups you discovered as new `[ ]` items in
