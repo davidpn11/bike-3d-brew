@@ -61,3 +61,4 @@ the viewer. If the model does not show, note what the viewer says and add it to
 | #1 Foundation | Demo bike, areas, comments, Edit and Present modes, background switcher, Export JSON. |
 | #2 Capture bundle import | **Open…** the synthetic bundle above (or drop it on desktop): it loads and is named from the manifest. Add a comment, reload, open the same file again: the comment is back. |
 | Docs site | This site: the home page shows roadmap progress; **Progress** lists every item. |
+| Performance (#TBD) | Orbit the demo, then let go: the camera glides to a stop and the page goes quiet (DevTools → Performance shows no frames while idle). Pins slide with the bike and dim when the bike is in front of them. On a phone, open a large capture: it appears, then picking a comment point is instant. Add `?quality=low` to the URL for the cheapest rendering. A GLB made with `node tools/optimize-glb.mjs in.glb out.glb` opens like any other. |

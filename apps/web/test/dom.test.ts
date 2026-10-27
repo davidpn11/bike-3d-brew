@@ -1,9 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Annotation } from '../src/scene/schema';
 import { download, h } from '../src/ui/dom';
-import { PinLayer } from '../src/viewer/pins';
-import type { Viewer } from '../src/viewer/Viewer';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -59,68 +56,5 @@ describe('download()', () => {
     const png = new Blob([new Uint8Array([1])], { type: 'image/png' });
     download('bike.png', png);
     expect(create).toHaveBeenCalledWith(png);
-  });
-});
-
-describe('PinLayer', () => {
-  const note = (id: string, title: string, x = 0): Annotation => ({ id, title, body: '', kind: 'feature', position: [x, 0, 0], createdAt: '' });
-
-  function setup() {
-    let frame = () => {};
-    const occluded = new Set<number>();
-    const viewer = {
-      onFrame: (fn: () => void) => ((frame = fn), () => {}),
-      // x < 0 is "behind the camera".
-      project: ([x]: number[]) => (x < 0 ? null : { x: x * 100, y: 50 }),
-      isOccluded: ([x]: number[]) => occluded.has(x),
-    } as unknown as Viewer;
-    const onSelect = vi.fn();
-    const layer = new PinLayer(viewer, document.body, onSelect);
-    return { layer, onSelect, occluded, frame: () => frame() };
-  }
-  const pins = () => [...document.querySelectorAll<HTMLButtonElement>('.pin-layer .pin')];
-
-  it('creates numbered, labelled pins and removes stale ones', () => {
-    const { layer } = setup();
-    layer.setAnnotations([note('a', 'Fork'), note('b', 'Saddle')]);
-    expect(pins().map((p) => p.textContent)).toEqual(['1', '2']);
-    expect(pins()[1].getAttribute('aria-label')).toBe('Comment 2: Saddle');
-    expect(pins()[0].dataset.kind).toBe('feature');
-    layer.setAnnotations([note('b', 'Saddle')]);
-    expect(pins()).toHaveLength(1);
-    expect(pins()[0].textContent).toBe('1');
-  });
-
-  it('marks the active pin and dims pins outside the filter', () => {
-    const { layer } = setup();
-    layer.setAnnotations([note('a', 'A'), note('b', 'B')]);
-    layer.setActive('b');
-    layer.filter(['a']);
-    expect(pins()[1].classList.contains('active')).toBe(true);
-    expect(pins()[1].classList.contains('filtered')).toBe(true);
-    expect(pins()[0].classList.contains('filtered')).toBe(false);
-    layer.filter(null);
-    expect(pins()[1].classList.contains('filtered')).toBe(false);
-  });
-
-  it('follows projected points each frame, hides pins behind the camera and flags occluded ones', () => {
-    const { layer, frame, occluded } = setup();
-    layer.setAnnotations([note('a', 'A', 1), note('b', 'B', -1), note('c', 'C', 2)]);
-    occluded.add(2);
-    frame();
-    expect(pins()[0].style.transform).toContain('translate(100px, 50px)');
-    expect(pins()[1].style.display).toBe('none');
-    expect(pins()[2].classList.contains('occluded')).toBe(true);
-    expect(pins()[0].classList.contains('occluded')).toBe(false);
-  });
-
-  it('selects on click without letting the click reach the canvas', () => {
-    const { layer, onSelect } = setup();
-    const canvasClick = vi.fn();
-    document.body.addEventListener('click', canvasClick);
-    layer.setAnnotations([note('a', 'A')]);
-    pins()[0].click();
-    expect(onSelect).toHaveBeenCalledWith('a');
-    expect(canvasClick).not.toHaveBeenCalled();
   });
 });

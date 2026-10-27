@@ -120,3 +120,6 @@ missing.
   via picker and drag-and-drop (USDZ, GLB, flat); re-drop after reload restores comments;
   broken poses warning; bare model drop; error toasts for seven kinds of bad files.
 - `storage.spec.ts`: everything still works with `localStorage` throwing.
+- `perf.spec.ts`: an idle stage renders 0 frames, orbiting renders and stops again with pins moved, canvas snapshots work without a preserved drawing buffer, and Meshopt / Draco / KTX2 GLBs (from `tools/fixtures/make-compressed-glb.mjs`) open with self-hosted decoders and no foreign requests.
+
+The viewer renders on demand: to wait for a picture to settle use `viewer.rendering === false`; `viewer.renderCount` counts drawn frames.
