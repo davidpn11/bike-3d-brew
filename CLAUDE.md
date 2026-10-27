@@ -10,10 +10,14 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
 - `apps/web/`: Vite + TypeScript + three.js viewer/editor (no UI framework; `ui/dom.ts` `h()` helper).
   - `src/scene/`: pure logic (`schema.ts` = `bike-scene/1` format + validation, `store.ts`, `camera.ts`). Unit-tested in `apps/web/test/`.
   - `src/viewer/`: three.js (`Viewer.ts`, `loaders.ts`, `pins.ts`, `demoBike.ts`).
+  - `src/storage/`: browser storage adapters (OPFS / IndexedDB) behind interfaces defined in `src/scene/`.
   - `src/ui/app.ts`: modes (view / edit / present), panel, comment editor, file drop.
 - `apps/ios/`: SwiftUI capture app (`project.yml` for xcodegen). Object Capture → `model.usdz` + `poses.json` → `*.bikecapture.zip` (`bike-capture/1`).
 - `apps/web/e2e/`: Playwright suite; `window.__bike` test hook (only with `?e2e` or in dev).
-- `tools/`: offline helpers (e.g. USDZ → GLB) and `tools/fixtures/` (synthetic capture bundles for tests).
+- `apps/docs/`: Fumadocs (Next.js static export) docs + progress site. Own `package.json`; its pages are
+  generated from the repo's markdown by `scripts/sync-content.mjs` (README, ROADMAP, CHANGELOG, `docs/*.md`),
+  so edit the markdown, never `apps/docs/content/`.
+- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`; `tools/fixtures/make-capture.mjs` USDZ-based fixture bundle, `render-photos.mjs` renders its photos from the poses; `make-capture-bundle.mjs` E2E fixture variants).
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 
@@ -28,10 +32,16 @@ npm run test:coverage  # + V8 coverage; fails under the thresholds in apps/web/v
 npm run build       # → dist/
 npm run e2e         # Playwright, apps/web/e2e (builds + serves dist/ itself)
 npm run fixtures    # synthetic *.bikecapture.zip fixtures → apps/web/e2e/.fixtures/
+npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: npm --prefix apps/docs ci)
+npm run docs:build  # → apps/docs/out/
+node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
+tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
 ```
 
 Testing is documented in `docs/TESTING.md`. In agent containers Chromium is preinstalled: run
 E2E with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e` and never `playwright install`.
+
+The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
 
 The iOS app cannot be built on Linux. CI (`.github/workflows/ios.yml`) compiles it unsigned on
 macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
@@ -82,7 +92,9 @@ Sessions are started on a schedule with no human watching. Each session:
 5. **Finish.** Flip the item to `[x]`, add any follow-ups you discovered as new `[ ]` items in
    the right milestone, update docs, and mark the PR ready for review. PR body: what/why, how
    verified, screenshots (described), known gaps, and "Stacked on #N" with the PR below it.
-   Check CI on your PR before ending; if red, fix and push.
+   Check CI on your PR before ending; if red, fix and push. Then run
+   `tools/publish-pages.sh --source <your-branch>` from the stack tip so the owner's site stays
+   current, and add a row for your PR to "What each PR adds" in `docs/TESTING-GUIDE.md`.
 6. If an item needs hardware or a human decision (e.g. a real iPhone capture, a hosting
    account), do what can be done, document the remaining manual step in the PR and
    `docs/MANUAL-STEPS.md`, and move on to the next item.

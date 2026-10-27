@@ -1,6 +1,7 @@
 import './styles.css';
 import { type Annotation, type BikeScene, type Hotspot, SCHEMA, parseScene } from './scene/schema';
 import { SceneStore, safeLocalStorage } from './scene/store';
+import { openCaptureCache } from './storage/backends';
 import { App } from './ui/app';
 import { DEMO_HOTSPOTS } from './viewer/demoBike';
 import { Viewer } from './viewer/Viewer';
@@ -24,7 +25,9 @@ store.subscribe((s) => {
     /* ignore */
   }
 });
-const app = new App(store, viewer, { topbar: $('topbar'), stage: $('stage'), panel: $('panel') }, baseUrl);
+// Never rejects: no usable storage just means captures must be re-dropped after a reload.
+const cache = openCaptureCache().catch(() => null);
+const app = new App(store, viewer, { topbar: $('topbar'), stage: $('stage'), panel: $('panel') }, baseUrl, cache);
 document.body.dataset.mode = 'view';
 
 // Test hook for the Playwright suite (docs/TESTING.md): dev server or `?e2e` only, so tests can
