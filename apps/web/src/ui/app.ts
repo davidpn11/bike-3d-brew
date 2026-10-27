@@ -19,7 +19,7 @@ import {
 import type { SceneStore } from '../scene/store';
 import { requestPersistence } from '../storage/backends';
 import { sourceToModelRoot } from '../viewer/captureSpace';
-import { centerOnGround, loadModel } from '../viewer/loaders';
+import { centerOnGround, loadModel, loadWarnings } from '../viewer/loaders';
 import { PinLayer } from '../viewer/pins';
 import type { Viewer } from '../viewer/Viewer';
 import { download, h, slugify } from './dom';
@@ -120,7 +120,9 @@ export class App {
       this.captureSpace = ref.url === this.captureUrl ? sourceToModelRoot(this.viewer.modelRoot) : null;
       this.rankCache.clear();
       this.render();
-      this.toast(restored ? `Reopened “${restored.manifest.name}” from this browser’s storage.` : '');
+      this.modelWarnings = loadWarnings(object);
+      if (this.modelWarnings.length) this.toast(this.modelWarnings.join(' '), 'error', 8000);
+      else this.toast(restored ? `Reopened “${restored.manifest.name}” from this browser’s storage.` : '');
     } catch (err) {
       this.toast(err instanceof Error ? err.message : String(err), 'error', 0);
     }
@@ -658,7 +660,8 @@ export class App {
     if (this.loadedModelKey) void this.keepCapture(bundle, ref.url, scene.id).finally(markStored);
     else markStored();
     if (this.loadedModelKey) {
-      const { manifest, poses, images, warnings } = bundle;
+      const { manifest, poses, images } = bundle;
+      const warnings = [...bundle.warnings, ...this.modelWarnings];
       const facts = [`${images.length || manifest.imageCount || 0} photos`, poses ? `${poses.samples.length} camera poses` : 'no camera poses', manifest.mode === 'area' ? 'area mode' : null];
       this.toast([`Opened capture “${scene.name}” · ${facts.filter(Boolean).join(' · ')}`, ...warnings].join('. '), warnings.length ? 'error' : 'info', warnings.length ? 8000 : 4500);
     }
@@ -730,6 +733,7 @@ export class App {
   // ---------------------------------------------------------------- helpers
 
   private toastTimer = 0;
+  private modelWarnings: string[] = [];
   toast(message: string, tone: 'info' | 'error' = 'info', ms = 3500): void {
     clearTimeout(this.toastTimer);
     this.toastEl.hidden = !message;

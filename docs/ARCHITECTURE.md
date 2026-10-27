@@ -73,6 +73,35 @@ So a capture scene survives a reload, every successfully opened bundle is kept i
 - **UI**: "Open…" becomes a small menu once something is stored: "Choose a file…" plus the stored
   captures (name, size, × to forget).
 
+### USDZ loading (`apps/web/src/viewer/usd/`)
+
+Object Capture writes a USDZ whose root layer is **binary USDC (crate)**: one baked triangle
+mesh, indexed face-varying `primvars:st` and normals, a `UsdPreviewSurface` fed by
+`UsdUVTexture` PNGs in `0/` (diffuse, normal with scale 2 / bias -1, occlusion),
+`metersPerUnit = 1`, `upAxis = "Y"`.
+
+three.js r186 can read this: `USDLoader` (the old `USDZLoader` is a deprecated alias) has a crate
+parser with LZ4 + integer decoding (`usd/USDCParser.js`) and a composer that handles xforms,
+GeomSubsets, indexed/face-varying primvars, UsdPreviewSurface textures, `metersPerUnit` and Z-up.
+We reuse those parsers and patch what fails on real-world files:
+
+- `crate.ts` (`CrateParser`): values the crate stores **inline** that r186 misreads: small integral
+  `double2/3/4` and `half3/4` (packed int8, e.g. `xformOp:translate = (0, 0, 5)` became a number and
+  crashed the transform), negative `int`, `half`; plus scalar `half3/4`, `quath`, `int4`, `matrix2d/3d`.
+- `composer.ts` (`FastUSDComposer`): typed-array fast path for all-triangle meshes. Stock three took
+  ~1.4–2.2 s to build a 1M-triangle mesh (JS arrays per index); this takes ~0.2 s, same output.
+- `usdz.ts` (`loadUsd`): unzips only USD layers and images, takes the first layer as root (falls back
+  to the first USD layer anywhere), composes, waits for textures (blob URLs created and revoked by
+  three per image), halves three's normal-map strength for the standard scale 2 / bias -1 decode,
+  and reports undecodable textures as warnings instead of failing.
+
+Measured on a synthetic 23 MB USDZ (972k triangles, 2048² texture; `tools/fixtures/make-usdc.py
+--detail 90 --tex 2048`), Chromium: unzip 16 ms, parse 183 ms, build 206 ms, textures 24 ms. Parsing
+stays on the main thread: a worker would save the ~0.2 s parse but pay ~0.07 s structured-clone of
+the spec table back, and the build step needs three.js objects on the main thread anyway. The USD
+code (~70 KB min) is a lazy chunk loaded on the first USDZ. Anything that still fails shows an error
+pointing to `tools/usdz-to-glb.py`. Fixtures are synthetic (`apps/web/test/fixtures/README.md`).
+
 ### `bike-scene/1` (viewer JSON, `*.bike.json`)
 
 See `apps/web/src/scene/schema.ts`. A scene references its model by URL (relative to the
@@ -111,5 +140,6 @@ opens a full-screen viewer (arrows / swipe, pinch / wheel / double-tap zoom, Esc
 - Does `PhotogrammetrySession.Poses` return camera→model transforms in the same frame as the
   USDZ? (Assumed, and the photo close-ups depend on it; validate by checking that an area's top
   close-up really shows that area on a real capture.)
-- Does three.js `USDZLoader` read Object Capture USDZ (binary USDC)? Otherwise convert to GLB.
+- ~~Does three.js read Object Capture USDZ (binary USDC)?~~ Yes, with the fixes above, verified on
+  synthetic Object-Capture-like files. Still to confirm on a real capture (docs/MANUAL-STEPS.md).
 - Bike size vs. Object Capture's bounding box limits: area mode is the fallback.

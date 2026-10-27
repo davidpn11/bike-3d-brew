@@ -18,6 +18,7 @@ import { readZipEntry, readZipIndex } from '../src/scene/zipIndex';
 import { sourceToModelRoot } from '../src/viewer/captureSpace';
 import { USDLoader } from 'three/examples/jsm/loaders/USDLoader.js';
 import { centerOnGround } from '../src/viewer/loaders';
+import { loadUsd } from '../src/viewer/usd/usdz';
 import { MODEL_ORIGIN, bikeCenter, capturePoses, lookAtTransform, makeUsdz, orbitPoses } from '../../../tools/fixtures/make-capture.mjs';
 
 const pose = (sample: number, eye: Vec3, target: Vec3, file?: string): PoseSample => ({ sample, transform: lookAtTransform(eye, target), ...(file ? { file } : {}) });
@@ -145,6 +146,20 @@ describe('rankPhotos', () => {
     // The non-drive-side close-up of the seat cluster never shows up for a drive-side comment.
     const seat = rankPhotos(poses, imgs, { point: inModelRoot([-0.17, 0.74, 0.02]), side: [0, 0, 1] }, { toModel });
     expect(seat.map((r) => r.path)).not.toContain('images/IMG_0030.jpg');
+  });
+});
+
+describe('close-ups through the app USDZ loader', () => {
+  it('loadUsd (the viewer path) maps capture space like three USDLoader', async () => {
+    const usdz = makeUsdz();
+    const stock = new THREE.Group().add(centerOnGround(new USDLoader().parse(usdz.slice().buffer as ArrayBuffer)));
+    const ours = new THREE.Group().add(centerOnGround((await loadUsd(usdz.slice())).object));
+    const a = sourceToModelRoot(stock)!;
+    const b = sourceToModelRoot(ours)!;
+    expect(b.every((v, i) => Math.abs(v - a[i]) < 1e-6)).toBe(true);
+    const poses = capturePoses(24);
+    const fork = rankPhotos(poses, poses.map((p) => `images/${p.file}.jpg`), { point: transformPoint(b, [0.44 + MODEL_ORIGIN[0], 0.66 + MODEL_ORIGIN[1], MODEL_ORIGIN[2]]), side: [1, 0.2, 0.5] }, { toModel: b });
+    expect(fork[0].path).toBe('images/IMG_0024.jpg');
   });
 });
 
