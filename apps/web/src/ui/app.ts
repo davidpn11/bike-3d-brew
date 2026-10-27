@@ -18,7 +18,7 @@ import {
   formatFromFilename,
   parseScene,
 } from '../scene/schema';
-import { type Published, type SharePackageInput, type ViewParams, isAllowedUrl, shareOption } from '../scene/share';
+import { type Published, type SharePackageInput, type ViewParams, publishedPhotoUrls, shareOption } from '../scene/share';
 import type { SceneStore } from '../scene/store';
 import { requestPersistence } from '../storage/backends';
 import { sourceToModelRoot } from '../viewer/captureSpace';
@@ -61,8 +61,6 @@ export class App {
   private toastEl: HTMLDivElement;
   private present: PresentView;
   private shareDialog = new ShareDialog();
-  /** `?view=present`: the customer link. No editing UI, no file drop, Present mode only. */
-  readOnly = false;
   /** The published scene this page was opened with (`?scene=`), for the share link. */
   published: Published | null = null;
   private pins: PinLayer;
@@ -140,10 +138,8 @@ export class App {
     }
   }
 
-  /** Applies URL parameters: read-only customer view and auto-advance timing. */
+  /** Applies URL parameters (auto-advance timing). The customer link (`?view=present`) never builds an App: see present/BikePresenter. */
   configure(params: ViewParams): void {
-    this.readOnly = params.readOnly;
-    document.body.dataset.readonly = String(params.readOnly);
     this.present.kiosk.configure({ interval: params.interval, idle: params.idle });
     this.render();
   }
@@ -155,7 +151,7 @@ export class App {
   }
 
   setMode(mode: Mode): void {
-    if (this.mode === mode || (this.readOnly && mode !== 'present')) return;
+    if (this.mode === mode) return;
     this.mode = mode;
     this.draft = null;
     document.body.dataset.mode = mode;
@@ -220,10 +216,6 @@ export class App {
   private renderTopbar(scene: BikeScene): void {
     const brand = h('div', { class: 'brand' }, h('strong', {}, scene.name), scene.price ? h('span', { class: 'price' }, scene.price) : null);
     const share = h('button', { type: 'button', class: 'share', title: 'Send this bike to a customer', onclick: () => void this.share() }, 'Share');
-    if (this.readOnly) {
-      this.els.topbar.replaceChildren(brand, h('div', { class: 'actions' }, share));
-      return;
-    }
     const bg = h(
       'div',
       { class: 'segmented', role: 'group', 'aria-label': 'Background' },
@@ -557,16 +549,7 @@ export class App {
 
   /** A published scene's own close-ups (`Hotspot.photos`), resolved against the scene URL. */
   private publishedPhotos(hs: Hotspot): string[] {
-    const out: string[] = [];
-    for (const p of hs.photos ?? []) {
-      try {
-        const u = new URL(p, this.baseUrl);
-        if (isAllowedUrl(u, location.href)) out.push(u.href);
-      } catch {
-        /* skip */
-      }
-    }
-    return out;
+    return publishedPhotoUrls(hs.photos, this.baseUrl, location.href);
   }
 
   // ---------------------------------------------------------------- photo close-ups
@@ -667,14 +650,12 @@ export class App {
 
     const stage = this.els.stage;
     stage.addEventListener('dragover', (e) => {
-      if (this.readOnly) return;
       e.preventDefault();
       stage.classList.add('dropping');
     });
     stage.addEventListener('dragleave', () => stage.classList.remove('dropping'));
     stage.addEventListener('drop', (e) => {
       e.preventDefault();
-      if (this.readOnly) return;
       stage.classList.remove('dropping');
       const file = e.dataTransfer?.files?.[0];
       if (file) void this.openFile(file);
@@ -691,9 +672,10 @@ export class App {
       if (e.key === 'Escape' && this.openMenu) return this.toggleOpenMenu(false);
       if ((e.target as HTMLElement)?.closest?.('input, textarea, select')) return;
       if (this.mode === 'present') {
+        if (e.key !== 'k') this.present.kiosk.interact();
         if (e.key === 'ArrowRight' || e.key === ' ') this.goToStep(this.presentStep + 1);
         else if (e.key === 'ArrowLeft') this.goToStep(this.presentStep - 1);
-        else if (e.key === 'Escape' && !this.readOnly) this.setMode('view');
+        else if (e.key === 'Escape') this.setMode('view');
         else if (e.key === 'k') this.present.kiosk.toggle();
       } else if (e.key === 'Escape' && this.draft) {
         this.draft = null;

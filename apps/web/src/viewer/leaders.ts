@@ -89,9 +89,10 @@ export class LeaderLayer {
 
   private update(): void {
     if (!this.leaders.length) return;
-    const { camera, modelRoot } = this.viewer;
-    const w = this.stage.clientWidth;
-    const h = this.stage.clientHeight;
+    const { camera, modelRoot, renderer } = this.viewer;
+    // The canvas can be shorter than the stage (phone bottom sheet); both share the top-left corner.
+    const w = renderer.domElement.clientWidth;
+    const h = renderer.domElement.clientHeight;
     for (let i = 0; i < this.leaders.length; i++) {
       const { position, rect, active } = this.leaders[i];
       const { line, dot } = this.lines[i];

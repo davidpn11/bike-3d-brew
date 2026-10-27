@@ -140,29 +140,39 @@
     {
       "id": "note-demo-2",
       "position": [
-        -0.25182,
-        0.274,
-        0
+        -0.16,
+        0.31,
+        0.03
       ],
       "title": "Shimano 105 Di2 12-speed",
       "body": "**Electronic shifting**: crisp, maintenance-free gear changes.\n- Charges over USB-C\n- About *1,000 km* per charge",
       "kind": "feature",
       "createdAt": "2026-10-27T00:00:00.000Z",
-      "hotspotId": "hs-drivetrain"
+      "hotspotId": "hs-drivetrain",
+      "normal": [
+        0,
+        0,
+        1
+      ]
     },
     {
       "id": "note-demo-3",
       "position": [
-        -0.25182,
-        0.274,
-        0
+        -0.5,
+        0.33,
+        0.05
       ],
       "title": "Upgrade to Ultegra Di2",
       "body": "**180 g lighter**, with a wider-range cassette for climbs.",
       "kind": "upgrade",
       "createdAt": "2026-10-27T00:00:00.000Z",
       "hotspotId": "hs-drivetrain",
-      "price": "+$900"
+      "price": "+$900",
+      "normal": [
+        0,
+        0,
+        1
+      ]
     },
     {
       "id": "note-demo-4",

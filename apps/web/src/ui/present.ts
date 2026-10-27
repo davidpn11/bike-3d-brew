@@ -4,6 +4,7 @@ import { LeaderLayer } from '../viewer/leaders';
 import type { Viewer } from '../viewer/Viewer';
 import { h } from './dom';
 import { markdownBlock } from './markdown';
+import './present.css';
 
 export interface PresentActions {
   go(step: number): void;
@@ -47,20 +48,24 @@ export class PresentView {
     // never hidden behind the card: publish its height to CSS.
     new ResizeObserver(() => stage.style.setProperty('--present-card-h', `${this.el.hidden ? 0 : this.el.offsetHeight}px`)).observe(this.el);
     stage.append(this.el);
+    this.el.dataset.kiosk = 'off';
     this.kiosk = new Kiosk({ ...kiosk, onAdvance: () => this.actions.go(this.step + 1), onChange: (s) => this.syncKiosk(s) });
     this.bindSwipe();
     // Any touch on the bike or the card holds auto-advance until the customer has been idle a while.
     const hold = () => this.kiosk.interact();
     stage.addEventListener('pointerdown', hold, { capture: true });
     stage.addEventListener('wheel', hold, { capture: true, passive: true });
-    window.addEventListener('keydown', (e) => this.shown && e.key !== 'k' && hold());
+    this.stage = stage;
   }
+
+  private stage: HTMLElement;
 
   hide(): void {
     this.shown = false;
     this.el.hidden = true;
     this.leaders.clear();
-    this.el.parentElement?.style.setProperty('--present-card-h', '0px');
+    this.stage.style.setProperty('--present-card-h', '0px');
+    delete this.stage.dataset.present;
     this.kiosk.stop();
   }
 
@@ -69,6 +74,8 @@ export class PresentView {
     this.step = s.step;
     const hotspot = s.steps[s.step];
     this.el.hidden = false;
+    // Container-scoped styling hook (no body attributes), so the card works in any host page.
+    this.stage.dataset.present = 'on';
     const items = s.notes.map((a) =>
       h(
         'li',
@@ -134,7 +141,7 @@ export class PresentView {
       btn.setAttribute('aria-pressed', String(playing));
       btn.setAttribute('aria-label', playing ? 'Stop auto-play' : 'Auto-play areas');
     }
-    document.body.dataset.kiosk = state;
+    this.el.dataset.kiosk = state;
   }
 
   /** Swipe left/right on the card changes area; vertical drags still scroll it. */

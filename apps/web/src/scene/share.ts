@@ -331,3 +331,36 @@ export function readSharePackage(zip: Uint8Array, opts: { id?: string } = {}): R
   ];
   return { id, manifest, scene, files, warnings };
 }
+
+// ---------------------------------------------------------------- loading a published scene
+
+/** Fetches and validates a published scene; every failure is a ShareError a customer can read. */
+export async function loadPublishedScene(param: string, pageHref: string, fetchFn: typeof fetch = fetch): Promise<{ scene: BikeScene; href: string }> {
+  const href = checkSceneUrl(param, pageHref);
+  let res: Response;
+  try {
+    res = await fetchFn(href);
+  } catch {
+    throw new ShareError(`Could not load scene ${param}: the network request failed. Check your connection and try again.`);
+  }
+  if (!res.ok) throw new ShareError(`Could not load scene ${param} (${res.status})`);
+  try {
+    return { scene: checkPublishedScene(parseScene(await res.json()), href, pageHref), href };
+  } catch (err) {
+    throw new ShareError(`Could not load scene ${param}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/** A published area's close-up URLs (`Hotspot.photos`), resolved against the scene, keeping only allowed ones. */
+export function publishedPhotoUrls(photos: readonly string[] | undefined, baseHref: string, pageHref: string): string[] {
+  const out: string[] = [];
+  for (const p of photos ?? []) {
+    try {
+      const u = new URL(p, baseHref);
+      if (isAllowedUrl(u, pageHref)) out.push(u.href);
+    } catch {
+      /* skip */
+    }
+  }
+  return out;
+}

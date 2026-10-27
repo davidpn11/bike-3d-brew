@@ -1,6 +1,6 @@
 import './styles.css';
-import { type Annotation, type BikeScene, type Hotspot, SCHEMA, parseScene } from './scene/schema';
-import { ShareError, checkPublishedScene, checkSceneUrl, readViewParams } from './scene/share';
+import { type Annotation, type BikeScene, type Hotspot, SCHEMA } from './scene/schema';
+import { checkSceneUrl, loadPublishedScene, readViewParams } from './scene/share';
 import { SceneStore, safeLocalStorage } from './scene/store';
 import { openCaptureCache } from './storage/backends';
 import { App } from './ui/app';
@@ -46,33 +46,16 @@ const testHook = import.meta.env.DEV || params.has('e2e') ? { app, store, viewer
 if (testHook) (window as unknown as { __bike: typeof testHook }).__bike = testHook;
 
 boot()
-  .catch((err) => {
-    const message = err instanceof Error ? err.message : String(err);
-    app.toast(message, 'error', 0);
-    if (view.readOnly) showLinkError(message);
-  })
+  .catch((err) => app.toast(err instanceof Error ? err.message : String(err), 'error', 0))
   .finally(() => {
     if (testHook) testHook.ready = true;
   });
 
 async function boot(): Promise<void> {
   if (sceneUrl) {
-    const href = checkSceneUrl(sceneUrl, location.href);
-    let res: Response;
-    try {
-      res = await fetch(href);
-    } catch {
-      throw new ShareError(`Could not load scene ${sceneUrl}: the network request failed. Check your connection and try again.`);
-    }
-    if (!res.ok) throw new ShareError(`Could not load scene ${sceneUrl} (${res.status})`);
-    let remote: BikeScene;
-    try {
-      remote = checkPublishedScene(parseScene(await res.json()), href, location.href);
-    } catch (err) {
-      throw new ShareError(`Could not load scene ${sceneUrl}: ${err instanceof Error ? err.message : String(err)}`);
-    }
+    const { scene: remote } = await loadPublishedScene(sceneUrl, location.href);
     app.published = { param: sceneUrl, scene: remote };
-    // Local edits to a published scene win until the user exports them; customers (view=present) always see the published copy.
+    // Local edits to a published scene win until the user exports them (customers get present/customer.ts instead).
     await app.open(view.fresh ? remote : (SceneStore.restore(remote.id, storage) ?? remote));
   } else {
     const lastId = storage?.getItem(LAST_KEY);
@@ -89,21 +72,6 @@ async function boot(): Promise<void> {
   if (view.kiosk) app.startKiosk();
 }
 
-/** The customer link failed: a calm full-stage message instead of an empty viewer. */
-function showLinkError(message: string): void {
-  const box = document.createElement('div');
-  box.className = 'link-error';
-  box.setAttribute('role', 'alert');
-  const title = document.createElement('strong');
-  title.textContent = 'This bike can’t be shown right now';
-  const detail = document.createElement('p');
-  detail.textContent = message;
-  const hint = document.createElement('p');
-  hint.className = 'hint';
-  hint.textContent = 'Ask the shop for a new link.';
-  box.append(title, detail, hint);
-  $('stage').append(box);
-}
 
 function emptyDemo(): BikeScene {
   return {

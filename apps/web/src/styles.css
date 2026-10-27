@@ -64,7 +64,7 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .menu .hint { margin: 2px 4px; font-size: 12px; color: var(--muted); }
 
 .layout { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
-.stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; }
+.stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; container-type: size; }
 .viewport { position: absolute; inset: 0; }
 .viewport canvas { display: block; width: 100%; height: 100%; }
 .stage.dropping::after {
@@ -187,77 +187,6 @@ input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(-
 /* Presentation mode: full-bleed bike with a card that steps through areas. */
 body[data-mode='present'] .layout { grid-template-columns: 1fr; }
 body[data-mode='present'] .panel { display: none; }
-.present-card {
-  position: absolute; z-index: 5; left: 50%; translate: -50% 0;
-  bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
-  width: min(560px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); max-height: 46%; overflow-y: auto;
-  overscroll-behavior: contain; touch-action: pan-y;
-  background: rgb(17 18 20 / .92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--line); border-radius: 18px; padding: 10px 12px 12px;
-  box-shadow: 0 18px 40px rgb(0 0 0 / .35);
-}
-.present-card header { display: flex; align-items: center; gap: 10px; }
-.present-card header div { flex: 1; min-width: 0; text-align: center; display: grid; }
-.present-card header small { color: var(--muted); font-variant-numeric: tabular-nums; }
-.present-card header strong { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.present-card header button { flex: none; font-size: 24px; line-height: 1; width: 48px; height: 48px; border-radius: 50%; padding: 0; }
-.present-sub { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
-.dots { display: flex; flex-wrap: wrap; justify-content: center; }
-/* 28 px hit area around an 8 px dot. */
-.dots button { width: 28px; height: 28px; padding: 0; border: 0; background: none; display: grid; place-items: center; border-radius: 50%; }
-.dots button::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #5b5e66; transition: width .2s, background .2s; }
-.dots button.on::after { width: 20px; border-radius: 4px; background: var(--accent); }
-.present-card .play { width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 12px; color: var(--muted); }
-.present-card .play.on { color: var(--text); border-color: var(--accent); }
-.kiosk-bar { position: sticky; top: -10px; height: 3px; margin: -10px -12px 7px; border-radius: 18px 18px 0 0; overflow: hidden; }
-.kiosk-bar.run::after { content: ''; display: block; height: 100%; background: var(--accent); transform-origin: left; animation: kiosk var(--kiosk-ms, 8s) linear forwards; }
-@keyframes kiosk { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.present-card ul.notes { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 8px; }
-.present-card li.note {
-  min-height: 44px; padding: 10px 12px; border-radius: 12px; border-left: 4px solid var(--feature); background: var(--surface); cursor: pointer;
-}
-.present-card li.note[data-kind='upgrade'] { border-left-color: var(--upgrade); }
-.present-card li.note[data-kind='spec'] { border-left-color: #6b7280; }
-.present-card li.note[data-kind='note'] { border-left-color: var(--note); }
-.present-card li.note.on { outline: 2px solid var(--accent); outline-offset: -1px; }
-.present-card li.note:focus-visible { outline: 2px solid var(--accent); }
-.present-card li.note > strong { font-size: 15px; }
-.present-card li.note .price { float: right; margin-left: 8px; }
-.present-card .lede { text-align: center; color: var(--muted); margin: 6px 0 2px; }
-
-/* Markdown-lite comment bodies. */
-.md { color: #c9cacf; }
-.md p { margin: 4px 0 0; }
-.md ul { margin: 4px 0 0; padding-left: 18px; }
-.md li { margin: 2px 0; }
-.md strong { color: var(--text); }
-.md li::marker { color: var(--accent); }
-
-/* Leader lines from the area's pins to the Present card (under the card, over the bike). */
-.leader-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
-.leader-layer line { stroke: rgb(255 255 255 / .55); stroke-width: 1.5; stroke-dasharray: 3 4; }
-.leader-layer circle { fill: rgb(255 255 255 / .7); }
-.leader-layer line.active { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: none; }
-.leader-layer circle.active { fill: var(--accent); }
-.leader-layer .off { display: none; }
-.viewport[data-background='studio'] ~ .leader-layer line:not(.active) { stroke: rgb(17 18 20 / .45); }
-.viewport[data-background='studio'] ~ .leader-layer circle:not(.active) { fill: rgb(17 18 20 / .55); }
-body:not([data-mode='present']) .leader-layer { display: none; }
-.pin-layer { z-index: 3; }
-.toast { z-index: 7; }
-
-/* Read-only customer link (?view=present): only the bike, its name and price, and Share. */
-body[data-readonly='true'] .topbar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
-body[data-readonly='true'] .topbar .brand strong { font-size: 17px; }
-body[data-readonly='true'] .stage.dropping::after { display: none; }
-.link-error {
-  position: absolute; inset: 0; z-index: 6; display: grid; place-content: center; gap: 4px; padding: 24px; text-align: center;
-  background: var(--bg);
-}
-.link-error strong { font-size: 18px; }
-.link-error p { margin: 4px auto 0; max-width: 420px; color: #c9cacf; }
-.link-error .hint { color: var(--muted); }
-
 /* Share dialog */
 .share-dialog { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / .6); }
 .share-dialog[hidden] { display: none; }
@@ -304,18 +233,7 @@ button.share { border-color: var(--accent); }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
   .menu { left: 0; right: auto; }
-  /* Present on phones: the card is a bottom sheet and the bike renders in the space above it. */
-  body[data-mode='present'] .viewport { bottom: max(0px, calc(var(--present-card-h, 0px) - 20px)); }
-  .present-card {
-    left: 0; right: 0; bottom: 0; translate: none; width: auto; max-height: 50%;
-    border-width: 1px 0 0; border-radius: 20px 20px 0 0; background: var(--surface); box-shadow: 0 -10px 30px rgb(0 0 0 / .25);
-    padding: 8px max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-  }
-  .kiosk-bar { top: -8px; margin: -8px -12px 5px; border-radius: 20px 20px 0 0; }
-  .present-card header strong { font-size: 18px; }
   /* Present mode is customer-facing: keep the top bar to the bike, the modes and Share. */
   body[data-mode='present'] .topbar .segmented[aria-label='Background'],
   body[data-mode='present'] .topbar .actions > :not(.share) { display: none; }
-  body[data-readonly='true'] .topbar { flex-wrap: nowrap; }
-  body[data-readonly='true'] .topbar .brand { flex-direction: column; gap: 0; }
 }
