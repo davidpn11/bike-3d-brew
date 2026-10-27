@@ -61,3 +61,4 @@ the viewer. If the model does not show, note what the viewer says and add it to
 | #1 Foundation | Demo bike, areas, comments, Edit and Present modes, background switcher, Export JSON. |
 | #2 Capture bundle import | **Open…** the synthetic bundle above (or drop it on desktop): it loads and is named from the manifest. Add a comment, reload, open the same file again: the comment is back. |
 | Docs site | This site: the home page shows roadmap progress; **Progress** lists every item. |
+| #8 Auto-orient | Make a tilted bundle (`node tools/fixtures/make-bike-capture.mjs --out tilted.bikecapture.zip`) and **Open…** it: the bike stands up facing right and the toast says "Auto-oriented". In **Edit → Model** try Undo (back to lying on its side), Auto-orient, the rotate ±90° buttons, Turn 180°, and type a real length in cm. Pin a comment first: it stays on the same spot through every rotation. |

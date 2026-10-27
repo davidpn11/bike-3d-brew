@@ -58,14 +58,18 @@ test.describe('capture bundles', () => {
     const errors = collectErrors(page);
     await openApp(page);
     await openViaPicker(page, fixture('bike.bikecapture.zip'));
-    await expect(toast(page)).toHaveText('Opened capture “Fixture Gravel Bike” · 32 photos · 32 camera poses');
+    // A fresh capture is auto-oriented once (it has no comments and no rotation yet).
+    await expect(toast(page)).toHaveText('Opened capture “Fixture Gravel Bike” · 32 photos · 32 camera poses. Auto-oriented. Undo in Edit → Model');
     await expect(page.locator('#topbar .brand strong')).toHaveText('Fixture Gravel Bike');
     // Object Capture removes the background, so captures open on the clear stage.
     await expect(page.locator('#viewport')).toHaveAttribute('data-background', 'transparent');
     await expect(page.locator('#panel .empty')).toHaveText('No comments for this area yet.');
     const s = await scene(page);
     expect(s.id).toBe(CAPTURE_ID);
-    expect(s.model).toEqual({ url: 'bundle:bike.bikecapture.zip/model.usdz', format: 'usdz' });
+    expect(s.model).toMatchObject({ url: 'bundle:bike.bikecapture.zip/model.usdz', format: 'usdz' });
+    // The fixture bike is already upright facing +X: auto-orient keeps it (yaw ≈ 0) and grounds it.
+    expect(s.model.rotation).toHaveLength(3);
+    for (const angle of s.model.rotation!) expect(Math.abs(angle)).toBeLessThan(0.05);
     const meshes = await page.evaluate(() => {
       let n = 0;
       window.__bike!.viewer.modelRoot.traverse((o) => void ((o as { isMesh?: boolean }).isMesh && n++));
@@ -125,7 +129,7 @@ test.describe('capture bundles', () => {
     await dropFile(page, fixture('bike.glb'));
     await expect(page.locator('#topbar .brand strong')).toHaveText('bike');
     await waitForModel(page);
-    expect((await scene(page)).model).toEqual({ url: 'bike.glb', format: 'glb' });
+    expect((await scene(page)).model).toMatchObject({ url: 'bike.glb', format: 'glb' });
     await expect(page.locator('.comments .comment')).toHaveCount(0);
   });
 });
