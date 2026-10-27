@@ -3,7 +3,7 @@
 The backlog autonomous sessions work through, top to bottom. Each item is sized for one
 session / one PR. Protocol is in [CLAUDE.md](CLAUDE.md#autonomous-session-protocol).
 
-Markers: `[ ]` open · `[~]` in progress (PR open, link it) · `[x]` merged into `develop`.
+Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an open or merged PR).
 
 ## Milestone 1: Foundation (PR 1)
 

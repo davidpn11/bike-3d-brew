@@ -39,36 +39,43 @@ macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
 - Match the existing code style (2-space TS, Prettier-ish 160 cols, sparse comments that explain *why*).
 - Never commit real customer captures, photos or secrets. Generated fixtures only.
 
-## Branching
+## Branching: stacked PRs, humans merge
 
-- `main`: stable; only the owner merges into it (via the standing `develop → main` PR).
-- `develop`: integration branch. Every feature PR targets `develop`.
+Agents **never merge PRs**; the owner reviews and merges. To keep building while PRs wait
+for review, work is **stacked**:
+
+- `main`: stable. `develop`: integration branch; the bottom PR of the stack targets it.
+- Every other PR targets the head branch of the PR directly below it, forming a chain:
+  `develop ← PR1 ← PR2 ← PR3 …`. The owner merges bottom-up (GitHub retargets the next PR
+  automatically when the merged branch is deleted).
+- The **stack tip** is the newest open `[roadmap]` (or foundation) PR whose head branch no
+  other open PR uses as its base. If nothing is open, the tip is `develop`.
 
 ## Autonomous session protocol
 
 Sessions are started on a schedule with no human watching. Each session:
 
-1. **Sync.** `git fetch origin develop main`, then base your work branch on `origin/develop`
-   (`git checkout -B <your-branch> origin/develop`). Use the branch name your session was given.
-2. **Triage open PRs into `develop` first** (GitHub MCP tools, repo `davidpn11/bike-3d-brew`):
-   - CI green + mergeable + not draft → squash-merge it into `develop`.
-   - CI red or conflicted → fix it on its branch (merge `develop` in, never force-push someone
-     else's branch), push, and move on; merge it next session once green.
-   - A draft PR whose last commit is older than 3 hours is abandoned: finish it or close it with a comment.
+1. **Sync.** `git fetch origin`. List open PRs (GitHub MCP tools, repo `davidpn11/bike-3d-brew`)
+   and find the stack tip (see above). Create your branch (the name your session was given)
+   from the tip's head branch: `git checkout -B <your-branch> origin/<tip-branch>`.
+2. **Keep the stack healthy first.** For open PRs, oldest first: if CI is red, fix it on that
+   PR's branch (only branches created by these sessions; never force-push) and push. If a PR
+   has a merge conflict with its base, merge the base branch into it and resolve. Then
+   continue the stack from the new tip. Do **not** merge, approve or close others' PRs.
 3. **Pick work.** The first `[ ]` item in `ROADMAP.md` that no open PR covers (check PR titles).
-   Claim it immediately: push a first commit that flips it to `[~]` and open a **draft** PR to
-   `develop` titled `[roadmap] <item name>`, so a parallel session doesn't take it too.
+   Claim it immediately: push a first commit that flips it to `[~]` and open a **draft** PR
+   titled `[roadmap] <item name>` whose base is the tip branch, so a parallel session sees the
+   claim and stacks on you instead.
 4. **Build it properly.** Small, reviewable diff. Add/extend unit tests. Run `npm run typecheck`,
    `npm test`, `npm run build`. For UI changes, drive the app with Playwright (Chromium is
    preinstalled; launch with `--use-angle=swiftshader --enable-unsafe-swiftshader`) and check
    screenshots. For Swift, re-read the diff carefully against Apple's API, since only CI compiles it.
 5. **Finish.** Flip the item to `[x]`, add any follow-ups you discovered as new `[ ]` items in
-   the right milestone, update docs, mark the PR ready for review. PR body: what/why, how
-   verified, screenshots (described), known gaps.
-6. **Keep the integration PR.** Ensure an open PR `develop → main` titled
-   `Integration: develop → main` exists; update its body with a checklist of merged features.
-7. If an item needs hardware or a human decision (e.g. a real iPhone capture, a hosting
+   the right milestone, update docs, and mark the PR ready for review. PR body: what/why, how
+   verified, screenshots (described), known gaps, and "Stacked on #N" with the PR below it.
+   Check CI on your PR before ending; if red, fix and push.
+6. If an item needs hardware or a human decision (e.g. a real iPhone capture, a hosting
    account), do what can be done, document the remaining manual step in the PR and
    `docs/MANUAL-STEPS.md`, and move on to the next item.
 
-One roadmap item per session (two if both are small). Leave the repo green.
+One roadmap item per session (two if both are small). Leave every PR in the stack green.
