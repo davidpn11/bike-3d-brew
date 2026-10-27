@@ -18,9 +18,12 @@ export default defineConfig({
   // One retry on CI so a runner hiccup does not block a PR; flaky tests still show up as "flaky" in the report.
   retries: CI ? 1 : 0,
   // SwiftShader rendering is CPU-bound: too many parallel pages starve each other.
-  workers: CI ? 2 : 3,
-  timeout: 60_000,
-  expect: { timeout: 15_000 },
+  workers: 2,
+  // Generous: a page load (shader compile + PMREM on SwiftShader) takes 3–5 s on an idle CI runner
+  // but 20+ s on a contended machine, and reload tests load the page twice.
+  timeout: 90_000,
+  // Web-first assertions return as soon as they pass; the ceiling only matters on slow machines.
+  expect: { timeout: 30_000 },
   reporter: CI ? [['github'], ['list'], ['html', { open: 'never', outputFolder: `${repoRoot}/playwright-report` }]] : [['list'], ['html', { open: 'never', outputFolder: `${repoRoot}/playwright-report` }]],
   use: {
     baseURL: `http://localhost:${PORT}`,

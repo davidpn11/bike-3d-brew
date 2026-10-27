@@ -17,11 +17,11 @@ async function openWithArea(page: Page): Promise<void> {
 }
 
 const strip = (page: Page) => page.getByRole('list', { name: 'Close-up photos: Whole frame' });
-/** Thumbnails that finished decoding into a real image. */
-const decodedThumbs = (page: Page) =>
-  strip(page)
-    .locator('img')
-    .evaluateAll((imgs) => (imgs as HTMLImageElement[]).filter((i) => i.complete && i.naturalWidth > 0).length);
+/**
+ * Thumbnails the app finished preparing (extracted, decoded, downscaled to a JPEG object URL).
+ * The <img> elements are loading="lazy", so the browser may not paint off-screen ones yet.
+ */
+const readyThumbs = (page: Page) => strip(page).locator('button:not(.loading):not(.missing) img[src^="blob:"]').count();
 
 test.describe('photo close-ups', () => {
   test('an area shows its best photos; the lightbox steps with arrows and closes with Esc', async ({ page }, testInfo) => {
@@ -33,8 +33,10 @@ test.describe('photo close-ups', () => {
     const count = await tiles.count();
     expect(count).toBeGreaterThan(1);
     expect(count).toBeLessThanOrEqual(8);
-    await expect.poll(() => decodedThumbs(page)).toBe(count);
+    await expect.poll(() => readyThumbs(page)).toBe(count);
     await expect(strip(page).locator('.missing')).toHaveCount(0);
+    // The visible first thumbnail really decoded in the browser.
+    await expect.poll(() => strip(page).locator('img').first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
     await snap(page, testInfo, 'filmstrip');
 
     await tiles.first().click();
@@ -81,7 +83,7 @@ test.describe('photo close-ups', () => {
     const tiles = strip(page).getByRole('button');
     await expect(tiles.first()).toBeVisible();
     const count = await tiles.count();
-    await expect.poll(() => decodedThumbs(page)).toBe(count);
+    await expect.poll(() => readyThumbs(page)).toBe(count);
     // Thumbnails are written to the cache in the background; wait until they are all there.
     await expect
       .poll(() =>
@@ -99,7 +101,7 @@ test.describe('photo close-ups', () => {
     await waitReady(page);
     await expect(toast(page)).toContainText('Reopened “Fixture Photo Bike”');
     await page.getByRole('button', { name: /^Whole frame/ }).click();
-    await expect.poll(() => decodedThumbs(page)).toBe(count);
+    await expect.poll(() => readyThumbs(page)).toBe(count);
     await expect(page.locator('#panel .photo-block .hint')).toHaveText('Photos kept in this browser. Drop “bike-photos.bikecapture.zip” to load any others.');
   });
 });
