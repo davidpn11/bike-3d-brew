@@ -26,5 +26,12 @@
     "branch": "claude/ios-capture-guidance",
     "sha": "17c5c39",
     "updatedAt": "2026-11-11T17:05:00-06:00"
+  },
+  {
+    "number": 13,
+    "title": "[roadmap] Spec sheet",
+    "branch": "claude/spec-sheet",
+    "sha": "5e7269f",
+    "updatedAt": "2026-11-11T17:08:18-06:00"
   }
 ]
