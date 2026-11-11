@@ -49,7 +49,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [x] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.
 - [ ] **Crop polish**: a rotatable (oriented) crop box for scans whose model-root axes are tilted; a floor-height handle that also re-grounds; show how many comments the crop hides.
 - [x] **Photo close-ups per area**: use `poses.json` to find the capture photos that look most directly at each area target (angle + distance score) and show them as a filmstrip under the area; tap to open full screen. HEIC → JPEG conversion at export time on iOS if browsers can't decode HEIC.
-- [ ] **iOS JPEG photo export**: write `images/*.jpg` (or a `photos/` folder of 2048 px JPEGs) next to the HEICs in the bundle so Chrome/Firefox skip the 2 MB WASM HEIC decoder and decoding is instant; the web side already prefers whatever decodes natively.
+- [~] **iOS JPEG photo export**: write `images/*.jpg` (or a `photos/` folder of 2048 px JPEGs) next to the HEICs in the bundle so Chrome/Firefox skip the 2 MB WASM HEIC decoder and decoding is instant; the web side already prefers whatever decodes natively.
 - [ ] **Validate close-ups on a real capture**: confirm Object Capture poses share the USDZ frame and the 65° landscape intrinsics assumption (portrait captures, EXIF rotation); read real intrinsics if the iOS app can export them.
 - [ ] **Occlusion-aware close-ups**: raycast from each candidate camera to the target against the loaded mesh and drop photos where the bike hides it.
 - [ ] **Pin favourite close-ups**: let staff star photos for an area (the schema already has `Hotspot.photos`) and show starred ones first, also in shared links.
@@ -71,7 +71,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 ## Milestone 4: iOS app depth
 
 - [ ] **In-app viewer**: RealityKit/SceneKit view of `model.usdz` with the same areas and comments (read `bike-scene/1` JSON), so sales staff can present from the phone offline.
-- [ ] **Capture guidance for bikes**: checklist overlay (3 orbits: hub height, saddle height, top-down; close-ups of fork crown, dropouts, rear derailleur, cockpit), shot counter per pass, tips for reflective paint (dulling spray / polarizer), turntable support.
+- [~] **Capture guidance for bikes**: checklist overlay (3 orbits: hub height, saddle height, top-down; close-ups of fork crown, dropouts, rear derailleur, cockpit), shot counter per pass, tips for reflective paint (dulling spray / polarizer), turntable support.
 - [ ] **Mac high-detail reconstruction**: `tools/mac-reconstruct` Swift CLI running `PhotogrammetrySession` at `.full` / `.raw` detail from an exported bundle, writing `model.usdz` + `poses.json` back.
 - [ ] **On-device GLB export**: convert the USDZ to GLB (ModelIO → glTF writer) so the web viewer never needs conversion.
 - [ ] **Upload to viewer**: share sheet target / direct upload of bundles to the web app storage (see Milestone 5).
