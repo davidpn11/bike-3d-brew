@@ -1,5 +1,12 @@
 [
   {
+    "number": 17,
+    "title": "Site follows the stack tip, remove credits widget, parallel worktrees",
+    "branch": "claude/infra-parallel",
+    "sha": "e02f006",
+    "updatedAt": "2026-11-11T17:06:32-06:00"
+  },
+  {
     "number": 16,
     "title": "[roadmap] WebKit E2E project + Safari ResizeObserver fix",
     "branch": "claude/webkit-e2e",
