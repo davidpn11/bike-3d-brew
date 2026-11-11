@@ -20,6 +20,21 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] iOS app skeleton: Object Capture (object + area mode), on-device reconstruction, poses, bundle export
 - [x] CI: web typecheck/test/build, unsigned iOS build on macOS, Pages deploy workflow
 
+## Milestone 1.5: Photos & video → 3D
+
+Top priority: any photo set or video of a bike (any camera) must become a `bike-capture/1` bundle the viewer opens. Research and recommendation: [docs/RECONSTRUCTION.md](docs/RECONSTRUCTION.md).
+
+- [x] **Reconstruction research**: options for bikes (Object Capture on macOS, COLMAP + OpenMVS, Meshroom, Gaussian splats, cloud APIs, AI image-to-3D), recommendation, photo and video capture protocols, owner decisions (docs/MANUAL-STEPS.md). Vendor prices/terms still to verify against current pages.
+- [ ] **`ingest` CLI** (`tools/reconstruct/`, Node/TS + ffmpeg): photos and videos → sharp, deduplicated, EXIF-upright JPEG frames (variance-of-Laplacian sharpness + novelty selection, 80–200 frames), HEIC → JPEG, coverage report; unit-tested scoring.
+- [ ] **COLMAP → `bike-poses/1` conversion**: parse `cameras.txt`/`images.txt`/`points3D.txt`, world→camera OpenCV axes → camera→model −Z/+Y, with tests on synthetic COLMAP output generated from ground truth.
+- [ ] **`reconstruct --backend colmap`**: COLMAP + OpenMVS via `tools/reconstruct/docker/` (and native), dense mesh + texture, crop the mesh to the dominant object, optional photo masking (rembg).
+- [ ] **`reconstruct --backend object-capture`**: Swift CLI `tools/reconstruct/macos/` (`PhotogrammetrySession` over an image folder → `model.usdz` + poses), built by a path-filtered macos-latest CI job.
+- [ ] **`package`**: result → `bike-capture/1` zip (GLB model, `poses.json`, `images/*.jpg`, manifest with `source: photos|video` and `backend`).
+- [ ] **Synthetic end-to-end eval**: render the fixture bike with texture + textured floor from 60–120 posed cameras and as an orbit video (`tools/fixtures/render-photos.mjs`), run ingest → reconstruct → package, measure pose error after similarity alignment, Chamfer distance / completeness vs ground truth and close-up ranking; report in `docs/RECONSTRUCTION-EVAL.md`.
+- [ ] **Web upload flow**: drop a folder of photos or a video on the viewer, send it to a reconstruction backend, open the result.
+- [ ] **Cloud backend**: one paid API behind `reconstruct --backend <vendor>` once the owner picks a vendor and budget.
+- [ ] **Splats from video**: COLMAP poses + gsplat/nerfstudio → `.spz`, opened through the M6 splat support.
+
 ## Milestone 2: Real captures into the viewer
 
 - [x] **Capture bundle import**: drop `*.bikecapture.zip` on the viewer, unzip in the browser (fflate), load `model.usdz`, read `manifest.json` and `poses.json`, name the scene from the manifest. Unit-test the bundle parser with a synthetic zip.
