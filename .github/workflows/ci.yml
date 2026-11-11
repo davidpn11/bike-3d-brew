@@ -66,7 +66,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install webkit
+      # WebKit for the tests; Chromium's headless shell for the global setup, which renders the
+      # photo-fixture bundle with Chromium.
+      - run: npx playwright install webkit && npx playwright install --only-shell chromium
       - run: npm run e2e:webkit
       - uses: actions/upload-artifact@v4
         if: failure()
