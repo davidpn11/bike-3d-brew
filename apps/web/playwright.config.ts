@@ -49,6 +49,13 @@ export default defineConfig({
       testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts'],
       use: { ...devices['iPhone 14'], deviceScaleFactor: 1, browserName: 'chromium', defaultBrowserType: 'chromium' },
     },
+    // iPhone 14 in WebKit, the engine of iPhone Safari. Opt-in (`npm run e2e:webkit`, a macOS CI job):
+    // WebKit's Linux build needs extra system packages, and the Chromium projects stay the fast default.
+    {
+      name: 'webkit',
+      testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts', 'share.spec.ts', 'files.spec.ts'],
+      use: { ...devices['iPhone 14'], deviceScaleFactor: 1, launchOptions: {} },
+    },
   ],
   webServer: {
     // The production build, like GitHub Pages serves it. E2E_SKIP_BUILD reuses an existing dist/.
