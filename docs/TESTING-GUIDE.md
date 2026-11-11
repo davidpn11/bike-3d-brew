@@ -17,9 +17,10 @@ PR that adds something testable extends the "What each PR adds" table at the bot
    then in the viewer tap **Open…** and pick it from Files. A red low-poly bike replaces the demo
    and the scene is named "Synthetic test bike".
 
-The site is redeployed by `tools/publish-pages.sh` after each finished PR, so it shows the
-newest work in the stack, which may not be merged yet. The footer of the home page says which
-commit and branch it was built from.
+The site is republished automatically from `develop` on every push. Each open PR also gets its
+own copy at `https://davidpn11.github.io/bike-3d-brew/pr/<n>/` (viewer at `/pr/<n>/app/`),
+listed under **PR previews** on the home and Progress pages, so you can try a PR before
+merging it. The home page says which commit and branch it was built from.
 
 ## On a laptop
 
@@ -70,3 +71,4 @@ the viewer. If the model does not show, note what the viewer says and add it to
 | #8 Share with customers | Open the published demo as a customer: `/bike-3d-brew/app/?scene=scenes/demo/scene.bike.json&view=present` (on your phone too). Swipe between areas, tap a pin (leader line to its card), add `&kiosk=1&interval=4` for auto-play that pauses when you touch it. In the editor, **Share** on a published scene copies the link; on a local capture it exports a `.bikeshare.zip` that `node tools/publish-scene.mjs <zip>` installs. In Edit mode, drag comments to reorder them and use **bold**, *italic* and `- ` lists in bodies. |
 | #12 Performance | Orbit the demo, then let go: the camera glides to a stop and the page goes quiet (DevTools → Performance shows no frames while idle). Pins slide with the bike and dim when the bike is in front of them. On a phone, open a large capture: it appears, then picking a comment point is instant. Add `?quality=low` to the URL for the cheapest rendering. A GLB made with `node tools/optimize-glb.mjs in.glb out.glb` opens like any other. |
 | #16 WebKit E2E | Nothing new to click. On a Mac: `npx playwright install webkit && npm run e2e:webkit` runs the iPhone flows in Safari's engine (45 tests). Open the customer link in Safari on your phone: no console error when the Present card changes height. |
+| #15 Auto-publish + PR previews | Open the home page: **PR previews** lists open PRs with Viewer and Docs links; open `/bike-3d-brew/pr/15/app/` and the demo bike loads. Push to a PR and its preview updates a few minutes later (Actions → "PR preview"); close it and it disappears from the list. Merging into `develop` updates the main site (Actions → "Publish site"). |

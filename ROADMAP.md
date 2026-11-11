@@ -8,8 +8,10 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 ## Milestone 0: Project ops
 
 - [x] **Docs & progress site**: Fumadocs static site (`apps/docs`) generated from the repo's markdown, with a roadmap progress dashboard and a "How to test" guide, published with the viewer to GitHub Pages by `tools/publish-pages.sh` (site at `/bike-3d-brew/`, viewer at `/bike-3d-brew/app/`).
-- [ ] **Auto-publish on develop**: a workflow (`contents: write`) that runs `tools/publish-pages.sh --source develop` on every push to `develop`, so the site stays current even when no agent session runs.
-- [ ] **PR previews**: publish each open stack PR under `/bike-3d-brew/pr/<n>/` (docs + viewer) and link them from the Progress page, so the owner can test a PR before merging it.
+- [x] **Auto-publish on develop**: a workflow (`contents: write`) that runs `tools/publish-pages.sh --source develop` on every push to `develop`, so the site stays current even when no agent session runs.
+- [x] **PR previews**: publish each open stack PR under `/bike-3d-brew/pr/<n>/` (docs + viewer) and link them from the Progress page, so the owner can test a PR before merging it.
+- [ ] **Prune stale previews**: a scheduled job that removes `/pr/<n>/` for PRs that are no longer open (a missed or failed close run leaves them behind), and squashes gh-pages history once it grows large (each preview adds a full site copy to the branch).
+- [ ] **Preview link on the PR**: comment (or update one sticky comment) on each PR with its preview URL, so the owner can open it from the GitHub app.
 
 ## Milestone 1: Foundation (PR 1)
 
