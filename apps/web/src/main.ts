@@ -86,6 +86,14 @@ function emptyDemo(): BikeScene {
     background: 'studio',
     hotspots: [],
     annotations: [],
+    specs: [
+      { label: 'Frame material', value: 'Carbon, aero tube shapes' },
+      { label: 'Groupset', value: 'Shimano 105 Di2, 2×12' },
+      { label: 'Weight', value: '8.2 kg (size 56)' },
+      { label: 'Sizes', value: '49, 52, 54, 56, 58, 61' },
+      { label: 'Brakes', value: 'Hydraulic disc, 160/140 mm rotors' },
+      { label: 'Tyre clearance', value: '32 mm' },
+    ],
   };
 }
 
