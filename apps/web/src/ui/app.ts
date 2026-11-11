@@ -1,4 +1,5 @@
 import { viewForPoint } from '../scene/camera';
+import { shouldAutoOrient } from '../scene/orient';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
 import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
 import { type CachedCapture, type CaptureCache, formatBytes } from '../scene/captureCache';
@@ -26,6 +27,7 @@ import { centerOnGround, loadModel, loadWarnings } from '../viewer/loaders';
 import { PinLayer } from '../viewer/pins';
 import type { Viewer } from '../viewer/Viewer';
 import { download, h } from './dom';
+import { AREA_CROP_NOTE, AUTO_ORIENT_NOTE, ModelTools } from './modelTools';
 import { PhotoLibrary } from './photoLibrary';
 import { markdownBlock } from './markdown';
 import { type PhotoSource, Lightbox, filmstrip } from './photoViewer';
@@ -69,6 +71,9 @@ export class App {
   private loadedModelKey = '';
   /** The last capture bundle opened; its poses and image list feed the photo close-ups. */
   capture: CaptureBundle | null = null;
+  private modelTools: ModelTools;
+  /** What the last open() did on its own (auto-orient, crop suggestion), for the capture toast. */
+  private openNote = '';
   /** Bundles kept in browser storage so capture scenes survive reloads (newest first). */
   storedCaptures: CachedCapture[] = [];
   private openMenu = false;
@@ -88,6 +93,8 @@ export class App {
     private cache: Promise<CaptureCache | null> = Promise.resolve(null),
   ) {
     this.pins = new PinLayer(viewer, els.stage, (id) => this.focusAnnotation(id));
+    this.modelTools = new ModelTools(store, viewer, (m, tone, ms) => this.toast(m, tone, ms));
+    viewer.cropEditor.onCommit = (box) => this.modelTools.commitCrop(box);
     this.draftPin = h('div', { class: 'pin draft', hidden: true }, '+');
     this.toastEl = h('div', { class: 'toast', role: 'status', hidden: true });
     els.stage.append(this.draftPin, this.toastEl);
@@ -102,9 +109,24 @@ export class App {
 
   /** Loads the scene's model (if changed) and syncs everything to the store. */
   async open(scene: BikeScene, opts: { frame?: boolean } = {}): Promise<void> {
+    if (scene.id !== this.store.scene.id) this.modelTools.clearHistory();
     this.store.replace(scene);
     await this.syncModel(scene.model);
-    if (opts.frame !== false) this.viewer.setView(this.viewer.overviewView());
+    this.openNote = '';
+    const loaded = this.loadedModelKey === `${scene.model.format}:${scene.model.url}`;
+    // Area-mode scans include the floor and the room: suggest a crop box (off until the user turns
+    // it on) and only auto-orient once cropped, since the room would dominate the orientation.
+    const area = this.capture?.manifest.mode === 'area' && bundleNameOf(scene.model.url) !== null;
+    if (loaded && area && !this.store.scene.crop) {
+      const box = this.modelTools.suggestCropBox();
+      if (box) this.store.update({ crop: { ...box, enabled: false } });
+      this.openNote = AREA_CROP_NOTE;
+    }
+    // A fresh capture can arrive lying at any angle: stand it up once, visibly and undoably.
+    const orient = loaded && shouldAutoOrient(this.store.scene) && (!area || !!this.store.scene.crop?.enabled) && this.modelTools.autoOrient();
+    if (orient) this.openNote = AUTO_ORIENT_NOTE;
+    if (this.openNote) this.toast(this.openNote, 'info', 6000);
+    if (opts.frame !== false || orient) this.viewer.setView(this.viewer.overviewView());
   }
 
   async syncModel(ref: ModelRef): Promise<void> {
@@ -163,7 +185,10 @@ export class App {
 
   render(): void {
     const scene = this.store.scene;
+    this.viewer.applyTransform(scene.model);
     this.viewer.setBackground(scene.background);
+    this.viewer.setCrop(scene.crop);
+    this.viewer.cropEditor.setVisible(this.mode === 'edit' && scene.model.format !== 'demo');
     this.pins.setAnnotations(scene.annotations);
     this.pins.filter(this.activeHotspot ? this.store.annotationsFor(this.activeHotspot).map((a) => a.id) : null);
     this.pins.setActive(this.activeAnnotation);
@@ -315,6 +340,7 @@ export class App {
     const sections: HTMLElement[] = [];
 
     if (editing) sections.push(this.detailsEditor(scene));
+    if (editing && scene.model.format !== 'demo') sections.push(this.modelTools.render(scene));
 
     const areas = h(
       'ul',
@@ -744,7 +770,8 @@ export class App {
     else markStored();
     if (this.loadedModelKey) {
       const { message, tone, ms } = captureSummary(scene.name, { ...bundle, warnings: [...bundle.warnings, ...this.modelWarnings] });
-      this.toast(message, tone, ms);
+      // What open() did on its own (auto-orient, crop suggestion) rides along with the capture summary.
+      this.toast(this.openNote ? `${message}. ${this.openNote}` : message, tone, this.openNote ? Math.max(ms, 6000) : ms);
     }
   }
 
@@ -820,7 +847,7 @@ export class App {
   private positionDraftPin(): void {
     const p = this.draft && !this.draft.id ? this.viewer.project(this.draft.position) : null;
     this.draftPin.hidden = !p;
-    if (p) this.draftPin.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+    if (p) this.draftPin.style.translate = `${p.x}px ${p.y}px`;
   }
 
   private panelCard(id: string): HTMLElement | null {

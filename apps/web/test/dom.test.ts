@@ -73,6 +73,8 @@ describe('PinLayer', () => {
       // x < 0 is "behind the camera".
       project: ([x]: number[]) => (x < 0 ? null : { x: x * 100, y: 50 }),
       isOccluded: ([x]: number[]) => occluded.has(x),
+      // x = 3 is cropped away.
+      inCrop: ([x]: number[]) => x !== 3,
     } as unknown as Viewer;
     const onSelect = vi.fn();
     const layer = new PinLayer(viewer, document.body, onSelect);
@@ -108,10 +110,19 @@ describe('PinLayer', () => {
     layer.setAnnotations([note('a', 'A', 1), note('b', 'B', -1), note('c', 'C', 2)]);
     occluded.add(2);
     frame();
-    expect(pins()[0].style.transform).toContain('translate(100px, 50px)');
+    // Positioned with the `translate` property so the active pin's CSS `scale` grows it in place.
+    expect(pins()[0].style.translate).toBe('100px 50px');
     expect(pins()[1].style.display).toBe('none');
     expect(pins()[2].classList.contains('occluded')).toBe(true);
     expect(pins()[0].classList.contains('occluded')).toBe(false);
+  });
+
+  it('hides pins on geometry the crop box clips away', () => {
+    const { layer, frame } = setup();
+    layer.setAnnotations([note('a', 'A', 1), note('c', 'Cropped', 3)]);
+    frame();
+    expect(pins()[0].style.display).toBe('');
+    expect(pins()[1].style.display).toBe('none');
   });
 
   it('selects on click without letting the click reach the canvas', () => {
