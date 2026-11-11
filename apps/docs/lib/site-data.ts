@@ -25,6 +25,7 @@ export interface Release {
 export interface SiteData {
   roadmap: { milestones: Milestone[]; totals: Counts };
   changelog: Release[];
+  credits: { budgetUsd: number; spentUsd: number; leftUsd: number; updatedAt: string } | null;
   build: { builtAt: string; sha: string; branch: string; commitDate: string; dirty: boolean };
 }
 
