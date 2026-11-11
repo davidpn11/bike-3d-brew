@@ -68,7 +68,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [ ] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
 - [ ] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts.
-- [ ] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
+- [~] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
 - [ ] **Accessibility & i18n pass**: keyboard navigation for pins, focus states, screen-reader labels, number/currency formatting.
 
 ## Milestone 4: iOS app depth
