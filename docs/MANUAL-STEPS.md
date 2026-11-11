@@ -2,6 +2,11 @@
 
 Things an agent cannot do (hardware, accounts, decisions). Newest first.
 
+- **Customer link on a real phone**: open the published demo link
+  (`…/app/?scene=scenes/demo/scene.bike.json&view=present`) on an iPhone, check swiping, the
+  bottom sheet, pin taps and the share sheet. Real customer captures should be published to a
+  host you control with `node tools/publish-scene.mjs <zip> --out <folder>`, not committed here.
+
 - **Crop on a real area-mode capture**: capture a bike in area mode, open the bundle, turn on
   Edit → Model → Crop and check "Fit to bike" removes the floor and the room. Note scans where the
   bike touches a wall or stand (the box then includes it; drag the faces to fix).

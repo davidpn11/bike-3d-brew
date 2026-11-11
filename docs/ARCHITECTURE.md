@@ -149,6 +149,31 @@ ground. Edit → Model exposes the result plus manual rotate/flip/scale/nudge, e
 update with a small undo stack. Generate tilted test bundles with
 `node tools/fixtures/make-bike-capture.mjs --rotate 70,25,-40` (ASCII USD mesh in `model.usdz`).
 
+### `bike-share/1` (share package, `*.bikeshare.zip`) and the customer link
+
+Share → "Export share package" turns a local capture into a self-contained zip
+(`apps/web/src/scene/share.ts`):
+
+| Path               | Content |
+| ------------------ | ------- |
+| `bike-share.json`  | `{ schema: "bike-share/1", id, name, createdAt, scene, model, photos }` |
+| `scene.bike.json`  | the `bike-scene/1` scene, model URL rewritten to the packaged file |
+| `model.glb\|usdz\|…` | the 3D model |
+| `photos/*.jpg`     | the close-ups referenced by `Hotspot.photos` |
+
+`tools/publish-scene.mjs` validates a package (size limits: zip 300 MB, model 250 MB, JSON 2 MB,
+8 MB × 64 photos; JPEG only; no paths outside the package; `parseScene`) and installs it under
+`apps/web/public/scenes/<id>/`. The customer link is
+`…/app/?scene=scenes/<id>/scene.bike.json&view=present` (`kiosk=1&interval=<s>&idle=<s>` for a
+shop screen). Scene, model and photo URLs must be same-origin or https.
+
+`src/entry.ts` loads only `present/BikePresenter.ts` for `?view=present`, so customers never
+download editing code. The presenter is a self-contained module: `mountPresenter(container,
+options)` returns a controller with `goToArea`, `next`, `prev`, `play`, `pause`, `setBackground`
+and `on(event)` for `ready`, `error`, `areachange` and `commentopen`. It scopes its CSS under
+`.bike-present` and only takes keys while focused, which is the base for an iframe embed or a
+`<bike-viewer>` element (see ROADMAP).
+
 ### Photo close-ups
 
 For the active area (its view target, preferring cameras on the side its saved view looks from),
