@@ -35,6 +35,8 @@ export default function HomePage() {
         <BuildInfo />
       </header>
 
+      <PrPreviews />
+
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-xl font-semibold">Progress</h2>
@@ -49,8 +51,6 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-
-      <PrPreviews />
 
       {inProgress.length || next.length ? (
         <section className="flex flex-col gap-3">

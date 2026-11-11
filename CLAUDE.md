@@ -36,6 +36,7 @@ npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: 
 npm run docs:build  # → apps/docs/out/
 node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
 tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
+tools/publish-pages.sh --pr <n> --no-push --out /tmp/site   # PR-preview build (basePath /bike-3d-brew/pr/<n>), local only
 # Before publishing, set docs/credits.json spentUsd from get_session usage.cost_usd (credit counter on the site).
 ```
 
@@ -43,6 +44,10 @@ Testing is documented in `docs/TESTING.md`. In agent containers Chromium is prei
 E2E with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e` and never `playwright install`.
 
 The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
+Publishing is automatic: every push to `develop` republishes the main site
+(`.github/workflows/pages.yml`), and every open PR from this repo gets a preview at
+`/bike-3d-brew/pr/<n>/` (viewer at `/pr/<n>/app/`) that is removed when the PR closes
+(`pr-preview.yml`). Both run `tools/publish-pages.sh`; each only replaces its own part of gh-pages.
 
 The iOS app cannot be built on Linux. CI (`.github/workflows/ios.yml`) compiles it unsigned on
 macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
