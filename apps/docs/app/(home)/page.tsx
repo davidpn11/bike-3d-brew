@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BuildInfo, LatestChanges, MilestoneCard, TotalsCard, milestoneId } from '@/components/progress';
 import { InlineMd } from '@/components/inline-md';
+import { PrPreviews } from '@/components/previews';
 import { demoUrl } from '@/lib/site';
 import { siteData } from '@/lib/site-data';
 
@@ -48,6 +49,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <PrPreviews />
 
       {inProgress.length || next.length ? (
         <section className="flex flex-col gap-3">
