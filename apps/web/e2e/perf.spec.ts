@@ -30,7 +30,7 @@ test('an idle stage draws nothing; orbiting draws and stops again', async ({ pag
   expect(await rendersDuring(page, 1000)).toBe(0);
 
   const pin = page.locator('.pin-layer .pin:not(.offscreen)').first();
-  const before = await pin.evaluate((el) => el.style.transform);
+  const before = await pin.evaluate((el) => el.style.translate);
   const touch = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
   const start = await page.evaluate(() => window.__bike!.viewer.renderCount);
   // A short horizontal drag that starts on bare canvas (not on a pin or a toolbar).
@@ -61,7 +61,7 @@ test('an idle stage draws nothing; orbiting draws and stops again', async ({ pag
   }
   await expect.poll(() => page.evaluate(() => window.__bike!.viewer.renderCount)).toBeGreaterThan(start);
   await settled(page);
-  expect(await pin.evaluate((el) => el.style.transform)).not.toBe(before);
+  expect(await pin.evaluate((el) => el.style.translate)).not.toBe(before);
   expect(await rendersDuring(page, 500)).toBe(0);
   expect(errors).toEqual([]);
 });

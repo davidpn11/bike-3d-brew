@@ -228,9 +228,9 @@ export class Viewer {
     accelerateRaycasts(object)
       .then(({ built, ms }) => {
         if (built) console.info(`BVH: ${built} mesh(es) in ${ms.toFixed(0)} ms`);
-        if (object.parent !== this.modelRoot) return;
+        if (object.parent !== this.modelRoot || this.raycastReady) return;
         this.raycastReady = true;
-        // Pins re-run their occlusion checks now that they are cheap.
+        // Pins skipped their occlusion checks on this big model; re-run them now that they are cheap.
         this.requestRender({ shadows: false });
       })
       .catch((err) => console.warn('BVH build failed; picking stays brute force.', err));
