@@ -20,7 +20,7 @@ final class CaptureModel {
     let session = ObjectCaptureSession()
     private(set) var phase: Phase = .starting
     private(set) var feedback: [String] = []
-    private(set) var passes = 1
+    var guide = CaptureGuide()
 
     private var tasks: [Task<Void, Never>] = []
 
@@ -53,7 +53,7 @@ final class CaptureModel {
     }
 
     func newPass() {
-        passes += 1
+        guide.beginPass(totalShots: shotCount)
         session.beginNewScanPass()
     }
 
@@ -88,6 +88,7 @@ final class CaptureModel {
         tasks.append(Task { [weak self] in
             guard let updates = self?.session.userCompletedScanPassUpdates else { return }
             for await completed in updates where completed {
+                self?.guide.passCompleted()
                 self?.phase = .passComplete
             }
         })

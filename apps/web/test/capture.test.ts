@@ -12,6 +12,7 @@ import {
   readCaptureBundle,
   sceneFromCapture,
 } from '../src/scene/capture';
+import { imageForSample } from '../src/scene/photos';
 import { parseScene } from '../src/scene/schema';
 
 const enc = (v: unknown) => new TextEncoder().encode(typeof v === 'string' ? v : JSON.stringify(v));
@@ -62,6 +63,21 @@ describe('readCaptureBundle', () => {
     expect(b.images).toEqual(['images/IMG_0000.HEIC', 'images/IMG_0001.HEIC']);
     expect(b.root).toBe('export-1234/');
     expect(b.warnings).toEqual([]);
+  });
+
+  it('prefers the JPEG copies in photos/ and falls back to images/ when there are none', async () => {
+    const jpegs = { 'photos/IMG_0000.jpg': new Uint8Array(8), 'photos/IMG_0001.jpg': new Uint8Array(8) };
+    const b = await readCaptureBundle(bundle({ ...jpegs, 'manifest.json': { ...manifest, photos: 'photos/' } }));
+    expect(b.manifest.photos).toBe('photos/');
+    expect(b.images).toEqual(['photos/IMG_0000.jpg', 'photos/IMG_0001.jpg']);
+    // poses.json names the HEIC; the stem still finds its JPEG.
+    expect(imageForSample(b.poses!.samples[0], b.images)).toBe('photos/IMG_0000.jpg');
+
+    const empty = await readCaptureBundle(bundle({ 'manifest.json': { ...manifest, photos: 'photos' } }));
+    expect(empty.images).toEqual(['images/IMG_0000.HEIC', 'images/IMG_0001.HEIC']);
+    // Older exports without the field ignore a stray photos/ folder.
+    const old = await readCaptureBundle(bundle(jpegs));
+    expect(old.images[0]).toBe('images/IMG_0000.HEIC');
   });
 
   it('reads a flat zip and ignores Finder junk', async () => {
