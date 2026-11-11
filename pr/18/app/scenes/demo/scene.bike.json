@@ -1,0 +1,237 @@
+{
+  "schema": "bike-scene/1",
+  "id": "demo-published",
+  "name": "Demo Road Bike",
+  "model": {
+    "url": "demo:road",
+    "format": "demo"
+  },
+  "background": "studio",
+  "hotspots": [
+    {
+      "id": "hs-fork",
+      "name": "Fork",
+      "view": {
+        "position": [
+          1.5206027586748676,
+          1.0259627394846706,
+          0.9566691188221045
+        ],
+        "target": [
+          0.44435,
+          0.60742,
+          0
+        ]
+      }
+    },
+    {
+      "id": "hs-drivetrain",
+      "name": "Drivetrain",
+      "view": {
+        "position": [
+          -0.08001963137955789,
+          0.7894011058613265,
+          1.7180036862044215
+        ],
+        "target": [
+          -0.25182000000000004,
+          0.274,
+          0
+        ]
+      }
+    },
+    {
+      "id": "hs-cockpit",
+      "name": "Cockpit",
+      "view": {
+        "position": [
+          -0.2627666151272457,
+          1.9007349226908687,
+          0.5918138459393715
+        ],
+        "target": [
+          0.44741000000000003,
+          0.8354699999999999,
+          0
+        ]
+      }
+    },
+    {
+      "id": "hs-saddle",
+      "name": "Saddle & seatpost",
+      "view": {
+        "position": [
+          -0.6459927284433877,
+          1.3155977284433877,
+          0.6947869111980979
+        ],
+        "target": [
+          -0.26,
+          0.929605,
+          0
+        ]
+      }
+    },
+    {
+      "id": "hs-front-wheel",
+      "name": "Wheels",
+      "view": {
+        "position": [
+          1.004892445343291,
+          0.7226693340074681,
+          2.5244622267164547
+        ],
+        "target": [
+          0.5,
+          0.344,
+          0
+        ]
+      }
+    },
+    {
+      "id": "hs-frame",
+      "name": "Frame",
+      "view": {
+        "position": [
+          -0.042679999999999996,
+          0.9531561554034762,
+          1.9408057770173803
+        ],
+        "target": [
+          -0.042679999999999996,
+          0.564995,
+          0
+        ]
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-demo-0",
+      "position": [
+        0.44435,
+        0.60742,
+        0
+      ],
+      "title": "Full-carbon tapered fork",
+      "body": "Tapered 1⅛\"–1½\" steerer for precise steering; clearance for 32 mm tyres.",
+      "kind": "feature",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "hotspotId": "hs-fork"
+    },
+    {
+      "id": "note-demo-1",
+      "position": [
+        0.42893,
+        0.61513,
+        -0.03855
+      ],
+      "title": "12 mm thru-axle",
+      "body": "Stiffer than quick release and keeps disc rotors perfectly aligned.",
+      "kind": "spec",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "normal": [
+        0.18822,
+        0.05133,
+        0.98079
+      ],
+      "hotspotId": "hs-fork"
+    },
+    {
+      "id": "note-demo-2",
+      "position": [
+        -0.16,
+        0.31,
+        0.03
+      ],
+      "title": "Shimano 105 Di2 12-speed",
+      "body": "**Electronic shifting**: crisp, maintenance-free gear changes.\n- Charges over USB-C\n- About *1,000 km* per charge",
+      "kind": "feature",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "hotspotId": "hs-drivetrain",
+      "normal": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "note-demo-3",
+      "position": [
+        -0.5,
+        0.33,
+        0.05
+      ],
+      "title": "Upgrade to Ultegra Di2",
+      "body": "**180 g lighter**, with a wider-range cassette for climbs.",
+      "kind": "upgrade",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "hotspotId": "hs-drivetrain",
+      "price": "+$900",
+      "normal": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "note-demo-4",
+      "position": [
+        0.46989,
+        0.91039,
+        0.02248
+      ],
+      "title": "Integrated carbon cockpit",
+      "body": "Hidden cables, aero profile and a cleaner look.",
+      "kind": "feature",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "normal": [
+        0.83147,
+        0.55557,
+        0
+      ],
+      "hotspotId": "hs-cockpit"
+    },
+    {
+      "id": "note-demo-5",
+      "position": [
+        -0.26,
+        1.0173,
+        0.01754
+      ],
+      "title": "Fizik Argo saddle",
+      "body": "Short-nose design for an aggressive position.\n- Swap free within **30 days** if it doesn’t fit\n- *Pressure-mapped* fitting in store",
+      "kind": "note",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "normal": [
+        0,
+        0.5586,
+        0.82944
+      ],
+      "hotspotId": "hs-saddle"
+    },
+    {
+      "id": "note-demo-6",
+      "position": [
+        0.50426,
+        0.36315,
+        0.01277
+      ],
+      "title": "Carbon 45 mm wheelset",
+      "body": "Tubeless-ready, **45 mm** aero rim depth.\nAsk us about a test ride on the *demo set*.",
+      "kind": "upgrade",
+      "createdAt": "2026-10-27T00:00:00.000Z",
+      "normal": [
+        0.19509,
+        0.98079,
+        0
+      ],
+      "hotspotId": "hs-front-wheel",
+      "price": "+$600"
+    }
+  ],
+  "brand": "Brew Cycles",
+  "modelName": "Aero R1",
+  "price": "$4,299",
+  "year": 2026
+}
