@@ -8,6 +8,7 @@ struct BikeDetailView: View {
     @State private var previewURL: URL?
     @State private var exportURL: URL?
     @State private var error: String?
+    @State private var exporting = false
 
     private var bike: BikeRecord? { library.bikes.first { $0.id == bikeID } }
 
@@ -26,7 +27,11 @@ struct BikeDetailView: View {
                     buildRow(bike)
                 }
                 Section {
-                    Button { export(bike) } label: { Label("Export capture bundle (.zip)", systemImage: "archivebox") }
+                    if exporting {
+                        ProgressView { Text("Packing photos…") }
+                    } else {
+                        Button { Task { await export(bike) } } label: { Label("Export capture bundle (.zip)", systemImage: "archivebox") }
+                    }
                     if let exportURL {
                         ShareLink(item: exportURL) { Label("Share \(exportURL.lastPathComponent)", systemImage: "airplayaudio") }
                     }
@@ -84,9 +89,11 @@ struct BikeDetailView: View {
         }
     }
 
-    private func export(_ bike: BikeRecord) {
+    private func export(_ bike: BikeRecord) async {
+        exporting = true
+        defer { exporting = false }
         do {
-            exportURL = try BundleExporter.export(bike, library: library)
+            exportURL = try await BundleExporter.export(bike, library: library)
         } catch {
             self.error = error.localizedDescription
         }

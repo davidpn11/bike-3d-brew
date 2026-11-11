@@ -29,6 +29,14 @@ Things an agent cannot do (hardware, accounts, decisions). Newest first.
   sharing the capture) so an agent can re-create it in `tools/fixtures/make-usdc.py`.
 - **Real iPhone capture test** (needs an iPhone with LiDAR, iOS 18+): build `apps/ios`, capture a
   bike, export the `.bikecapture.zip`, drop it on the viewer. Report whether the USDZ loads.
+- **Capture guidance + JPEG export on a device** (#14, needs an iPhone with LiDAR): during a capture,
+  open the checklist: each completed orbit ticks the next orbit row and its shot count stays
+  fixed after **Another pass**; the top bar counts shots for the current pass only. Export a
+  bundle and check (a) export of ~150 photos finishes in reasonable time with the spinner, (b)
+  `photos/IMG_*.jpg` are 2048 px on the long edge and **upright** for portrait and landscape
+  shots (open a few on the Mac), (c) the zip grew by roughly 0.5 MB per photo, (d) close-ups in
+  desktop Chrome load without the `heic` worker. Note: the iOS app was compile-checked by CI only
+  (no Xcode on the agent's Mac); the JPEG writer was verified with ImageIO on macOS.
 - **GitHub Pages**: done by the owner on 2026-10-27 (Settings → Pages → Deploy from branch
   `gh-pages`). The site is published from this repo by `tools/publish-pages.sh`.
 

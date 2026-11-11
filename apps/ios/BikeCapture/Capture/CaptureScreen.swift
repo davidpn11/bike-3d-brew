@@ -5,6 +5,7 @@ struct CaptureScreen: View {
     @Environment(BikeLibrary.self) private var library
     @Environment(\.dismiss) private var dismiss
     @State private var model: CaptureModel
+    @State private var showChecklist = false
     let onCaptured: (BikeRecord) -> Void
 
     init(record: BikeRecord, onCaptured: @escaping (BikeRecord) -> Void) {
@@ -18,6 +19,7 @@ struct CaptureScreen: View {
                 .ignoresSafeArea()
             VStack {
                 topBar
+                if showChecklist { checklist }
                 Spacer()
                 if !model.feedback.isEmpty {
                     Text(model.feedback.joined(separator: " · "))
@@ -48,12 +50,59 @@ struct CaptureScreen: View {
             .buttonStyle(.bordered)
             Spacer()
             if model.phase == .capturing || model.phase == .passComplete {
-                Text("Pass \(model.passes) · \(model.shotCount) shots")
+                Text("Pass \(model.guide.pass) · \(model.guide.shotsPerPass(totalShots: model.shotCount).last ?? 0) shots")
                     .font(.footnote.monospacedDigit())
                     .padding(8)
                     .background(.ultraThinMaterial, in: Capsule())
             }
+            Button { showChecklist.toggle() } label: {
+                Label("Checklist \(model.guide.done)/\(model.guide.total)", systemImage: showChecklist ? "checklist.checked" : "checklist")
+                    .font(.footnote.monospacedDigit())
+            }
+            .buttonStyle(.bordered)
+            .accessibilityHint(showChecklist ? "Hides the capture checklist" : "Shows the capture checklist")
         }
+    }
+
+    private var checklist: some View {
+        let shots = model.guide.shotsPerPass(totalShots: model.shotCount)
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Orbits").font(.headline)
+                ForEach(Array(CaptureGuide.orbits.enumerated()), id: \.element.id) { index, item in
+                    row(item, trailing: index < shots.count ? "\(shots[index]) shots" : nil)
+                }
+                Text("Close-ups (tap when done)").font(.headline).padding(.top, 4)
+                ForEach(CaptureGuide.closeUps) { item in
+                    Button { model.guide.toggle(item) } label: { row(item, trailing: nil) }
+                        .buttonStyle(.plain)
+                }
+                Text("Reflective paint").font(.headline).padding(.top, 4)
+                ForEach(CaptureGuide.reflectiveTips + [CaptureGuide.turntableNote], id: \.self) { tip in
+                    Label(tip, systemImage: "lightbulb").font(.caption)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+        }
+        .frame(maxHeight: 420)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func row(_ item: CaptureGuide.Item, trailing: String?) -> some View {
+        let done = model.guide.isDone(item)
+        return HStack(alignment: .firstTextBaseline) {
+            Image(systemName: done ? "checkmark.circle.fill" : "circle").foregroundStyle(done ? Color.green : Color.secondary)
+            VStack(alignment: .leading) {
+                Text(item.title).font(.subheadline.weight(.semibold))
+                Text(item.detail).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let trailing { Text(trailing).font(.caption.monospacedDigit()) }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(done ? .isSelected : [])
     }
 
     @ViewBuilder
@@ -63,7 +112,7 @@ struct CaptureScreen: View {
             ProgressView().controlSize(.large)
         case .ready:
             if model.record.mode == .object {
-                hint("Stand back so the whole bike is in frame, on a plain floor with even light.")
+                hint("Stand back so the whole bike is in frame, on a plain floor with even light. Shiny paint? See the checklist tips.")
                 bigButton("Detect bike") { model.startDetecting() }
             } else {
                 hint("Area mode: walk slowly around the bike, keeping it centered.")
@@ -76,10 +125,10 @@ struct CaptureScreen: View {
                 bigButton("Start capture") { model.startCapturing() }
             }
         case .capturing:
-            hint("Walk all the way around. Get close to the fork, drivetrain and cockpit too.")
+            hint("\(model.guide.nextOrbit?.detail ?? "Extra pass: get close to the fork crown, dropouts, rear derailleur and cockpit.") Walk all the way around.")
         case .passComplete:
             VStack(spacing: 10) {
-                hint(model.passes == 1 ? "Great! Now another orbit from lower down (crouch to hub height)." : "Add a high pass looking down at the cockpit, or finish.")
+                hint(model.guide.nextOrbit.map { "Orbit done. Next: \($0.title.lowercased()). \($0.detail)" } ?? "All three orbits done. Add a close-up pass for the parts still open in the checklist, or finish.")
                 HStack {
                     Button("Another pass") { model.newPass() }.buttonStyle(.bordered)
                     bigButton("Finish") { model.finish() }

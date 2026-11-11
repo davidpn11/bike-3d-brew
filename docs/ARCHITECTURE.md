@@ -31,10 +31,11 @@ The green background mode exists for compositing snapshots/videos in other tools
 
 | Path            | Content |
 | --------------- | ------- |
-| `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, imageCount }` |
+| `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, photos?, imageCount }` |
 | `model.usdz`    | reconstruction, meters, +Y up |
 | `poses.json`    | `{ schema: "bike-poses/1", samples: [{ sample, file, transform[16] }] }` (column-major camera→model) |
-| `images/`       | Object Capture HEIC photos |
+| `images/`       | Object Capture HEIC photos (reconstruction input) |
+| `photos/`       | optional: JPEG copies of `images/`, same file stems, ≤ 2048 px long edge, EXIF orientation baked into the pixels (orientation 1). Listed as `manifest.photos` |
 | `record.json`   | app-internal record |
 
 Importing in the browser (`apps/web/src/scene/capture.ts`): dropping a `*.bikecapture.zip`
@@ -42,7 +43,9 @@ unzips it in memory with fflate; nothing is uploaded. The iOS exporter zips its 
 (`NSFileCoordinator .forUploading`), so files usually sit under one top-level directory: the
 shallowest `manifest.json` defines the bundle root and `__MACOSX/` / `._*` entries are ignored.
 Only `manifest.json`, the model and `poses.json` are decompressed (size-capped); images are just
-listed. If `manifest.model` is missing, a `glb`/`gltf`/`usdz`/`ply` next to the manifest is used
+listed; when `manifest.photos` names a non-empty folder, its JPEGs are used instead of the HEICs
+(pose `file` names like `IMG_0007.HEIC` match `IMG_0007.jpg` by stem), so no browser needs the
+WASM HEIC decoder. If `manifest.model` is missing, a `glb`/`gltf`/`usdz`/`ply` next to the manifest is used
 (GLB first, e.g. after `tools/usdz-to-glb.py`). A broken `poses.json` is a warning, not an error.
 
 The resulting scene gets a stable id (`capture-<name>-<createdAt digits>`) so dropping the same
