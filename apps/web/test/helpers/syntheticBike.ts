@@ -77,3 +77,12 @@ export function syntheticBike(rand = rng(1), scale = 1): number[] {
   tube([bb[0] - 0.1, bb[1] + 0.14, -0.08], [bb[0] - 0.1, bb[1] + 0.14, -0.17], 0.015, 150);
   return out;
 }
+
+/**
+ * Time budgets assume plain `npm test`; coverage instrumentation slows hot loops several-fold,
+ * so `npm run test:coverage` gets a 10× budget (the numbers are still printed).
+ */
+export function timeBudget(ms: number): number {
+  const worker = (globalThis as { __vitest_worker__?: { config?: { coverage?: { enabled?: boolean } } } }).__vitest_worker__;
+  return worker?.config?.coverage?.enabled ? ms * 10 : ms;
+}

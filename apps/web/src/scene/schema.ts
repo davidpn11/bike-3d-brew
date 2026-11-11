@@ -51,6 +51,16 @@ export interface Annotation {
   createdAt: string;
 }
 
+/**
+ * Axis-aligned crop box in model-root space: everything outside is clipped away (area-mode
+ * scans, splats). Kept when disabled so toggling it off and on loses nothing.
+ */
+export interface CropBox {
+  min: Vec3;
+  max: Vec3;
+  enabled: boolean;
+}
+
 export interface BikeScene {
   schema: typeof SCHEMA;
   id: string;
@@ -63,6 +73,7 @@ export interface BikeScene {
   background: BackgroundMode;
   hotspots: Hotspot[];
   annotations: Annotation[];
+  crop?: CropBox;
 }
 
 export function newId(prefix: string): string {
@@ -148,10 +159,24 @@ export function parseScene(input: unknown): BikeScene {
   };
   for (const key of ['brand', 'modelName', 'price'] as const) if (isStr(input[key])) scene[key] = input[key];
   if (typeof input.year === 'number') scene.year = input.year;
+  const crop = parseCrop(input.crop);
+  if (crop) scene.crop = crop;
 
   const ids = new Set(scene.hotspots.map((h) => h.id));
   for (const a of scene.annotations) if (a.hotspotId && !ids.has(a.hotspotId)) delete a.hotspotId;
   return scene;
+}
+
+/**
+ * Lenient: a malformed crop is dropped rather than rejecting the scene (it is a view setting,
+ * not content), and swapped corners are put back in order. Empty boxes are dropped too.
+ */
+export function parseCrop(v: unknown): CropBox | undefined {
+  if (!isObj(v) || !isVec3(v.min) || !isVec3(v.max)) return undefined;
+  const min = v.min.map((n, i) => Math.min(n, (v.max as Vec3)[i])) as Vec3;
+  const max = v.max.map((n, i) => Math.max(n, (v.min as Vec3)[i])) as Vec3;
+  if (min.some((n, i) => n === max[i])) return undefined;
+  return { min, max, enabled: v.enabled !== false };
 }
 
 export function formatFromFilename(name: string): ModelFormat | null {
