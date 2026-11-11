@@ -106,8 +106,8 @@ suite into two parallel shards (`--shard=1/2`, `2/2`).
 
 A third project, `webkit`, runs the iPhone 14 profile in Playwright's WebKit (the engine of iPhone
 Safari) over the view, edit, present, photos, share and files specs. It is opt-in
-(`npm run e2e:webkit`, after `npx playwright install webkit`; the global setup also needs Chromium, which renders the photo fixtures) and runs in CI as the `e2e-webkit`
-job on a macOS runner, where WebKit's system dependencies are built in. It found two
+(`npm run e2e:webkit`, after `npx playwright install webkit`; the global setup also needs Chromium, which renders the photo fixtures) and local-only for now: on GitHub's
+GPU-less macOS runners every WebKit page load timed out (WebGL), see ROADMAP. It found two
 Safari-only issues: a "ResizeObserver loop" page error from the Present card's height update
 (now applied on the next frame), and test contexts without OPFS, where captures use the
 IndexedDB fallback.
