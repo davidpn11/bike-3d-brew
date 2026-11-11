@@ -88,11 +88,28 @@ test.describe('photo close-ups', () => {
     await expect
       .poll(() =>
         page.evaluate(async () => {
-          const root = await navigator.storage.getDirectory();
-          const dir = await root.getDirectoryHandle('bike-captures');
-          let n = 0;
-          for await (const name of (dir as unknown as { keys(): AsyncIterable<string> }).keys()) if (decodeURIComponent(name).includes('/f/thumb/')) n++;
-          return n;
+          const isThumb = (key: string) => key.includes('/f/thumb/');
+          // OPFS where the browser has it (Chromium); the IndexedDB fallback otherwise (WebKit test contexts).
+          try {
+            const root = await navigator.storage.getDirectory();
+            const dir = await root.getDirectoryHandle('bike-captures');
+            let n = 0;
+            for await (const name of (dir as unknown as { keys(): AsyncIterable<string> }).keys()) if (isThumb(decodeURIComponent(name))) n++;
+            return n;
+          } catch {
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+              const req = indexedDB.open('bike-3d-brew', 1);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+            const keys = await new Promise<IDBValidKey[]>((resolve, reject) => {
+              const req = db.transaction('files', 'readonly').objectStore('files').getAllKeys();
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+            db.close();
+            return keys.filter((k) => isThumb(String(k))).length;
+          }
         }),
       )
       .toBe(count);

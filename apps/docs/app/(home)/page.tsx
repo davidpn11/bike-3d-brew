@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BuildInfo, LatestChanges, MilestoneCard, TotalsCard, milestoneId } from '@/components/progress';
 import { InlineMd } from '@/components/inline-md';
+import { PrPreviews } from '@/components/previews';
 import { demoUrl } from '@/lib/site';
 import { siteData } from '@/lib/site-data';
 
@@ -13,7 +14,6 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:py-12">
-      <CreditsCounter />
       <header className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold tracking-tight">bike-3d-brew</h1>
         <p className="text-fd-muted-foreground">
@@ -33,6 +33,8 @@ export default function HomePage() {
         </div>
         <BuildInfo />
       </header>
+
+      <PrPreviews />
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
@@ -75,29 +77,5 @@ export default function HomePage() {
         <LatestChanges />
       </section>
     </main>
-  );
-}
-
-/** How much of the owner's session budget is left (docs/credits.json, refreshed on each publish). */
-function CreditsCounter() {
-  const c = siteData.credits;
-  if (!c) return null;
-  const pct = Math.min(100, Math.round((c.leftUsd / c.budgetUsd) * 100));
-  const updated = c.updatedAt ? new Date(c.updatedAt).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
-  return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-fd-border bg-fd-card px-4 py-3" aria-label="Session credits left">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-medium">Session credits left</span>
-        <span className="text-lg font-semibold tabular-nums">
-          ${c.leftUsd.toFixed(2)} <span className="text-sm font-normal text-fd-muted-foreground">of ${c.budgetUsd.toFixed(0)}</span>
-        </span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-fd-muted">
-        <div className="h-full rounded-full bg-fd-primary" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs text-fd-muted-foreground">
-        ${c.spentUsd.toFixed(2)} used{updated ? ` · updated ${updated}` : ''}
-      </span>
-    </div>
   );
 }

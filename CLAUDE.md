@@ -36,13 +36,17 @@ npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: 
 npm run docs:build  # → apps/docs/out/
 node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
 tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
-# Before publishing, set docs/credits.json spentUsd from get_session usage.cost_usd (credit counter on the site).
+tools/publish-pages.sh --pr <n> --no-push --out /tmp/site   # PR-preview build (basePath /bike-3d-brew/pr/<n>), local only
 ```
 
 Testing is documented in `docs/TESTING.md`. In agent containers Chromium is preinstalled: run
 E2E with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e` and never `playwright install`.
 
 The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
+Publishing is automatic: every push to the stack tip (or `develop` when no PR is open) republishes
+the main site (`.github/workflows/pages.yml`), and every open PR from this repo gets a preview at
+`/bike-3d-brew/pr/<n>/` (viewer at `/pr/<n>/app/`) that is removed when the PR closes
+(`pr-preview.yml`). Both run `tools/publish-pages.sh`; each only replaces its own part of gh-pages.
 
 The iOS app cannot be built on Linux. CI (`.github/workflows/ios.yml`) compiles it unsigned on
 macOS for any PR touching `apps/ios/**`; treat that check as your compiler.
@@ -71,6 +75,21 @@ for review, work is **stacked**:
 - The **stack tip** is the newest open `[roadmap]` (or foundation) PR whose head branch no
   other open PR uses as its base. If nothing is open, the tip is `develop`.
 
+## Parallel agents and worktrees
+
+Several agents can build roadmap items at once, each in its own git worktree:
+
+- One worktree per branch under `.claude/worktrees/<name>` (gitignored):
+  `git worktree add -B claude/<item> .claude/worktrees/<item> origin/<tip-branch>`, then `npm ci` inside it.
+- Give each worktree its own E2E port (`E2E_PORT=4191 npm run e2e`, 4192, …). The suite never reuses a
+  server already on the port, so a clash fails fast instead of testing another checkout's build.
+- Parallel items start from the same tip and open their PRs against it. When they are done, chain them
+  (merge the previous PR's branch into the next one, resolve ROADMAP/CHANGELOG/TESTING-GUIDE by keeping
+  both sides, retarget the PR) so the stack stays one line.
+- Pick items that touch different files; `ui/app.ts` and `scene/schema.ts` changes are the usual conflicts.
+- The site publishes itself: `.github/workflows/pages.yml` republishes whenever the stack tip is pushed,
+  and every PR gets a preview at `/bike-3d-brew/pr/<n>/`.
+
 ## Autonomous session protocol
 
 Sessions are started on a schedule with no human watching. Each session:
@@ -93,9 +112,8 @@ Sessions are started on a schedule with no human watching. Each session:
 5. **Finish.** Flip the item to `[x]`, add any follow-ups you discovered as new `[ ]` items in
    the right milestone, update docs, and mark the PR ready for review. PR body: what/why, how
    verified, screenshots (described), known gaps, and "Stacked on #N" with the PR below it.
-   Check CI on your PR before ending; if red, fix and push. Then run
-   `tools/publish-pages.sh --source <your-branch>` from the stack tip so the owner's site stays
-   current, and add a row for your PR to "What each PR adds" in `docs/TESTING-GUIDE.md`.
+   Check CI on your PR before ending; if red, fix and push. The site republishes itself when
+   your branch is the stack tip (check Actions → "Publish site"); add a row for your PR to "What each PR adds" in `docs/TESTING-GUIDE.md`.
 6. If an item needs hardware or a human decision (e.g. a real iPhone capture, a hosting
    account), do what can be done, document the remaining manual step in the PR and
    `docs/MANUAL-STEPS.md`, and move on to the next item.

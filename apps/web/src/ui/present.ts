@@ -46,8 +46,18 @@ export class PresentView {
     this.el = h('div', { class: 'present-card', hidden: true, role: 'region', 'aria-label': 'Presentation' });
     this.leaders = new LeaderLayer(viewer, stage);
     // On phones the card is a bottom sheet and the bike renders above it (styles.css), so pins are
-    // never hidden behind the card: publish its height to CSS.
-    new ResizeObserver(() => stage.style.setProperty('--present-card-h', `${this.el.hidden ? 0 : this.el.offsetHeight}px`)).observe(this.el);
+    // never hidden behind the card: publish its height to CSS. On the next frame, not inside the
+    // observer: the write resizes the stage in the same layout pass, which WebKit (iPhone Safari)
+    // reports as a "ResizeObserver loop" error.
+    let cardHeight = '';
+    let pending = 0;
+    new ResizeObserver(() => {
+      cancelAnimationFrame(pending);
+      pending = requestAnimationFrame(() => {
+        const next = `${this.el.hidden ? 0 : this.el.offsetHeight}px`;
+        if (next !== cardHeight) stage.style.setProperty('--present-card-h', (cardHeight = next));
+      });
+    }).observe(this.el);
     stage.append(this.el);
     this.el.dataset.kiosk = 'off';
     this.kiosk = new Kiosk({ ...kiosk, onAdvance: () => this.actions.go(this.step + 1), onChange: (s) => this.syncKiosk(s) });

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { InlineMd } from '@/components/inline-md';
 import { LocalTime } from '@/components/local-time';
+import { PrPreviews } from '@/components/previews';
 import { repoUrl } from '@/lib/site';
 import { type Counts, type Milestone, type RoadmapItem, type Status, siteData } from '@/lib/site-data';
 
@@ -175,6 +176,7 @@ export function ProgressPage() {
         <TotalsCard />
         <BuildInfo />
       </div>
+      <PrPreviews />
       {milestones.map((m) => (
         <section key={m.title} id={milestoneId(m.title)} className="flex scroll-mt-24 flex-col gap-3">
           <h2 className="text-lg font-semibold">{m.title}</h2>

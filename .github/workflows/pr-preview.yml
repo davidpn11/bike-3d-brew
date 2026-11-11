@@ -1,0 +1,58 @@
+name: PR preview
+
+# Publishes each open PR's docs + viewer to https://davidpn11.github.io/bike-3d-brew/pr/<n>/ and
+# removes it when the PR closes. Only branches of this repo: fork PRs get a read-only token.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write
+
+# One run per PR at a time; a newer push (or closing the PR) cancels the older run.
+concurrency:
+  group: pages-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The PR head (what the branch contains), not the merge commit with its base.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/docs/package-lock.json
+      - run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # Title and branch come from the PR author: pass them as env, never inline in the script.
+      - env:
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          tools/publish-pages.sh --pr "$PR" --title "$TITLE" --source "$BRANCH"
+          echo "Preview: https://davidpn11.github.io/bike-3d-brew/pr/$PR/ (viewer: /pr/$PR/app/)" >> "$GITHUB_STEP_SUMMARY"
+
+  remove:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Any commit with the script will do; the head stays fetchable after its branch is deleted.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: tools/publish-pages.sh --remove-pr "${{ github.event.pull_request.number }}"

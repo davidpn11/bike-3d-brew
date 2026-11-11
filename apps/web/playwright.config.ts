@@ -49,13 +49,22 @@ export default defineConfig({
       testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts', 'specs.spec.ts'],
       use: { ...devices['iPhone 14'], deviceScaleFactor: 1, browserName: 'chromium', defaultBrowserType: 'chromium' },
     },
+    // iPhone 14 in WebKit, the engine of iPhone Safari. Opt-in (`npm run e2e:webkit`, a macOS CI job):
+    // WebKit's Linux build needs extra system packages, and the Chromium projects stay the fast default.
+    {
+      name: 'webkit',
+      testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts', 'share.spec.ts', 'files.spec.ts'],
+      use: { ...devices['iPhone 14'], deviceScaleFactor: 1, launchOptions: {} },
+    },
   ],
   webServer: {
     // The production build, like GitHub Pages serves it. E2E_SKIP_BUILD reuses an existing dist/.
     command: `${process.env.E2E_SKIP_BUILD ? '' : 'npx vite build --config apps/web/vite.config.ts && '}npx vite preview --config apps/web/vite.config.ts --port ${PORT} --strictPort`,
     cwd: repoRoot,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !CI,
+    // Never reuse a server already on the port: with parallel worktrees it may be another checkout's
+    // build, and the suite would silently test the wrong code. E2E_REUSE=1 opts back in.
+    reuseExistingServer: !CI && !!process.env.E2E_REUSE,
     timeout: 120_000,
   },
 });

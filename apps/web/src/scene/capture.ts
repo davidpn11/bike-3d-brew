@@ -21,6 +21,8 @@ export interface CaptureManifest {
   model: string | null;
   poses: string | null;
   images: string;
+  /** Folder of browser-friendly JPEG copies of `images/` (same file stems), when the app wrote them. */
+  photos?: string;
   imageCount?: number;
 }
 
@@ -74,7 +76,7 @@ export function parseManifest(input: unknown): CaptureManifest {
     poses: isStr(input.poses) && input.poses ? input.poses : null,
     images: isStr(input.images) ? input.images : 'images/',
   };
-  for (const key of ['createdAt', 'device', 'systemVersion'] as const) {
+  for (const key of ['createdAt', 'device', 'systemVersion', 'photos'] as const) {
     const v = optStr(input[key]);
     if (v) manifest[key] = v;
   }
@@ -146,8 +148,11 @@ export async function readCaptureBundle(bytes: Uint8Array, limits: ReadLimits = 
     }
   }
 
-  const imageDir = manifest.images.endsWith('/') ? manifest.images : `${manifest.images}/`;
-  const images = [...byPath.keys()].filter((p) => p.startsWith(imageDir) && !p.endsWith('/')).sort();
+  const dir = (d: string) => (d.endsWith('/') ? d : `${d}/`);
+  const list = (d: string) => [...byPath.keys()].filter((p) => p.startsWith(dir(d)) && !p.endsWith('/')).sort();
+  // JPEG copies decode natively everywhere; pose `file` names (IMG_0007.HEIC) still match them by stem.
+  const photos = manifest.photos ? list(manifest.photos) : [];
+  const images = photos.length ? photos : list(manifest.images);
   return { manifest, model: { path: modelPath, format, data }, poses, images, root, warnings };
 }
 
