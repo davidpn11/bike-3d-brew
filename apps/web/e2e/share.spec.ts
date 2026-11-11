@@ -92,7 +92,8 @@ test.describe('customer link (read-only present)', () => {
 
 test.describe('share button', () => {
   test('copies the customer link of a published scene', async ({ page, context, browserName }, testInfo) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(testInfo.project.use.baseURL!).origin });
+    // WebKit has no clipboard permissions to grant: its clipboard API works from the click's user gesture.
+    if (testInfo.project.name !== 'webkit') await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(testInfo.project.use.baseURL!).origin });
     await page.addInitScript(() => Object.defineProperty(navigator, 'share', { value: undefined }));
     await openApp(page, 'scene=scenes/demo/scene.bike.json');
     await page.getByRole('button', { name: 'Share', exact: true }).click();
@@ -101,9 +102,9 @@ test.describe('share button', () => {
     const expected = `${new URL(testInfo.project.use.baseURL!).origin}/?scene=scenes/demo/scene.bike.json&view=present`;
     await expect(dialog.locator('.share-url')).toHaveValue(expected);
     await expect(dialog.locator('.share-status')).toHaveText(/Link copied/);
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(expected);
+    // Reading the clipboard back needs Chromium's clipboard-read permission; WebKit only allows it in a user gesture.
+    if (browserName === 'chromium') expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(expected);
     await snap(page, testInfo, 'share-link');
-    expect(browserName).toBe('chromium');
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
   });

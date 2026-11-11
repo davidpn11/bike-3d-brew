@@ -6,6 +6,7 @@ merges the stack to `main`, the Unreleased block becomes a dated release.
 ## Unreleased
 
 ### Added
+- WebKit E2E: the iPhone specs also run in Playwright WebKit (Safari's engine) via `npm run e2e:webkit` and a macOS CI job. (#PR)
 - Performance: the viewer renders on demand (an idle stage draws 0 frames, the loop pauses in hidden tabs), redraws the shadow map only when the scene changes, caps the pixel ratio per device (`?quality=low|high`), welds USDZ meshes into indexed geometry (2.9M → 0.49M vertices on a 1M-triangle capture), builds a BVH in a worker so picking and pin occlusion cost ~0.05 ms instead of ~200 ms, and updates 50+ pins with budgeted occlusion and transform-only writes. GLBs with Meshopt, Draco or KTX2 load with lazily fetched, self-hosted decoders; `tools/optimize-glb.mjs` makes phone-friendly GLBs; `tools/bench/bench.mjs` measures it all. See `docs/PERFORMANCE.md`. (#12)
 - Photos & video → 3D research (`docs/RECONSTRUCTION.md`): reconstruction options for bikes, recommendation (Object Capture on macOS by default, COLMAP + OpenMVS as fallback, splats later), photo and video capture protocols, owner decisions; new ROADMAP Milestone 1.5. (#11)
 - Share with customers: read-only `?scene=…&view=present` link served by a standalone presenter (`present/BikePresenter.ts`, no editing code, container-scoped), Share button (share sheet / clipboard / visible link), `bike-share/1` package export + `tools/publish-scene.mjs`, published demo at `scenes/demo/`. Present mode: leader lines, progress dots, swipe, auto-play (`?kiosk=1`), phone bottom sheet; markdown-lite comment bodies (DOM-only renderer); drag / ↑↓ comment reordering. (#8)
@@ -20,4 +21,5 @@ merges the stack to `main`, the Unreleased block becomes a dated release.
 - Foundation: three.js viewer/editor with areas, pinned sales comments, present mode, background modes, `bike-scene/1` format; iOS Object Capture app skeleton; CI. (#1)
 
 ### Fixed
+- Customer link and Present mode in Safari: the card-height update no longer triggers a "ResizeObserver loop" page error. (#PR)
 - The active comment pin (and the draft pin) drifted away from its point by 25% of its screen position because CSS `scale` also scaled the position transform. (#9)

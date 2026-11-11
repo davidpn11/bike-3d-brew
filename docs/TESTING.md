@@ -104,12 +104,22 @@ touch matter: view, edit, present, photos). WebGL runs on SwiftShader
 (`--use-angle=swiftshader --enable-unsafe-swiftshader`), so no GPU is needed. CI splits the
 suite into two parallel shards (`--shard=1/2`, `2/2`).
 
+A third project, `webkit`, runs the iPhone 14 profile in Playwright's WebKit (the engine of iPhone
+Safari) over the view, edit, present, photos, share and files specs. It is opt-in
+(`npm run e2e:webkit`, after `npx playwright install webkit`) and runs in CI as the `e2e-webkit`
+job on a macOS runner, where WebKit's system dependencies are built in. It found two
+Safari-only issues: a "ResizeObserver loop" page error from the Present card's height update
+(now applied on the next frame), and test contexts without OPFS, where captures use the
+IndexedDB fallback.
+
 ```sh
-npm run e2e                                   # all projects
+npm run e2e                                   # desktop + mobile (Chromium)
+npm run e2e:webkit                            # iPhone profile in WebKit (Safari's engine)
 npm run e2e -- --project=desktop files.spec   # one project, one file
 npm run e2e -- -g "present mode"              # by title
 npm run e2e:ui                                # Playwright UI mode
 E2E_SKIP_BUILD=1 npm run e2e                  # reuse an existing dist/
+E2E_PORT=4290 npm run e2e                     # another port (parallel worktrees: locally a running server is reused)
 npx playwright show-report                    # HTML report after a run
 ```
 

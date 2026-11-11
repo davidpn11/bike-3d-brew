@@ -54,6 +54,29 @@ jobs:
             test-results/
           retention-days: 14
 
+  # The iPhone-viewport specs in WebKit, the engine of iPhone Safari. macOS runners ship WebKit's
+  # system dependencies and render WebGL in WebKit; the run takes well under a minute.
+  e2e-webkit:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install webkit
+      - run: npm run e2e:webkit
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-webkit
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
   # Docs + progress site (apps/docs, Fumadocs static export). Its deps live in apps/docs only,
   # so the web job's `npm ci` stays lean. Publishing is done by tools/publish-pages.sh, not CI.
   docs:
