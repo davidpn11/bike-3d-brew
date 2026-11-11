@@ -27,14 +27,14 @@ The green background mode exists for compositing snapshots/videos in other tools
 
 ## Contracts
 
-### `bike-capture/1` (iOS export zip)
+### `bike-capture/1` (iOS export zip, or `tools/reconstruct` package)
 
 | Path            | Content |
 | --------------- | ------- |
-| `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, photos?, imageCount }` |
-| `model.usdz`    | reconstruction, meters, +Y up |
-| `poses.json`    | `{ schema: "bike-poses/1", samples: [{ sample, file, transform[16] }] }` (column-major camera→model) |
-| `images/`       | Object Capture HEIC photos (reconstruction input) |
+| `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, photos?, imageCount, source?: "photos"\|"video", backend? }` (`source`/`backend` only from `tools/reconstruct`) |
+| `model.usdz`    | reconstruction, meters, +Y up (`tools/reconstruct` writes `model.glb`, or `.usdz` / `.ply`) |
+| `poses.json`    | `{ schema: "bike-poses/1", samples: [{ sample, file, transform[16], camera? }] }` (column-major camera→model; `camera: { model, width, height, fx, fy, cx, cy }` in pixels from COLMAP, not read by the viewer yet) |
+| `images/`       | Object Capture HEIC photos (reconstruction input); `tools/reconstruct`: the JPEG frames |
 | `photos/`       | optional: JPEG copies of `images/`, same file stems, ≤ 2048 px long edge, EXIF orientation baked into the pixels (orientation 1). Listed as `manifest.photos` |
 | `record.json`   | app-internal record |
 

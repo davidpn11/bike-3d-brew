@@ -152,9 +152,10 @@ describe('bundle layout', () => {
 
 describe('parseManifest / parsePoses', () => {
   it('fills safe defaults', () => {
-    const m = parseManifest({ schema: CAPTURE_SCHEMA, name: '  ', mode: 'weird', imageCount: -3 });
+    const m = parseManifest({ schema: CAPTURE_SCHEMA, name: '  ', mode: 'weird', imageCount: -3, source: 'drone', backend: 7 });
     expect(m).toEqual({ schema: CAPTURE_SCHEMA, name: 'Captured bike', mode: 'object', model: null, poses: null, images: 'images/' });
     expect(parseManifest({ ...manifest, mode: 'area' }).mode).toBe('area');
+    expect(parseManifest({ ...manifest, source: 'photos', backend: 'colmap' })).toMatchObject({ source: 'photos', backend: 'colmap' });
   });
 
   it('rejects non-finite transforms', () => {
