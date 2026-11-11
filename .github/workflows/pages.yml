@@ -1,0 +1,38 @@
+name: Publish site
+
+# Keeps https://davidpn11.github.io/bike-3d-brew/ (gh-pages, deploy from branch) in step with
+# develop. tools/publish-pages.sh only replaces the main site and leaves PR previews in /pr/.
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A newer develop push supersedes a running publish. Preview runs use their own groups; the
+# script refetches gh-pages and retries when another run pushed first.
+concurrency:
+  group: pages-main
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    # The main site is always develop, even when dispatched from another branch by mistake.
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/docs/package-lock.json
+      # Pushes go through the checkout's token; the commit needs an author.
+      - run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: tools/publish-pages.sh --source develop
