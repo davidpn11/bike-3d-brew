@@ -2,6 +2,11 @@
 
 Things an agent cannot do (hardware, accounts, decisions). Newest first.
 
+- **Customer link on a real phone**: open the published demo link
+  (`…/app/?scene=scenes/demo/scene.bike.json&view=present`) on an iPhone, check swiping, the
+  bottom sheet, pin taps and the share sheet. Real customer captures should be published to a
+  host you control with `node tools/publish-scene.mjs <zip> --out <folder>`, not committed here.
+
 - **Decide on the HEIC decoder license**: photo close-ups decode HEIC in Chrome/Firefox with
   `libheif-js` (LGPL-3.0), shipped as a separate, lazily loaded worker chunk. Fine for a private
   tool; before a public release, either confirm LGPL compliance (unmodified library in its own

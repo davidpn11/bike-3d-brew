@@ -41,6 +41,7 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 
 - [x] **Shareable read-only link**: `?scene=` URL loads a published scene in Present mode with editing hidden; "Copy share link" button. Scenes + models served from `apps/web/public/scenes/<id>/`.
 - [x] **Comment polish**: leader lines from pin to card in Present mode, auto-advance/kiosk mode, comment ordering (drag to reorder), markdown-lite (bold, bullet lists) in bodies.
+- [ ] **Embeddable viewer**: an `embed.html` page + `postMessage` bridge and a `<bike-viewer>` custom element around `mountPresenter` (`present/BikePresenter.ts`), so shops can put a bike on their own site; scope the `styles.css` base rules first so it works inside Shadow DOM.
 - [ ] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
 - [ ] **Embed packaging**: `embed.html` + postMessage API + `<bike-viewer>` custom element on top of `present/BikePresenter.ts`; scope `styles.css` base rules for Shadow DOM.
 - [ ] **Hotspot auto-suggest**: for captures, propose default areas (Fork, Drivetrain, Cockpit, Wheels, Saddle) by letting the user tap each part once; camera view computed from tapped point + local bounds.
