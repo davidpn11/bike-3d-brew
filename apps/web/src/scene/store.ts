@@ -1,3 +1,4 @@
+import { moveItem } from './reorder';
 import { type Annotation, type BikeScene, type Hotspot, newId, parseScene } from './schema';
 
 export interface KeyValueStorage {
@@ -84,6 +85,14 @@ export class SceneStore {
 
   removeAnnotation(id: string): void {
     this.current = { ...this.current, annotations: this.current.annotations.filter((a) => a.id !== id) };
+    this.commit();
+  }
+
+  /** Reorders comments (the order customers see and the pin numbers); `visible` limits the move to a shown subset. */
+  moveAnnotation(id: string, to: number, visible?: readonly string[]): void {
+    const annotations = moveItem(this.current.annotations, id, to, visible);
+    if (annotations === this.current.annotations) return;
+    this.current = { ...this.current, annotations };
     this.commit();
   }
 
