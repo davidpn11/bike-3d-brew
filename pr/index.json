@@ -12,5 +12,12 @@
     "branch": "claude/auto-publish",
     "sha": "620b015",
     "updatedAt": "2026-11-11T16:27:31-06:00"
+  },
+  {
+    "number": 14,
+    "title": "[roadmap] iOS capture guidance + JPEG photo export",
+    "branch": "claude/ios-capture-guidance",
+    "sha": "17c5c39",
+    "updatedAt": "2026-11-11T17:05:00-06:00"
   }
 ]
