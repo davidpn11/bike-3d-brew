@@ -1,16 +1,20 @@
 name: Publish site
 
 # Keeps https://davidpn11.github.io/bike-3d-brew/ (gh-pages, deploy from branch) in step with
-# develop. tools/publish-pages.sh only replaces the main site and leaves PR previews in /pr/.
+# the stack tip (see CLAUDE.md): the newest open PR whose head no other open PR uses as its base,
+# or develop when nothing is open. While the stack waits for review, develop is far behind, so
+# publishing only develop would leave the site weeks stale. tools/publish-pages.sh only replaces
+# the main site and leaves PR previews in /pr/.
 on:
   push:
-    branches: [develop]
+    branches: [develop, 'claude/**']
   workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: read
 
-# A newer develop push supersedes a running publish. Preview runs use their own groups; the
+# A newer push supersedes a running publish. Preview runs use their own groups; the
 # script refetches gh-pages and retries when another run pushed first.
 concurrency:
   group: pages-main
@@ -18,13 +22,27 @@ concurrency:
 
 jobs:
   publish:
-    # The main site is always develop, even when dispatched from another branch by mistake.
-    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Is this branch the stack tip?
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number,headRefName,baseRefName > prs.json
+          tip=$(node -e '
+            const prs = require("./prs.json");
+            const bases = new Set(prs.map((p) => p.baseRefName));
+            const leaves = prs.filter((p) => !bases.has(p.headRefName)).sort((a, b) => b.number - a.number);
+            console.log(leaves[0]?.headRefName ?? "develop");')
+          echo "Stack tip: $tip, pushed: $BRANCH" >> "$GITHUB_STEP_SUMMARY"
+          echo "publish=$([ "$tip" = "$BRANCH" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.tip.outputs.publish == 'true'
+        uses: actions/checkout@v4
+      - if: steps.tip.outputs.publish == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -32,7 +50,8 @@ jobs:
             package-lock.json
             apps/docs/package-lock.json
       # Pushes go through the checkout's token; the commit needs an author.
-      - run: |
+      - if: steps.tip.outputs.publish == 'true'
+        run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: tools/publish-pages.sh --source develop
+          tools/publish-pages.sh --source "${{ github.ref_name }}"

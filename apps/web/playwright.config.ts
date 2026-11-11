@@ -62,7 +62,9 @@ export default defineConfig({
     command: `${process.env.E2E_SKIP_BUILD ? '' : 'npx vite build --config apps/web/vite.config.ts && '}npx vite preview --config apps/web/vite.config.ts --port ${PORT} --strictPort`,
     cwd: repoRoot,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !CI,
+    // Never reuse a server already on the port: with parallel worktrees it may be another checkout's
+    // build, and the suite would silently test the wrong code. E2E_REUSE=1 opts back in.
+    reuseExistingServer: !CI && !!process.env.E2E_REUSE,
     timeout: 120_000,
   },
 });
