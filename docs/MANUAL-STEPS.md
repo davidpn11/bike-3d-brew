@@ -2,6 +2,10 @@
 
 Things an agent cannot do (hardware, accounts, decisions). Newest first.
 
+- **Auto-orient on a real capture** (needs the real-capture test below): open a real `.bikecapture.zip`
+  and check the bike stands upright, front to the right (+X), drive side towards the default camera.
+  If not, note which button fixed it (Flip / Turn 180° / rotate) so the heuristics can be tuned.
+
 - **Decide on the HEIC decoder license**: photo close-ups decode HEIC in Chrome/Firefox with
   `libheif-js` (LGPL-3.0), shipped as a separate, lazily loaded worker chunk. Fine for a private
   tool; before a public release, either confirm LGPL compliance (unmodified library in its own

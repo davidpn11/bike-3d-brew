@@ -149,8 +149,74 @@ export class Viewer {
   }
 
   overviewView(): CameraView {
-    const box = this.boundsOf();
-    return box ? this.viewOfBounds(box) : { position: [1.6, 0.9, 2.2], target: [0, 0.5, 0] };
+    // Framed in world space (camera up is world +Y), then stored in model-root space like every view,
+    // so a re-oriented capture is still seen from above and from its drive side.
+    // Exact (vertex) bounds: the cheap box of rotated boxes is far too loose for a tilted capture.
+    this.modelRoot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(this.modelRoot, true);
+    if (box.isEmpty()) return { position: [1.6, 0.9, 2.2], target: [0, 0.5, 0] };
+    const world = viewForBox(toVec3(box.min), toVec3(box.max), [1, 0.35, 1.4], this.camera.fov, this.camera.aspect, 1.15);
+    return { position: this.toModel(new THREE.Vector3(...world.position)), target: this.toModel(new THREE.Vector3(...world.target)) };
+  }
+
+  /**
+   * Up to `max` vertex positions of the loaded model in model-root space (before ModelRef's
+   * rotation/scale/offset), strided across all meshes and point clouds: input for auto-orient.
+   */
+  samplePositions(max = 200_000): Float32Array {
+    this.modelRoot.updateMatrixWorld(true);
+    const rootInv = this.modelRoot.matrixWorld.clone().invert();
+    const sources: { attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute; matrix: THREE.Matrix4 }[] = [];
+    let total = 0;
+    this.modelRoot.traverse((o) => {
+      const geo = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+      const attr = geo?.getAttribute?.('position');
+      if (!attr || !((o as THREE.Mesh).isMesh || (o as THREE.Points).isPoints)) return;
+      sources.push({ attr, matrix: rootInv.clone().multiply(o.matrixWorld) });
+      total += attr.count;
+    });
+    const stride = Math.max(1, Math.ceil(total / max));
+    const out = new Float32Array(Math.ceil(total / stride) * 3 + sources.length * 3);
+    const v = new THREE.Vector3();
+    let k = 0;
+    let carry = 0;
+    for (const { attr, matrix } of sources) {
+      for (let i = carry; i < attr.count; i += stride) {
+        v.fromBufferAttribute(attr, i).applyMatrix4(matrix);
+        out[k++] = v.x;
+        out[k++] = v.y;
+        out[k++] = v.z;
+      }
+      carry = (carry + stride - (attr.count % stride)) % stride;
+    }
+    return out.subarray(0, k);
+  }
+
+  /**
+   * World-space bounds the model would have with `ref`'s rotation and scale and no offset
+   * (exact, vertex by vertex). Used to drop a re-oriented model onto the ground and to measure it.
+   */
+  boundsWith(ref: Pick<ModelRef, 'rotation' | 'scale'>): THREE.Box3 {
+    const { position, rotation, scale } = this.modelRoot;
+    const saved = { position: position.clone(), rotation: rotation.clone(), scale: scale.clone() };
+    position.set(0, 0, 0);
+    rotation.set(...(ref.rotation ?? [0, 0, 0]));
+    scale.setScalar(ref.scale ?? 1);
+    this.modelRoot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(this.modelRoot, true);
+    position.copy(saved.position);
+    rotation.copy(saved.rotation);
+    scale.copy(saved.scale);
+    this.modelRoot.updateMatrixWorld(true);
+    return box;
+  }
+
+  /** The offset that centers the model on X/Z and stands it on y = 0 for a rotation/scale. */
+  groundedOffset(ref: Pick<ModelRef, 'rotation' | 'scale'>): Vec3 {
+    const box = this.boundsWith(ref);
+    if (box.isEmpty()) return [0, 0, 0];
+    const c = box.getCenter(new THREE.Vector3());
+    return [round(-c.x), round(-box.min.y), round(-c.z)];
   }
 
   /** Current camera as a model-root-space view (for "save this view as an area"). */

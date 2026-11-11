@@ -29,7 +29,8 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] **USDZ robustness**: three r186 reads binary USDC; `apps/web/src/viewer/usd/` fixes its inline-value decoding, speeds up large meshes ~10×, waits for packed textures and falls back to a `tools/usdz-to-glb.py` hint. Synthetic Object-Capture-like fixtures from `tools/fixtures/make-usdc.py`.
 - [ ] **Verify a real Object Capture USDZ**: load a real `model.usdz` (owner's iPhone, see docs/MANUAL-STEPS.md), compare against Quick Look; turn anything off into a fixture-based test (synthetic re-creation, never the capture itself).
 - [ ] **Weld USDZ meshes**: three expands face-varying meshes to 3 vertices per triangle (~3M vertices for a 1M-triangle capture); merge identical corners into an indexed geometry to cut GPU memory, and consider decimating for phones.
-- [ ] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
+- [x] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
+- [ ] **Auto-orient on real scans**: check the up/front heuristics (`scene/orient.ts`) against real Object Capture bikes (flat bars, kids' bikes, e-bikes with a battery, kickstands); tune the vote weights and add the cases as generated test fixtures.
 - [ ] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.
 - [x] **Photo close-ups per area**: use `poses.json` to find the capture photos that look most directly at each area target (angle + distance score) and show them as a filmstrip under the area; tap to open full screen. HEIC → JPEG conversion at export time on iOS if browsers can't decode HEIC.
 - [ ] **iOS JPEG photo export**: write `images/*.jpg` (or a `photos/` folder of 2048 px JPEGs) next to the HEICs in the bundle so Chrome/Firefox skip the 2 MB WASM HEIC decoder and decoding is instant; the web side already prefers whatever decodes natively.
@@ -45,6 +46,7 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [ ] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
 - [ ] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts.
+- [ ] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
 - [ ] **Accessibility & i18n pass**: keyboard navigation for pins, focus states, screen-reader labels, number/currency formatting.
 
 ## Milestone 4: iOS app depth

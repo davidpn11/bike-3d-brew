@@ -108,7 +108,8 @@ describe('PinLayer', () => {
     layer.setAnnotations([note('a', 'A', 1), note('b', 'B', -1), note('c', 'C', 2)]);
     occluded.add(2);
     frame();
-    expect(pins()[0].style.transform).toContain('translate(100px, 50px)');
+    // Positioned with the `translate` property so the active pin's CSS `scale` grows it in place.
+    expect(pins()[0].style.translate).toBe('100px 50px');
     expect(pins()[1].style.display).toBe('none');
     expect(pins()[2].classList.contains('occluded')).toBe(true);
     expect(pins()[0].classList.contains('occluded')).toBe(false);
