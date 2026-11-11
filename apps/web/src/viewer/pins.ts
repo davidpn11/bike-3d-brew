@@ -2,7 +2,7 @@ import type { Annotation } from '../scene/schema';
 import type { Viewer } from './Viewer';
 
 /** The part of Viewer the pin layer uses (tests pass a fake). */
-export type PinViewer = Pick<Viewer, 'onFrame' | 'projectInto' | 'isOccluded' | 'requestRender' | 'viewport' | 'raycastReady'>;
+export type PinViewer = Pick<Viewer, 'onFrame' | 'projectInto' | 'isOccluded' | 'inCrop' | 'requestRender' | 'viewport' | 'raycastReady'>;
 
 interface Pin {
   el: HTMLButtonElement;
@@ -26,7 +26,7 @@ const EPSILON = 0.05;
  * HTML pins tracking annotation points on the model. Pins behind the bike are dimmed rather than
  * hidden so a salesperson can still see that a comment exists there.
  *
- * Cost per drawn frame with N pins: N matrix projections into a scratch object, a transform write
+ * Cost per drawn frame with N pins: N matrix projections into a scratch object, a `translate` write
  * only for pins that moved (nothing else touches layout; the stage size is cached by the Viewer), a
  * class flip only when a pin leaves the screen. Occlusion raycasts run under a time budget, newest
  * view first, and continue on idle animation frames after the camera stops, so 50+ pins never
@@ -118,7 +118,8 @@ export class PinLayer {
     const { width, height } = this.viewer.viewport;
     const p = this.point;
     for (const pin of this.order) {
-      const front = this.viewer.projectInto(pin.annotation.position, p);
+      // A comment on geometry the crop box hides would float in mid-air.
+      const front = this.viewer.inCrop(pin.annotation.position) && this.viewer.projectInto(pin.annotation.position, p);
       const shown = front && p.x > -MARGIN && p.y > -MARGIN && p.x < width + MARGIN && p.y < height + MARGIN;
       if (shown !== pin.shown) {
         pin.shown = shown;
@@ -128,7 +129,8 @@ export class PinLayer {
       if (Math.abs(p.x - pin.x) < EPSILON && Math.abs(p.y - pin.y) < EPSILON) continue;
       pin.x = p.x;
       pin.y = p.y;
-      pin.el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0) translate(-50%, -50%)`;
+      // The `translate` property, not `transform`: it applies outside `scale`, so the active pin grows in place.
+      pin.el.style.translate = `${p.x.toFixed(1)}px ${p.y.toFixed(1)}px`;
     }
     this.checkOcclusion();
   }

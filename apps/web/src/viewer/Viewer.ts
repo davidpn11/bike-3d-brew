@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { easeInOutCubic, lerpView, viewForBox } from '../scene/camera';
-import type { BackgroundMode, CameraView, ModelRef, Vec3 } from '../scene/schema';
+import { type Box, insideBox } from '../scene/crop';
+import type { BackgroundMode, CameraView, CropBox, ModelRef, Vec3 } from '../scene/schema';
 import { BVH_MIN_TRIANGLES, accelerateRaycasts, countTriangles } from './bvh';
+import { CropBoxEditor } from './cropBox';
 import { setLoaderRenderer } from './loaders';
 import { type DeviceInfo, type QualityLevel, type QualitySettings, chooseQuality, parseQualityLevel, pixelRatioFor } from './quality';
 import { RenderScheduler } from './renderScheduler';
@@ -60,6 +62,14 @@ export class Viewer {
   modelTriangles = 0;
   raycastReady = true;
   private onVisibility = () => this.scheduler.setHidden(document.hidden);
+  private ref: ModelRef = { url: '', format: 'demo' };
+  /** Active crop in model-root space (null = no clipping) and its six world-space clip planes. */
+  private crop: Box | null = null;
+  private readonly clipPlanes = Array.from({ length: 6 }, () => new THREE.Plane());
+  private clippedMaterials = false;
+  private readonly scratch = new THREE.Vector3();
+  private readonly rootInverse = new THREE.Matrix4();
+  readonly cropEditor: CropBoxEditor;
 
   constructor(private container: HTMLElement) {
     this.qualityLevel = parseQualityLevel(new URLSearchParams(location.search).get('quality'));
@@ -76,6 +86,7 @@ export class Viewer {
     // scene changes (requestRender), not on every camera frame. Halves the vertex work per frame.
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.shadowMap.needsUpdate = true;
+    this.renderer.localClippingEnabled = true;
     container.appendChild(this.renderer.domElement);
     setLoaderRenderer(this.renderer);
     this.scheduler = new RenderScheduler((on) => this.renderer.setAnimationLoop(on ? (t) => this.tick(t) : null));
@@ -111,6 +122,14 @@ export class Viewer {
     this.ground.rotation.x = -Math.PI / 2;
     this.ground.receiveShadow = true;
     this.scene.add(this.ground, this.modelRoot);
+    this.cropEditor = new CropBoxEditor({
+      camera: this.camera,
+      modelRoot: this.modelRoot,
+      scene: this.scene,
+      eventTarget: container,
+      previewCrop: (box) => this.applyCrop(box),
+      onFrame: (fn) => this.onFrame(fn),
+    });
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
@@ -188,7 +207,9 @@ export class Viewer {
       }
     });
     this.modelRoot.add(object);
+    this.clippedMaterials = !this.crop; // force (re)assigning clip planes to the new materials
     this.applyTransform(ref);
+    this.applyCrop(this.crop);
     this.modelTriangles = countTriangles(object);
     this.raycastReady = this.modelTriangles < BVH_MIN_TRIANGLES * 4;
     const pixelRatio = pixelRatioFor(this.quality, this.device, this.modelTriangles, this.qualityLevel);
@@ -220,7 +241,69 @@ export class Viewer {
     this.modelRoot.rotation.set(...(ref.rotation ?? [0, 0, 0]));
     this.modelRoot.position.set(...(ref.offset ?? [0, 0, 0]));
     this.modelRoot.updateMatrixWorld(true);
+    this.ref = ref;
+    this.rootInverse.copy(this.modelRoot.matrixWorld).invert();
+    this.updateClipPlanes();
+    this.cropEditor.syncTransform();
     this.requestRender();
+  }
+
+  /** Shows or hides the scene's crop box (clipping + pick filtering). Cheap when nothing changed. */
+  setCrop(crop: CropBox | undefined): void {
+    const box = crop?.enabled ? crop : null;
+    this.cropEditor.setBox(box);
+    this.applyCrop(box);
+  }
+
+  getCrop(): Box | null {
+    return this.crop;
+  }
+
+  /** True unless the active crop box clips this model-root point away (used to hide pins). */
+  inCrop(position: Vec3): boolean {
+    return !this.crop || insideBox(this.crop, position[0], position[1], position[2]);
+  }
+
+  private applyCrop(box: Box | null): void {
+    this.crop = box ? { min: [...box.min], max: [...box.max] } : null;
+    this.updateClipPlanes();
+    // Also the live preview while a crop handle is dragged: the stage only redraws on request.
+    this.requestRender();
+    const enabled = !!box;
+    if (enabled === this.clippedMaterials) return;
+    this.clippedMaterials = enabled;
+    // Local clipping on the model's own materials only: the ground shadow and overlays stay whole.
+    this.modelRoot.traverse((o) => {
+      const mats = (o as THREE.Mesh).material;
+      for (const m of Array.isArray(mats) ? mats : mats ? [mats] : []) {
+        m.clippingPlanes = enabled ? this.clipPlanes : null;
+        m.clipShadows = enabled;
+        m.needsUpdate = true;
+      }
+    });
+  }
+
+  /** Model-root box → six world planes (normals pointing inside). No allocations: runs on every transform change. */
+  private updateClipPlanes(): void {
+    const box = this.crop;
+    if (!box) return;
+    for (let axis = 0; axis < 3; axis++) {
+      const lo = this.clipPlanes[axis * 2];
+      const hi = this.clipPlanes[axis * 2 + 1];
+      lo.normal.set(0, 0, 0).setComponent(axis, 1);
+      lo.constant = -box.min[axis];
+      hi.normal.set(0, 0, 0).setComponent(axis, -1);
+      hi.constant = box.max[axis];
+      lo.applyMatrix4(this.modelRoot.matrixWorld);
+      hi.applyMatrix4(this.modelRoot.matrixWorld);
+    }
+  }
+
+  /** False for a world point the crop box clips away. */
+  private visibleAt(world: THREE.Vector3): boolean {
+    if (!this.crop) return true;
+    const p = this.scratch.copy(world).applyMatrix4(this.rootInverse);
+    return insideBox(this.crop, p.x, p.y, p.z);
   }
 
   /** Bounding box of a named sub-object (or the whole model) in model-root space. */
@@ -239,8 +322,131 @@ export class Viewer {
   }
 
   overviewView(): CameraView {
-    const box = this.boundsOf();
-    return box ? this.viewOfBounds(box) : { position: [1.6, 0.9, 2.2], target: [0, 0.5, 0] };
+    // Framed in world space (camera up is world +Y), then stored in model-root space like every view,
+    // so a re-oriented capture is still seen from above and from its drive side.
+    // Exact (vertex) bounds of what is visible: the cheap box of rotated boxes is far too loose for a
+    // tilted capture, and a cropped area scan should frame the bike, not the room.
+    const box = this.boundsWith(this.ref).translate(new THREE.Vector3(...(this.ref.offset ?? [0, 0, 0])));
+    if (box.isEmpty()) return { position: [1.6, 0.9, 2.2], target: [0, 0.5, 0] };
+    const world = viewForBox(toVec3(box.min), toVec3(box.max), [1, 0.35, 1.4], this.camera.fov, this.camera.aspect, 1.15);
+    return { position: this.toModel(new THREE.Vector3(...world.position)), target: this.toModel(new THREE.Vector3(...world.target)) };
+  }
+
+  /**
+   * Up to `max` vertex positions of the loaded model in model-root space (before ModelRef's
+   * rotation/scale/offset), strided across all meshes and point clouds: input for auto-orient.
+   */
+  samplePositions(max = 200_000, opts: { ignoreCrop?: boolean } = {}): Float32Array {
+    const crop = opts.ignoreCrop ? null : this.crop;
+    this.modelRoot.updateMatrixWorld(true);
+    const rootInv = this.modelRoot.matrixWorld.clone().invert();
+    const sources: { attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute; matrix: THREE.Matrix4 }[] = [];
+    let total = 0;
+    this.modelRoot.traverse((o) => {
+      const geo = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+      const attr = geo?.getAttribute?.('position');
+      if (!attr || !((o as THREE.Mesh).isMesh || (o as THREE.Points).isPoints)) return;
+      sources.push({ attr, matrix: rootInv.clone().multiply(o.matrixWorld) });
+      total += attr.count;
+    });
+    const stride = Math.max(1, Math.ceil(total / max));
+    const out = new Float32Array(Math.ceil(total / stride) * 3 + sources.length * 3);
+    const v = new THREE.Vector3();
+    let k = 0;
+    let carry = 0;
+    for (const { attr, matrix } of sources) {
+      for (let i = carry; i < attr.count; i += stride) {
+        v.fromBufferAttribute(attr, i).applyMatrix4(matrix);
+        if (crop && !insideBox(crop, v.x, v.y, v.z)) continue;
+        out[k++] = v.x;
+        out[k++] = v.y;
+        out[k++] = v.z;
+      }
+      carry = (carry + stride - (attr.count % stride)) % stride;
+    }
+    return out.subarray(0, k);
+  }
+
+  /**
+   * Points on the model's surface in model-root space, ignoring the crop: vertices plus points
+   * along every triangle edge at most `diag / 150` apart. Low-poly meshes (long thin triangles,
+   * like a tube with vertices only at its ends) would otherwise look like disconnected blobs to
+   * the crop suggestion's cluster search. Triangles are strided to stay near `max` points.
+   */
+  sampleSurface(max = 150_000): Float32Array {
+    this.modelRoot.updateMatrixWorld(true);
+    const bounds = this.boundsOf();
+    if (!bounds) return new Float32Array(0);
+    const spacing = bounds.getSize(new THREE.Vector3()).length() / 150;
+    const rootInv = this.modelRoot.matrixWorld.clone().invert();
+    const meshes: { geo: THREE.BufferGeometry; matrix: THREE.Matrix4; tris: number }[] = [];
+    let totalTris = 0;
+    this.modelRoot.traverse((o) => {
+      const geo = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+      const pos = geo?.getAttribute?.('position');
+      if (!geo || !pos || !(o as THREE.Mesh).isMesh) return;
+      const tris = Math.floor((geo.index ? geo.index.count : pos.count) / 3);
+      meshes.push({ geo, matrix: rootInv.clone().multiply(o.matrixWorld), tris });
+      totalTris += tris;
+    });
+    if (!totalTris) return this.samplePositions(max, { ignoreCrop: true });
+    const stride = Math.max(1, Math.ceil(totalTris / (max / 4)));
+    const out: number[] = [];
+    const a = new THREE.Vector3();
+    const b = new THREE.Vector3();
+    const c = new THREE.Vector3();
+    const corners = [a, b, c];
+    for (const { geo, matrix, tris } of meshes) {
+      const pos = geo.getAttribute('position');
+      const index = geo.index;
+      for (let t = 0; t < tris && out.length < max * 3; t += stride) {
+        for (let k = 0; k < 3; k++) corners[k].fromBufferAttribute(pos, index ? index.getX(t * 3 + k) : t * 3 + k).applyMatrix4(matrix);
+        for (let k = 0; k < 3; k++) {
+          const p = corners[k];
+          const q = corners[(k + 1) % 3];
+          const steps = Math.min(64, Math.ceil(p.distanceTo(q) / spacing));
+          for (let i = 0; i < steps; i++) {
+            const f = i / steps;
+            out.push(p.x + (q.x - p.x) * f, p.y + (q.y - p.y) * f, p.z + (q.z - p.z) * f);
+          }
+        }
+      }
+    }
+    return new Float32Array(out);
+  }
+
+  /**
+   * World-space bounds the model would have with `ref`'s rotation and scale and no offset
+   * (exact, vertex by vertex, only what the crop box keeps). Used to drop a re-oriented model
+   * onto the ground, to measure it and to frame the overview.
+   */
+  boundsWith(ref: Pick<ModelRef, 'rotation' | 'scale'>): THREE.Box3 {
+    this.modelRoot.updateMatrixWorld(true);
+    const rootInv = this.modelRoot.matrixWorld.clone().invert();
+    const place = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...(ref.rotation ?? [0, 0, 0]), 'XYZ')).scale(new THREE.Vector3().setScalar(ref.scale ?? 1));
+    const box = new THREE.Box3();
+    const local = new THREE.Matrix4();
+    const v = new THREE.Vector3();
+    const crop = this.crop;
+    this.modelRoot.traverse((o) => {
+      const attr = ((o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined)?.getAttribute?.('position');
+      if (!attr || !((o as THREE.Mesh).isMesh || (o as THREE.Points).isPoints)) return;
+      local.multiplyMatrices(rootInv, o.matrixWorld);
+      for (let i = 0; i < attr.count; i++) {
+        v.fromBufferAttribute(attr, i).applyMatrix4(local);
+        if (crop && !insideBox(crop, v.x, v.y, v.z)) continue;
+        box.expandByPoint(v.applyMatrix4(place));
+      }
+    });
+    return box;
+  }
+
+  /** The offset that centers the model on X/Z and stands it on y = 0 for a rotation/scale. */
+  groundedOffset(ref: Pick<ModelRef, 'rotation' | 'scale'>): Vec3 {
+    const box = this.boundsWith(ref);
+    if (box.isEmpty()) return [0, 0, 0];
+    const c = box.getCenter(new THREE.Vector3());
+    return [round(-c.x), round(-box.min.y), round(-c.z)];
   }
 
   /** Current camera as a model-root-space view (for "save this view as an area"). */
@@ -348,9 +554,14 @@ export class Viewer {
   }
 
   /** Closest hit under the raycaster (meshes with a BVH stop at the first hit instead of sorting all). */
+  /**
+   * Nearest hit the crop box keeps. Without a crop the BVH's first-hit-only mode is enough; with
+   * one, hits on cropped-away geometry are skipped, since it is invisible and must not take comments.
+   */
   private firstHit(object: THREE.Object3D): THREE.Intersection | undefined {
-    (this.raycaster as THREE.Raycaster & { firstHitOnly?: boolean }).firstHitOnly = true;
-    return this.raycaster.intersectObject(object, true)[0];
+    (this.raycaster as THREE.Raycaster & { firstHitOnly?: boolean }).firstHitOnly = !this.crop;
+    const hits = this.raycaster.intersectObject(object, true);
+    return this.crop ? hits.find((h) => this.visibleAt(h.point)) : hits[0];
   }
 
   private afterNextRender(fn: () => void): void {

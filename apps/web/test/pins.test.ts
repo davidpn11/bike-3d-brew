@@ -14,6 +14,8 @@ const pins = () => [...document.querySelectorAll<HTMLButtonElement>('.pin-layer 
 
 /** A fake viewer: x < 0 is "behind the camera", screen x = 100·x, y = 100·y on a 400×200 stage. */
 function setup(opts: { raycastReady?: boolean } = {}) {
+  // x = 3 is clipped away by the crop box.
+  const cropped = new Set<number>([3]);
   let frame = () => {};
   const occluded = new Set<number>();
   const viewer = {
@@ -27,6 +29,7 @@ function setup(opts: { raycastReady?: boolean } = {}) {
       return true;
     },
     isOccluded: vi.fn(([x]: number[]) => occluded.has(x)),
+    inCrop: ([x]: number[]) => !cropped.has(x),
     requestRender: vi.fn(),
   };
   const onSelect = vi.fn();
@@ -64,12 +67,21 @@ describe('PinLayer', () => {
     layer.setAnnotations([note('a', 'A', 1), note('b', 'B', -1), note('c', 'C', 2), note('d', 'D', 9)]);
     occluded.add(2);
     frame();
-    expect(pins()[0].style.transform).toBe('translate3d(100.0px, 50.0px, 0) translate(-50%, -50%)');
+    // The `translate` property, so the active pin's CSS `scale` grows it in place instead of drifting.
+    expect(pins()[0].style.translate).toBe('100.0px 50.0px');
     expect(pins()[1].classList.contains('offscreen')).toBe(true);
     expect(pins()[3].classList.contains('offscreen')).toBe(true); // x = 900 px on a 400 px stage
     expect(pins()[2].classList.contains('occluded')).toBe(true);
     expect(pins()[0].classList.contains('occluded')).toBe(false);
     expect(pins()[0].classList.contains('offscreen')).toBe(false);
+  });
+
+  it('hides pins on geometry the crop box clips away', () => {
+    const { layer, frame } = setup();
+    layer.setAnnotations([note('a', 'A', 1), note('c', 'Cropped', 3)]);
+    frame();
+    expect(pins()[0].classList.contains('offscreen')).toBe(false);
+    expect(pins()[1].classList.contains('offscreen')).toBe(true);
   });
 
   it('writes styles only when something changed', () => {
@@ -78,15 +90,15 @@ describe('PinLayer', () => {
     frame();
     const el = pins()[0];
     // A sentinel only survives if the layer does not rewrite an unchanged position.
-    el.style.transform = 'none';
+    el.style.translate = 'none';
     const toggle = vi.spyOn(el.classList, 'toggle');
     frame();
     frame();
-    expect(el.style.transform).toBe('none');
+    expect(el.style.translate).toBe('none');
     expect(toggle).not.toHaveBeenCalled();
     layer.setAnnotations([note('a', 'A', 1.5)]);
     frame();
-    expect(el.style.transform).toContain('150.0px');
+    expect(el.style.translate).toContain('150.0px');
   });
 
   it('brings a pin back when it returns on screen', () => {
@@ -97,7 +109,7 @@ describe('PinLayer', () => {
     layer.setAnnotations([note('a', 'A', 1)]);
     frame();
     expect(pins()[0].classList.contains('offscreen')).toBe(false);
-    expect(pins()[0].style.transform).toContain('100.0px');
+    expect(pins()[0].style.translate).toContain('100.0px');
   });
 
   it('spends at most the time budget on occlusion per frame and finishes on idle animation frames', () => {

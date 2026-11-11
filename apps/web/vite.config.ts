@@ -22,6 +22,9 @@ export default defineConfig({
         'src/main.ts', // page bootstrap: needs the whole DOM + WebGL
         'src/ui/app.ts', // UI controller over the WebGL Viewer
         'src/viewer/Viewer.ts', // WebGLRenderer, OrbitControls
+        'src/entry.ts', // picks the editor or customer chunk from the URL
+        'src/present/BikePresenter.ts', // customer presenter over the WebGL Viewer (e2e/share.spec.ts)
+        'src/present/customer.ts', // customer page bootstrap
         'src/ui/heic.worker.ts', // Web Worker running libheif WASM
         'src/**/*.d.ts', // type declarations only
       ],

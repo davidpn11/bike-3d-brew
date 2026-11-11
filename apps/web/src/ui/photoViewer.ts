@@ -4,8 +4,11 @@ import type { PhotoLibrary } from './photoLibrary';
 
 const fileName = (path: string) => path.slice(path.lastIndexOf('/') + 1);
 
+/** Where photos come from: a capture's PhotoLibrary, or plain URLs of a published scene. */
+export type PhotoSource = Pick<PhotoLibrary, 'get' | 'errors'>;
+
 /** A horizontal strip of close-up thumbnails; thumbnails fill in as they decode. */
-export function filmstrip(photos: RankedPhoto[], lib: PhotoLibrary, onOpen: (index: number) => void, label: string): HTMLElement {
+export function filmstrip(photos: Pick<RankedPhoto, 'path'>[], lib: PhotoSource, onOpen: (index: number) => void, label: string): HTMLElement {
   const tiles = photos.map((p, i) => {
     const img = h('img', { alt: '', loading: 'lazy', decoding: 'async', draggable: false });
     const tile = h(
@@ -49,7 +52,7 @@ export class Lightbox {
   private status: HTMLElement;
   private items: Item[] = [];
   private index = 0;
-  private lib: PhotoLibrary | null = null;
+  private lib: PhotoSource | null = null;
   private zoom = { s: 1, x: 0, y: 0 };
   private pointers = new Map<number, { x: number; y: number }>();
   private gesture: { x: number; y: number; dist: number; s: number; tx: number; ty: number; moved: boolean } | null = null;
@@ -78,7 +81,7 @@ export class Lightbox {
     return !this.el.hidden;
   }
 
-  open(photos: RankedPhoto[], index: number, lib: PhotoLibrary, label: string): void {
+  open(photos: Pick<RankedPhoto, 'path'>[], index: number, lib: PhotoSource, label: string): void {
     this.items = photos.map((p) => ({ path: p.path, caption: `${label} · ${fileName(p.path)}` }));
     this.lib = lib;
     this.returnFocus = document.activeElement as HTMLElement | null;

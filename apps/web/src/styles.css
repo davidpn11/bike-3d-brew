@@ -64,7 +64,7 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .menu .hint { margin: 2px 4px; font-size: 12px; color: var(--muted); }
 
 .layout { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
-.stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; }
+.stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; container-type: size; }
 .viewport { position: absolute; inset: 0; }
 .viewport canvas { display: block; width: 100%; height: 100%; }
 .stage.dropping::after {
@@ -85,7 +85,9 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 /* Pins move by transform only (compositor); the layer's contents never affect the page layout. */
 .pin-layer { position: absolute; inset: 0; pointer-events: none; contain: layout style size; }
 .pin {
-  position: absolute; left: 0; top: 0; pointer-events: auto;
+  /* Centered on (0, 0) by left/top; the per-frame position is the `translate` property, which is
+     applied outside `scale`, so active and draft pins grow in place instead of drifting. */
+  position: absolute; left: -13px; top: -13px; pointer-events: auto;
   width: 26px; height: 26px; padding: 0; border-radius: 50%;
   border: 2px solid #fff; background: var(--feature); color: #fff; font-size: 12px; font-weight: 700;
   box-shadow: 0 2px 8px rgb(0 0 0 / .45); transition: opacity .2s, scale .2s; will-change: transform;
@@ -135,6 +137,28 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .editor, .details { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
 .details { border-color: var(--line); }
 .editor h2, .details h2 { margin: 0; }
+/* Edit → Model */
+.model-tools { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.model-tools summary { cursor: pointer; list-style: none; }
+.model-tools summary::-webkit-details-marker { display: none; }
+.model-tools summary h2 { display: inline; margin: 0; }
+.model-tools summary::before { content: '▸ '; color: var(--muted); }
+.model-tools[open] summary::before { content: '▾ '; }
+.model-tools .row button { flex: 1 1 auto; padding: 6px 8px; white-space: nowrap; }
+.axis-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 6px; font-size: 12px; color: var(--muted); }
+.axis-row > span:first-child { grid-column: 1 / -1; }
+.axis-row .pair { display: flex; }
+.axis-row .pair button { flex: 1; padding: 6px 0; border-radius: 0; }
+.axis-row .pair button:first-child { border-radius: 8px 0 0 8px; }
+.axis-row .pair button:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+.crop { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+.crop .row { align-items: center; }
+label.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
+label.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+.crop .hint { margin: 0; font-size: 12px; color: var(--muted); }
+.crop-row { display: grid; grid-template-columns: 34px repeat(3, 1fr); gap: 4px; align-items: center; font-size: 12px; color: var(--muted); }
+.crop-row input { padding: 5px 6px; font-size: 12px; min-width: 0; }
+
 label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
 input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); }
 .row { display: flex; gap: 8px; }
@@ -189,25 +213,43 @@ input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(-
 /* Presentation mode: full-bleed bike with a card that steps through areas. */
 body[data-mode='present'] .layout { grid-template-columns: 1fr; }
 body[data-mode='present'] .panel { display: none; }
-.present-card {
-  position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); translate: -50% 0;
-  width: min(560px, calc(100% - 24px)); max-height: 45%; overflow-y: auto;
-  background: rgb(17 18 20 / .9); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px;
+/* Share dialog */
+.share-dialog { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / .6); }
+.share-dialog[hidden] { display: none; }
+.share-box {
+  width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; display: grid; gap: 10px; padding: 16px;
+  border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 24px 60px rgb(0 0 0 / .5);
 }
-.present-card header { display: flex; align-items: center; gap: 12px; }
-.present-card header div { flex: 1; text-align: center; display: grid; }
-.present-card header small { color: var(--muted); }
-.present-card header strong { font-size: 18px; }
-.present-card header button { font-size: 22px; width: 44px; height: 44px; border-radius: 50%; }
-.present-card ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
-.present-card li { padding: 8px 10px; border-radius: 10px; border-left: 4px solid var(--feature); background: var(--surface); cursor: pointer; }
-.present-card li[data-kind='upgrade'] { border-left-color: var(--upgrade); }
-.present-card li[data-kind='spec'] { border-left-color: #6b7280; }
-.present-card li[data-kind='note'] { border-left-color: var(--note); }
-.present-card li.on { outline: 1px solid var(--accent); }
-.present-card li .price { float: right; }
-.present-card li p { margin: 4px 0 0; color: #c9cacf; }
-.present-card .lede { text-align: center; color: var(--muted); margin: 8px 0 2px; }
+.share-box header { display: flex; align-items: center; justify-content: space-between; }
+.share-box h2 { margin: 0; font-size: 17px; }
+.share-box p { margin: 0; color: #c9cacf; }
+.share-box .close { width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 20px; }
+.share-url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.share-actions { flex-wrap: wrap; }
+.share-actions > * { flex: 1 1 auto; text-align: center; }
+a.button {
+  display: inline-block; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: inherit; text-decoration: none;
+}
+.share-status { font-size: 13px; min-height: 1.2em; }
+.share-status[data-tone='ok'] { color: #86efac; }
+.share-status[data-tone='warn'] { color: #fde68a; }
+.share-warn { padding: 8px 10px; border-radius: 10px; border: 1px solid #a16207; background: rgb(161 98 7 / .15); font-size: 13px; }
+.share-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: #c9cacf; }
+.share-steps code { font-size: 12px; word-break: break-all; color: var(--text); }
+.share-package { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.share-package small { color: var(--muted); }
+button.share { border-color: var(--accent); }
+
+/* Comment reordering in Edit mode: drag handle plus ↑ ↓ buttons. */
+.comment .drag {
+  flex: none; align-self: stretch; display: grid; place-items: center; width: 18px; margin: -4px -4px -4px -6px;
+  color: var(--muted); cursor: grab; touch-action: none; user-select: none; letter-spacing: -3px; font-size: 13px;
+}
+.comment .drag:hover { color: var(--text); }
+.comments.reordering .comment { transition: transform .15s; }
+.comments .comment.dragging { transition: none; position: relative; z-index: 2; border-color: var(--accent); box-shadow: 0 10px 24px rgb(0 0 0 / .5); cursor: grabbing; }
+.row-actions .move { min-width: 30px; }
+.row-actions .move:disabled { opacity: .35; cursor: default; }
 
 /* Phones: panel becomes a bottom sheet under the bike. */
 @media (max-width: 760px) {
@@ -217,4 +259,7 @@ body[data-mode='present'] .panel { display: none; }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
   .menu { left: 0; right: auto; }
+  /* Present mode is customer-facing: keep the top bar to the bike, the modes and Share. */
+  body[data-mode='present'] .topbar .segmented[aria-label='Background'],
+  body[data-mode='present'] .topbar .actions > :not(.share) { display: none; }
 }

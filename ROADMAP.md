@@ -20,6 +20,21 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] iOS app skeleton: Object Capture (object + area mode), on-device reconstruction, poses, bundle export
 - [x] CI: web typecheck/test/build, unsigned iOS build on macOS, Pages deploy workflow
 
+## Milestone 1.5: Photos & video → 3D
+
+Top priority: any photo set or video of a bike (any camera) must become a `bike-capture/1` bundle the viewer opens. Research and recommendation: [docs/RECONSTRUCTION.md](docs/RECONSTRUCTION.md).
+
+- [x] **Reconstruction research**: options for bikes (Object Capture on macOS, COLMAP + OpenMVS, Meshroom, Gaussian splats, cloud APIs, AI image-to-3D), recommendation, photo and video capture protocols, owner decisions (docs/MANUAL-STEPS.md). Vendor prices/terms still to verify against current pages.
+- [ ] **`ingest` CLI** (`tools/reconstruct/`, Node/TS + ffmpeg): photos and videos → sharp, deduplicated, EXIF-upright JPEG frames (variance-of-Laplacian sharpness + novelty selection, 80–200 frames), HEIC → JPEG, coverage report; unit-tested scoring.
+- [ ] **COLMAP → `bike-poses/1` conversion**: parse `cameras.txt`/`images.txt`/`points3D.txt`, world→camera OpenCV axes → camera→model −Z/+Y, with tests on synthetic COLMAP output generated from ground truth.
+- [ ] **`reconstruct --backend colmap`**: COLMAP + OpenMVS via `tools/reconstruct/docker/` (and native), dense mesh + texture, crop the mesh to the dominant object, optional photo masking (rembg).
+- [ ] **`reconstruct --backend object-capture`**: Swift CLI `tools/reconstruct/macos/` (`PhotogrammetrySession` over an image folder → `model.usdz` + poses), built by a path-filtered macos-latest CI job.
+- [ ] **`package`**: result → `bike-capture/1` zip (GLB model, `poses.json`, `images/*.jpg`, manifest with `source: photos|video` and `backend`).
+- [ ] **Synthetic end-to-end eval**: render the fixture bike with texture + textured floor from 60–120 posed cameras and as an orbit video (`tools/fixtures/render-photos.mjs`), run ingest → reconstruct → package, measure pose error after similarity alignment, Chamfer distance / completeness vs ground truth and close-up ranking; report in `docs/RECONSTRUCTION-EVAL.md`.
+- [ ] **Web upload flow**: drop a folder of photos or a video on the viewer, send it to a reconstruction backend, open the result.
+- [ ] **Cloud backend**: one paid API behind `reconstruct --backend <vendor>` once the owner picks a vendor and budget.
+- [ ] **Splats from video**: COLMAP poses + gsplat/nerfstudio → `.spz`, opened through the M6 splat support.
+
 ## Milestone 2: Real captures into the viewer
 
 - [x] **Capture bundle import**: drop `*.bikecapture.zip` on the viewer, unzip in the browser (fflate), load `model.usdz`, read `manifest.json` and `poses.json`, name the scene from the manifest. Unit-test the bundle parser with a synthetic zip.
@@ -29,8 +44,10 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] **USDZ robustness**: three r186 reads binary USDC; `apps/web/src/viewer/usd/` fixes its inline-value decoding, speeds up large meshes ~10×, waits for packed textures and falls back to a `tools/usdz-to-glb.py` hint. Synthetic Object-Capture-like fixtures from `tools/fixtures/make-usdc.py`.
 - [ ] **Verify a real Object Capture USDZ**: load a real `model.usdz` (owner's iPhone, see docs/MANUAL-STEPS.md), compare against Quick Look; turn anything off into a fixture-based test (synthetic re-creation, never the capture itself).
 - [x] **Weld USDZ meshes**: three expands face-varying meshes to 3 vertices per triangle (~3M vertices for a 1M-triangle capture); identical corners are merged into an indexed geometry (hash-based, typed arrays, O(n)): 2.9M → 0.49M vertices, 89 → 26 MB of geometry on the 1M-triangle fixture. Decimation stays offline (`tools/optimize-glb.mjs --simplify`). See [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
-- [ ] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
-- [ ] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.
+- [x] **Auto-orient captures**: detect the ground plane / longest horizontal axis so a scanned bike stands upright facing +X; expose rotate/scale/offset controls in Edit mode (writes `model.rotation/scale/offset`).
+- [ ] **Auto-orient on real scans**: check the up/front heuristics (`scene/orient.ts`) against real Object Capture bikes (flat bars, kids' bikes, e-bikes with a battery, kickstands); tune the vote weights and add the cases as generated test fixtures.
+- [x] **Crop box for area-mode / splat captures**: draggable box in Edit mode that clips everything outside (clipping planes), saved in the scene, so area-mode scans get a clean background.
+- [ ] **Crop polish**: a rotatable (oriented) crop box for scans whose model-root axes are tilted; a floor-height handle that also re-grounds; show how many comments the crop hides.
 - [x] **Photo close-ups per area**: use `poses.json` to find the capture photos that look most directly at each area target (angle + distance score) and show them as a filmstrip under the area; tap to open full screen. HEIC → JPEG conversion at export time on iOS if browsers can't decode HEIC.
 - [ ] **iOS JPEG photo export**: write `images/*.jpg` (or a `photos/` folder of 2048 px JPEGs) next to the HEICs in the bundle so Chrome/Firefox skip the 2 MB WASM HEIC decoder and decoding is instant; the web side already prefers whatever decodes natively.
 - [ ] **Validate close-ups on a real capture**: confirm Object Capture poses share the USDZ frame and the 65° landscape intrinsics assumption (portrait captures, EXIF rotation); read real intrinsics if the iOS app can export them.
@@ -39,12 +56,16 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 
 ## Milestone 3: Sales experience
 
-- [ ] **Shareable read-only link**: `?scene=` URL loads a published scene in Present mode with editing hidden; "Copy share link" button. Scenes + models served from `apps/web/public/scenes/<id>/`.
-- [ ] **Comment polish**: leader lines from pin to card in Present mode, auto-advance/kiosk mode, comment ordering (drag to reorder), markdown-lite (bold, bullet lists) in bodies.
+- [x] **Shareable read-only link**: `?scene=` URL loads a published scene in Present mode with editing hidden; "Copy share link" button. Scenes + models served from `apps/web/public/scenes/<id>/`.
+- [x] **Comment polish**: leader lines from pin to card in Present mode, auto-advance/kiosk mode, comment ordering (drag to reorder), markdown-lite (bold, bullet lists) in bodies.
+- [ ] **Embeddable viewer**: an `embed.html` page + `postMessage` bridge and a `<bike-viewer>` custom element around `mountPresenter` (`present/BikePresenter.ts`), so shops can put a bike on their own site; scope the `styles.css` base rules first so it works inside Shadow DOM.
+- [ ] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
+- [ ] **Embed packaging**: `embed.html` + postMessage API + `<bike-viewer>` custom element on top of `present/BikePresenter.ts`; scope `styles.css` base rules for Shadow DOM.
 - [ ] **Hotspot auto-suggest**: for captures, propose default areas (Fork, Drivetrain, Cockpit, Wheels, Saddle) by letting the user tap each part once; camera view computed from tapped point + local bounds.
 - [ ] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
 - [ ] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts.
+- [ ] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
 - [ ] **Accessibility & i18n pass**: keyboard navigation for pins, focus states, screen-reader labels, number/currency formatting.
 
 ## Milestone 4: iOS app depth
