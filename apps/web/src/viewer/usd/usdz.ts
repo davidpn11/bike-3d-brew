@@ -8,6 +8,7 @@ import { USDAParser } from 'three/examples/jsm/loaders/usd/USDAParser.js';
 import type { UsdLayerData } from 'three/examples/jsm/loaders/usd/USDCParser.js';
 import { FastUSDComposer } from './composer';
 import { isCrate, parseCrate } from './crate';
+import { weldGeometry } from '../weld';
 
 export class UsdLoadError extends Error {}
 
@@ -20,9 +21,11 @@ export interface UsdLoadStats {
   rootLayer: string;
   crate: boolean;
   /** Milliseconds per phase. Textures are decoded by the browser, after compose. */
-  ms: { unzip: number; parse: number; compose: number; textures: number };
+  ms: { unzip: number; parse: number; compose: number; weld: number; textures: number };
   meshes: number;
   triangles: number;
+  /** Vertices before and after welding the face-varying expansion back into an indexed mesh. */
+  vertices: { before: number; after: number };
   textures: { loaded: number; failed: number };
 }
 
@@ -73,6 +76,8 @@ export async function loadUsd(bytes: Uint8Array, parse: LayerParser = parseLayer
     throw new UsdLoadError(`Could not build the USD scene: ${err instanceof Error ? err.message : String(err)}`);
   }
   const t3 = now();
+  const vertices = weld(object);
+  const t3w = now();
   // three creates (and revokes) one blob URL per packed image; wait so the model appears textured.
   await Promise.all(composer.texturePromises);
   const t4 = now();
@@ -85,12 +90,32 @@ export async function loadUsd(bytes: Uint8Array, parse: LayerParser = parseLayer
     stats: {
       rootLayer,
       crate: isCrate(files[rootLayer]),
-      ms: { unzip: t1 - t0, parse: t2 - t1, compose: t3 - t2, textures: t4 - t3 },
+      ms: { unzip: t1 - t0, parse: t2 - t1, compose: t3 - t2, weld: t3w - t3, textures: t4 - t3w },
       meshes,
       triangles,
+      vertices,
       textures,
     },
   };
+}
+
+/**
+ * three expands face-varying primvars (Object Capture's normals and UVs) to three vertices per
+ * triangle. Merging the identical corners back makes the mesh indexed: ~6× fewer vertices for the
+ * GPU to store and transform, and a smaller BVH input.
+ */
+function weld(root: THREE.Object3D): { before: number; after: number } {
+  let before = 0;
+  let after = 0;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const n = mesh.geometry.getAttribute('position')?.count ?? 0;
+    const stats = weldGeometry(mesh.geometry);
+    before += n;
+    after += stats ? stats.after : n;
+  });
+  return { before, after };
 }
 
 function isZip(b: Uint8Array): boolean {

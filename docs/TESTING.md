@@ -174,3 +174,6 @@ missing.
   strip; after a reload the thumbnails come from browser storage.
 - `files.spec.ts` also drops the committed binary USDC fixture and checks it renders with its
   diffuse and normal textures decoded.
+- `perf.spec.ts`: an idle stage renders 0 frames, orbiting renders and stops again with pins moved, canvas snapshots work without a preserved drawing buffer, and Meshopt / Draco / KTX2 GLBs (from `tools/fixtures/make-compressed-glb.mjs`) open with self-hosted decoders and no foreign requests.
+
+The viewer renders on demand: to wait for a picture to settle use `viewer.rendering === false`; `viewer.renderCount` counts drawn frames.

@@ -25,15 +25,21 @@
   "dependencies": {
     "fflate": "^0.8.2",
     "libheif-js": "^1.23.5",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "three-mesh-bvh": "^0.9.16"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
     "@playwright/test": "1.63.0",
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
     "@vitest/coverage-v8": "^5.0.5",
-    "happy-dom": "^21.0.4",
+    "draco3dgltf": "^1.5.9",
     "fake-indexeddb": "^6.2.6",
+    "happy-dom": "^21.0.4",
+    "meshoptimizer": "^1.3.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
