@@ -97,9 +97,23 @@ const git = (...args) => {
 };
 
 const milestones = parseRoadmap(read('ROADMAP.md'));
+
+// Session credit counter: docs/credits.json is updated by the agent session before each publish.
+function readCredits() {
+  try {
+    const c = JSON.parse(read('docs/credits.json'));
+    const budget = Number(c.budgetUsd);
+    const spent = Number(c.spentUsd);
+    if (!Number.isFinite(budget) || !Number.isFinite(spent) || budget <= 0) return null;
+    return { budgetUsd: budget, spentUsd: spent, leftUsd: Math.max(0, budget - spent), updatedAt: String(c.updatedAt ?? '') };
+  } catch {
+    return null;
+  }
+}
 const data = {
   roadmap: { milestones, totals: roadmapTotals(milestones) },
   changelog: parseChangelog(read('CHANGELOG.md')).slice(0, 3),
+  credits: readCredits(),
   build: {
     // publish-pages.sh pins this to the commit date so identical sources build identical sites.
     builtAt: process.env.DOCS_BUILT_AT || new Date().toISOString(),

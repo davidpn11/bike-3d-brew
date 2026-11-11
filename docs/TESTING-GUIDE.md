@@ -32,9 +32,12 @@ npm run docs:dev     # this docs site at http://localhost:5191/bike-3d-brew/
 Checks the agents run on every PR (CI runs them too):
 
 ```sh
-npm run typecheck && npm test && npm run build
+npm run typecheck && npm run test:coverage && npm run build
+npm run e2e          # Playwright end-to-end suite (see Testing)
 npm run docs:build   # static docs site → apps/docs/out/
 ```
+
+How the automated tests work and how to add them: [Testing](TESTING.md).
 
 ## Make a synthetic capture bundle
 
@@ -61,4 +64,5 @@ the viewer. If the model does not show, note what the viewer says and add it to
 | #1 Foundation | Demo bike, areas, comments, Edit and Present modes, background switcher, Export JSON. |
 | #2 Capture bundle import | **Open…** the synthetic bundle above (or drop it on desktop): it loads and is named from the manifest. Add a comment, reload, open the same file again: the comment is back. |
 | Docs site | This site: the home page shows roadmap progress; **Progress** lists every item. |
-| Performance (#TBD) | Orbit the demo, then let go: the camera glides to a stop and the page goes quiet (DevTools → Performance shows no frames while idle). Pins slide with the bike and dim when the bike is in front of them. On a phone, open a large capture: it appears, then picking a comment point is instant. Add `?quality=low` to the URL for the cheapest rendering. A GLB made with `node tools/optimize-glb.mjs in.glb out.glb` opens like any other. |
+| #7 Test system | Nothing new to click: `npm run e2e` drives the real viewer through every flow above (demo, edit, present, export/import, capture bundles, stored captures, photo close-ups, error toasts) at desktop and iPhone sizes; `npm run test:coverage` shows unit coverage. The suite found and fixed a bug where a tap right after jumping to an area (with reduced motion on) missed the bike. |
+| #12 Performance | Orbit the demo, then let go: the camera glides to a stop and the page goes quiet (DevTools → Performance shows no frames while idle). Pins slide with the bike and dim when the bike is in front of them. On a phone, open a large capture: it appears, then picking a comment point is instant. Add `?quality=low` to the URL for the cheapest rendering. A GLB made with `node tools/optimize-glb.mjs in.glb out.glb` opens like any other. |

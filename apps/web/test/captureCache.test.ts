@@ -189,3 +189,33 @@ describe('CaptureCache', () => {
     backend.close();
   });
 });
+
+describe('CaptureCache edge cases', () => {
+  const url = captureModelUrl('a.zip', 'model.usdz');
+
+  it('restores a bundle whose stored poses are unreadable, without poses', async () => {
+    const backend = new MemoryBackend();
+    const cache = new CaptureCache(backend);
+    await cache.store(input('a.zip'));
+    const posesKey = [...backend.data.keys()].find((k) => k.endsWith('/poses.json'))!;
+    backend.data.set(posesKey, new TextEncoder().encode('{"schema":"bike-poses/1"}'));
+    const r = await cache.restore(url);
+    expect(r?.manifest.name).toBe('a.zip');
+    expect(r?.poses).toBeNull();
+  });
+
+  it('putFile / getFile fail soft when the backend throws, and ignore unknown bundles', async () => {
+    const backend = new MemoryBackend();
+    const cache = new CaptureCache(backend);
+    await cache.store(input('a.zip'));
+    expect(await cache.putFile('bundle:other.zip/model.usdz', 'thumb/x.jpg', new Uint8Array(3))).toBe(false);
+    expect(await cache.getFile(url, 'thumb/x.jpg')).toBeNull();
+    const put = backend.put.bind(backend);
+    backend.put = () => Promise.reject(new DOMException('full', 'QuotaExceededError'));
+    expect(await cache.putFile(url, 'thumb/x.jpg', new Uint8Array(3))).toBe(false);
+    backend.put = put;
+    expect(await cache.putFile(url, 'thumb/x.jpg', new Uint8Array(3))).toBe(true);
+    backend.get = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
+    expect(await cache.getFile(url, 'thumb/x.jpg')).toBeNull();
+  });
+});
