@@ -1,5 +1,12 @@
 [
   {
+    "number": 20,
+    "title": "[roadmap] Embeddable viewer + share docs",
+    "branch": "claude/embed",
+    "sha": "d7b18cd",
+    "updatedAt": "2026-11-11T17:08:31-06:00"
+  },
+  {
     "number": 18,
     "title": "[roadmap] Undo/redo for the whole scene",
     "branch": "claude/scene-undo",
