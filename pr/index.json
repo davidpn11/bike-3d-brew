@@ -7,6 +7,13 @@
     "updatedAt": "2026-11-11T17:08:31-06:00"
   },
   {
+    "number": 19,
+    "title": "[roadmap] Reconstruct: COLMAP → bike-poses/1 + package",
+    "branch": "claude/reconstruct-colmap-package",
+    "sha": "d6c69cd",
+    "updatedAt": "2026-11-11T17:08:31-06:00"
+  },
+  {
     "number": 18,
     "title": "[roadmap] Undo/redo for the whole scene",
     "branch": "claude/scene-undo",
