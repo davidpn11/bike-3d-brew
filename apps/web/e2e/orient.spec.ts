@@ -35,7 +35,7 @@ test.describe('auto-orient', () => {
     const errors = collectErrors(page);
     await openApp(page);
     await openViaPicker(page, fixture('tilted-bike.bikecapture.zip'));
-    await expect(toast(page)).toContainText('Auto-oriented. Undo in Edit → Model');
+    await expect(toast(page)).toContainText('Auto-oriented. Undo in Edit mode');
     await waitForModel(page);
     const oriented = await scene(page);
     expect(oriented.model.rotation).toHaveLength(3);
@@ -67,7 +67,7 @@ test.describe('auto-orient', () => {
     await expect(page.locator('.model-tools input[name=length]')).toHaveValue(/^1[67]\d$/);
     await snap(page, testInfo, 'rotated-y');
 
-    await page.locator('.model-tools').getByRole('button', { name: 'Undo' }).click();
+    await page.getByRole('button', { name: '↶ Undo' }).click();
     expect((await scene(page)).model.rotation).toEqual(oriented.model.rotation);
     expect(errors).toEqual([]);
   });
@@ -77,7 +77,7 @@ test.describe('auto-orient', () => {
     await openViaPicker(page, fixture('tilted-bike.bikecapture.zip'));
     await expect(toast(page)).toContainText('Auto-oriented');
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
-    await page.locator('.model-tools').getByRole('button', { name: 'Undo' }).click();
+    await page.getByRole('button', { name: '↶ Undo' }).click();
     expect((await scene(page)).model.rotation).toEqual([0, 0, 0]);
     await openViaPicker(page, fixture('tilted-bike.bikecapture.zip'));
     await expect(toast(page)).toContainText('Opened capture “Tilted Fixture Bike”');

@@ -2,6 +2,8 @@
 // and the sales comments pinned onto the model. Plain JSON so it can be exported,
 // versioned in git, or served next to the model file.
 
+import { parseSpecs } from './specs';
+
 export const SCHEMA = 'bike-scene/1' as const;
 
 export type Vec3 = [number, number, number];
@@ -61,6 +63,12 @@ export interface CropBox {
   enabled: boolean;
 }
 
+/** One row of the spec sheet (scene/specs.ts): free text, e.g. { label: 'Weight', value: '8.2 kg (size 56)' }. */
+export interface SpecRow {
+  label: string;
+  value: string;
+}
+
 export interface BikeScene {
   schema: typeof SCHEMA;
   id: string;
@@ -74,6 +82,8 @@ export interface BikeScene {
   hotspots: Hotspot[];
   annotations: Annotation[];
   crop?: CropBox;
+  /** Key specs table shown in the Present mode intro. */
+  specs?: SpecRow[];
 }
 
 export function newId(prefix: string): string {
@@ -161,6 +171,8 @@ export function parseScene(input: unknown): BikeScene {
   if (typeof input.year === 'number') scene.year = input.year;
   const crop = parseCrop(input.crop);
   if (crop) scene.crop = crop;
+  const specs = parseSpecs(input.specs);
+  if (specs) scene.specs = specs;
 
   const ids = new Set(scene.hotspots.map((h) => h.id));
   for (const a of scene.annotations) if (a.hotspotId && !ids.has(a.hotspotId)) delete a.hotspotId;
