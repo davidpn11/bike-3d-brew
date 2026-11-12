@@ -1,0 +1,5 @@
+/* Poppins (SIL Open Font License 1.1), latin subset, self-hosted so the tool makes no third-party
+   request. Page-level only: @font-face has no effect inside the <bike-viewer> shadow root, where
+   the host page's Poppins (or the system font) is used. */
+@font-face { font-family: 'Poppins'; font-weight: 400; font-display: swap; src: url('./poppins-400.woff2') format('woff2'); }
+@font-face { font-family: 'Poppins'; font-weight: 600 700; font-display: swap; src: url('./poppins-600.woff2') format('woff2'); }

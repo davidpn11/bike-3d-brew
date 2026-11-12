@@ -29,6 +29,11 @@ The iframe takes commands over `postMessage` (`{ type: "bike-embed/1", cmd: "nex
 element exposes `element.presenter` and DOM events. Details in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#embedding-on-a-shops-site).
 
+**Branding** is a set of CSS tokens. `apps/web/src/styles.css` holds neutral defaults; a brand is one
+small file that overrides them (`apps/web/src/themes/bikebrew.css`: colours, font, corner radius),
+switched on with `<html data-theme="bikebrew">` or `<bike-viewer theme="bikebrew">`. For another
+shop, copy that file, change the values and the attribute.
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md) and
 [apps/ios/README.md](apps/ios/README.md). Inspired by
 [wesbos/3d-model-anything](https://github.com/wesbos/3d-model-anything).
