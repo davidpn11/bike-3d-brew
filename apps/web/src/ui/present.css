@@ -43,6 +43,8 @@
 .present-card table.specs { width: 100%; margin: 8px 0 0; border-collapse: collapse; font-size: 14px; }
 .present-card table.specs caption { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 0 4px; }
 .present-card table.specs th, .present-card table.specs td { padding: 6px 0; border-top: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.present-card table.specs td .spec-val { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.present-card table.specs.all td .spec-val { display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
 .present-card .specs-toggle { margin-top: 6px; padding: 4px 0; background: none; border: 0; color: var(--accent, inherit); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 .present-card table.specs th { width: 38%; padding-right: 12px; font-weight: 500; color: var(--muted); }
 
