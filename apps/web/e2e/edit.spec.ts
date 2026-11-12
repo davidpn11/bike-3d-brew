@@ -158,6 +158,15 @@ test.describe('edit mode', () => {
     expect(await page.evaluate(() => (window.__bike!.viewer as unknown as { __n: number }).__n)).toBe(1);
   });
 
+  test('a tap in View mode does not turn the first Edit tap into a pivot', async ({ page }) => {
+    await openApp(page);
+    const p = await modelPoint(page);
+    await tapCanvas(page, p);
+    await enterEdit(page); // well inside the double-tap window
+    await tapCanvas(page, p);
+    await expect(page.locator('form.editor')).toHaveCount(1);
+  });
+
   test('edits the bike details', async ({ page }) => {
     await openApp(page);
     await enterEdit(page);

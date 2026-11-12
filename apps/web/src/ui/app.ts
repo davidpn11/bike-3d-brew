@@ -167,6 +167,7 @@ export class App {
     try {
       const object = await loadModel(url, ref.format);
       this.viewer.setModel(centerOnGround(object), ref);
+      this.lastTap = null;
       this.loadedModelKey = key;
       this.captureSpace = ref.url === this.captureUrl ? sourceToModelRoot(this.viewer.modelRoot) : null;
       this.rankCache.clear();
@@ -191,9 +192,13 @@ export class App {
     if (this.mode === 'present') this.present.kiosk.play();
   }
 
+  /** Pending first tap of a possible double-tap; dropped on mode and model changes so it can't turn the next tap into a pivot. */
+  private lastTap: { x: number; y: number; t: number } | null = null;
+
   setMode(mode: Mode): void {
     if (this.mode === mode) return;
     this.mode = mode;
+    this.lastTap = null;
     this.draft = null;
     document.body.dataset.mode = mode;
     if (mode === 'present') this.goToStep(0);
@@ -816,7 +821,6 @@ export class App {
   private bindStage(): void {
     const canvas = this.viewer.renderer.domElement;
     let down: { x: number; y: number; t: number } | null = null;
-    let lastTap: { x: number; y: number; t: number } | null = null;
     canvas.addEventListener('pointerdown', (e) => (down = { x: e.clientX, y: e.clientY, t: performance.now() }));
     canvas.addEventListener('pointerup', (e) => {
       if (!down) return;
@@ -825,14 +829,14 @@ export class App {
       if (!isTap || this.mode === 'present') return;
       const tap = { x: e.clientX, y: e.clientY, t: performance.now() };
       // One detector for mouse and touch (dblclick is unreliable on touch): the second tap pivots instead of pinning.
-      if (lastTap && isDoubleTap(lastTap, tap)) {
-        lastTap = null;
+      if (this.lastTap && isDoubleTap(this.lastTap, tap)) {
+        this.lastTap = null;
         this.draft = null; // the first tap of the pair opened a draft
         this.viewer.pivotAt(tap.x, tap.y);
         this.render();
         return;
       }
-      lastTap = tap;
+      this.lastTap = tap;
       if (this.mode !== 'edit') return;
       const hit = this.viewer.pick(e.clientX, e.clientY);
       if (!hit) return;
