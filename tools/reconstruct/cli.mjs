@@ -52,7 +52,8 @@ function main(argv) {
 
   if (command === 'poses') {
     need(values, 'colmap');
-    const { poses, points } = readColmapDir(values.colmap);
+    const { poses, points, pointsWarning } = readColmapDir(values.colmap, { includePoints: Boolean(values.out) });
+    if (pointsWarning) console.error(`warning: ${pointsWarning}`);
     const json = JSON.stringify(poses, null, 2);
     if (!values.out) return void process.stdout.write(`${json}\n`);
     writeFileSync(values.out, json);
