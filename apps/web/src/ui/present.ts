@@ -1,6 +1,6 @@
 import { Kiosk, type KioskState } from '../scene/kiosk';
 import type { Annotation, BikeScene, Hotspot } from '../scene/schema';
-import { visibleSpecs } from '../scene/specs';
+import { SPEC_COLLAPSED_ROWS, specsCollapsible, visibleSpecs } from '../scene/specs';
 import { LeaderLayer } from '../viewer/leaders';
 import type { Viewer } from '../viewer/Viewer';
 import { h } from './dom';
@@ -183,10 +183,16 @@ export class PresentView {
 function specTable(scene: BikeScene): HTMLElement | '' {
   const rows = visibleSpecs(scene.specs);
   if (!rows.length) return '';
-  return h(
-    'table',
-    { class: 'specs' },
-    h('caption', {}, 'Key specs'),
-    h('tbody', {}, ...rows.map((r) => h('tr', {}, h('th', { scope: 'row' }, r.label), h('td', {}, r.value)))),
-  );
+  const trs = rows.map((r) => h('tr', { role: 'row' }, h('th', { scope: 'row', role: 'rowheader' }, r.label), h('td', { role: 'cell' }, r.value)));
+  const table = h('table', { class: 'specs' }, h('caption', {}, 'Key specs'), h('tbody', { role: 'rowgroup' }, ...trs));
+  if (!specsCollapsible(rows.length)) return table;
+  const btn = h('button', { class: 'specs-toggle', type: 'button', 'aria-expanded': 'false' }, `All specs (${rows.length})`);
+  const sync = (open: boolean) => {
+    trs.forEach((tr, i) => (tr.hidden = !open && i >= SPEC_COLLAPSED_ROWS));
+    btn.setAttribute('aria-expanded', String(open));
+    btn.textContent = open ? 'Fewer specs' : `All specs (${rows.length})`;
+  };
+  btn.addEventListener('click', () => sync(btn.getAttribute('aria-expanded') !== 'true'));
+  sync(false);
+  return h('div', { class: 'specs-wrap' }, table, btn);
 }
