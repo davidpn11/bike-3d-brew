@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { CAPTURE_SCHEMA, type CaptureManifest } from '../src/scene/capture';
-import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../src/scene/helpers';
+import { captureSummary, dataUrlToBytes, distance, isDoubleTap, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../src/scene/helpers';
 import type { Hotspot } from '../src/scene/schema';
 
 const hs = (id: string, target: [number, number, number]): Hotspot => ({ id, name: id, view: { position: [0, 0, 5], target } });
+
+describe('isDoubleTap', () => {
+  const a = { x: 100, y: 100, t: 0 };
+  it('is a quick second tap nearby', () => expect(isDoubleTap(a, { x: 105, y: 98, t: 200 })).toBe(true));
+  it('is not a slow or distant one', () => {
+    expect(isDoubleTap(a, { x: 100, y: 100, t: 600 })).toBe(false);
+    expect(isDoubleTap(a, { x: 200, y: 100, t: 100 })).toBe(false);
+  });
+});
 
 describe('nearestHotspot', () => {
   it('picks the area whose target is closest', () => {

@@ -68,3 +68,11 @@ export function captureSummary(sceneName: string, bundle: Pick<CaptureBundle, 'm
 export function presentLede(scene: Pick<BikeScene, 'brand' | 'modelName' | 'year'>): string {
   return [scene.brand, scene.modelName, scene.year].filter(Boolean).join(' · ') || 'Swipe through the highlights →';
 }
+
+/** Two taps this close in time and place are a double-tap (pivot the orbit), not two comment pins. */
+export const DOUBLE_TAP = { ms: 350, px: 24 } as const;
+export const DEPTH_HINT = 'Double-click a part to orbit around it, zoom toward the pointer, then Save view.';
+
+export function isDoubleTap(a: { x: number; y: number; t: number }, b: { x: number; y: number; t: number }): boolean {
+  return b.t - a.t <= DOUBLE_TAP.ms && Math.hypot(b.x - a.x, b.y - a.y) <= DOUBLE_TAP.px;
+}

@@ -10,6 +10,7 @@ export interface BikeHook {
   app: App;
   store: SceneStore;
   viewer: Viewer;
+  pivotAt: (clientX: number, clientY: number) => boolean;
   ready: boolean;
 }
 declare global {
