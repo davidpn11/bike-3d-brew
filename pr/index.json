@@ -1,5 +1,12 @@
 [
   {
+    "number": 37,
+    "title": "[roadmap] Bun as package manager",
+    "branch": "claude/bun-cutover",
+    "sha": "15d9cc2",
+    "updatedAt": "2026-11-12T07:25:24-06:00"
+  },
+  {
     "number": 36,
     "title": "[roadmap] Clickable prototype (phase 0)",
     "branch": "claude/proto",
