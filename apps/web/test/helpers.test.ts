@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAPTURE_SCHEMA, type CaptureManifest } from '../src/scene/capture';
-import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../src/scene/helpers';
+import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, shouldDefer3d, slugify, wrapStep } from '../src/scene/helpers';
 import type { Hotspot } from '../src/scene/schema';
 
 const hs = (id: string, target: [number, number, number]): Hotspot => ({ id, name: id, view: { position: [0, 0, 5], target } });
@@ -100,5 +100,16 @@ describe('presentLede', () => {
     expect(presentLede({ brand: 'Brew', modelName: 'R1', year: 2026 })).toBe('Brew · R1 · 2026');
     expect(presentLede({ brand: 'Brew' })).toBe('Brew');
     expect(presentLede({})).toMatch(/Swipe/);
+  });
+});
+
+describe('shouldDefer3d', () => {
+  it('defers on data saver, slow links and low memory only', () => {
+    expect(shouldDefer3d({})).toBe(false);
+    expect(shouldDefer3d({ effectiveType: '4g', deviceMemory: 8 })).toBe(false);
+    expect(shouldDefer3d({ saveData: true })).toBe(true);
+    expect(shouldDefer3d({ effectiveType: '3g' })).toBe(true);
+    expect(shouldDefer3d({ effectiveType: 'slow-2g' })).toBe(true);
+    expect(shouldDefer3d({ deviceMemory: 2 })).toBe(true);
   });
 });
