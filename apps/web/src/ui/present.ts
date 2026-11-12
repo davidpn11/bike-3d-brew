@@ -1,5 +1,6 @@
 import { Kiosk, type KioskState } from '../scene/kiosk';
 import type { Annotation, BikeScene, Hotspot } from '../scene/schema';
+import { visibleSpecs } from '../scene/specs';
 import { LeaderLayer } from '../viewer/leaders';
 import type { Viewer } from '../viewer/Viewer';
 import { h } from './dom';
@@ -130,6 +131,7 @@ export class PresentView {
         ),
       ),
       hotspot ? (items.length ? h('ul', { class: 'notes' }, ...items) : '') : h('p', { class: 'lede' }, s.lede),
+      hotspot ? '' : specTable(s.scene),
       s.photos ?? '',
     );
     // Lines from every pin of this area to the card; the active comment's line stands out.
@@ -176,4 +178,16 @@ export class PresentView {
     this.el.addEventListener('pointerup', end);
     this.el.addEventListener('pointercancel', () => (start = null));
   }
+}
+
+/** The spec sheet on the whole-bike step; nothing when no row has a value. */
+function specTable(scene: BikeScene): HTMLElement | '' {
+  const rows = visibleSpecs(scene.specs);
+  if (!rows.length) return '';
+  return h(
+    'table',
+    { class: 'specs' },
+    h('caption', {}, 'Key specs'),
+    h('tbody', {}, ...rows.map((r) => h('tr', {}, h('th', { scope: 'row' }, r.label), h('td', {}, r.value)))),
+  );
 }

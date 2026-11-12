@@ -14,11 +14,13 @@ import {
   type BikeScene,
   type Hotspot,
   type ModelRef,
+  type SpecRow,
   type Vec3,
   emptyScene,
   formatFromFilename,
   parseScene,
 } from '../scene/schema';
+import { cleanSpecs, specsForEdit } from '../scene/specs';
 import { type Published, type SharePackageInput, type ViewParams, publishedPhotoUrls, shareOption } from '../scene/share';
 import type { SceneStore } from '../scene/store';
 import { requestPersistence } from '../storage/backends';
@@ -339,7 +341,7 @@ export class App {
     const editing = this.mode === 'edit';
     const sections: HTMLElement[] = [];
 
-    if (editing) sections.push(this.detailsEditor(scene));
+    if (editing) sections.push(this.detailsEditor(scene), this.specsEditor(scene));
     if (editing && scene.model.format !== 'demo') sections.push(this.modelTools.render(scene));
 
     const areas = h(
@@ -396,7 +398,10 @@ export class App {
           : this.commentList(list, numberOf, editing),
       ),
     );
+    // Saving a field re-renders the panel: put focus back on the same field (Tab from a spec name to its value).
+    const focusKey = (document.activeElement as HTMLElement | null)?.dataset?.focus;
     this.els.panel.replaceChildren(...sections);
+    if (focusKey) this.els.panel.querySelector<HTMLElement>(`[data-focus="${focusKey}"]`)?.focus();
   }
 
   private detailsEditor(scene: BikeScene): HTMLElement {
@@ -410,6 +415,37 @@ export class App {
       field('Brand', scene.brand ?? '', (v) => this.store.update({ brand: v || undefined })),
       field('Model', scene.modelName ?? '', (v) => this.store.update({ modelName: v || undefined })),
       field('Price', scene.price ?? '', (v) => this.store.update({ price: v || undefined })),
+    );
+  }
+
+  /** Spec sheet rows: saved from the inputs on every change, so an added row exists only once it has text. */
+  private specsEditor(scene: BikeScene): HTMLElement {
+    const list = h('div', { class: 'spec-rows' });
+    const save = () => {
+      const rows = [...list.querySelectorAll<HTMLElement>('.spec-row')].map((r) => ({ label: r.querySelector<HTMLInputElement>('[name=label]')!.value, value: r.querySelector<HTMLInputElement>('[name=value]')!.value }));
+      const specs = cleanSpecs(rows);
+      this.store.update({ specs: specs.length ? specs : undefined });
+    };
+    // `change` fires before Tab moves focus: save once it has landed, so the re-render can put it back.
+    const saveSoon = () => setTimeout(save);
+    const row = (r: SpecRow, i: number) => {
+      const el: HTMLElement = h(
+        'div',
+        { class: 'spec-row' },
+        h('input', { name: 'label', dataset: { focus: `spec-${i}-label` }, value: r.label, placeholder: 'Spec', 'aria-label': 'Spec name', onchange: saveSoon }),
+        h('input', { name: 'value', dataset: { focus: `spec-${i}-value` }, value: r.value, placeholder: 'Value', 'aria-label': `${r.label || 'Spec'} value`, onchange: saveSoon }),
+        h('button', { type: 'button', class: 'danger', title: 'Remove row', 'aria-label': `Remove ${r.label || 'row'}`, onclick: () => (el.remove(), save()) }, '×'),
+      );
+      return el;
+    };
+    list.append(...specsForEdit(scene.specs).map(row));
+    return h(
+      'section',
+      { class: 'spec-sheet' },
+      h('h2', {}, 'Spec sheet'),
+      list,
+      h('button', { type: 'button', class: 'add', onclick: () => list.append(row({ label: '', value: '' }, list.children.length)) }, '+ Add spec'),
+      h('p', { class: 'hint' }, 'Shown on the first Present card. Rows without a value stay hidden.'),
     );
   }
 

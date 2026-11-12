@@ -116,7 +116,8 @@ describe('share link and options', () => {
 describe('bike-share/1 packages', () => {
   it('round-trips: build → read', () => {
     const photos = new Map([['hs-rear', [JPEG, JPEG]]]);
-    const pkg = buildSharePackage({ scene: scene(), model: { bytes: GLB, format: 'glb' }, photos, createdAt: '2026-02-03T00:00:00Z' });
+    const specs = [{ label: 'Weight', value: '9.1 kg' }];
+    const pkg = buildSharePackage({ scene: scene({ specs }), model: { bytes: GLB, format: 'glb' }, photos, createdAt: '2026-02-03T00:00:00Z' });
     expect(pkg.id).toBe('gravel-bike-x');
     expect(pkg.filename).toBe('gravel-bike-x.bikeshare.zip');
     expect(pkg.manifest).toEqual({ schema: SHARE_SCHEMA, id: 'gravel-bike-x', name: 'Gravel Bike X', createdAt: '2026-02-03T00:00:00Z', scene: SCENE_FILE, model: 'model.glb', photos: ['photos/02-rear-end-1.jpg', 'photos/02-rear-end-2.jpg'] });
@@ -130,6 +131,7 @@ describe('bike-share/1 packages', () => {
     expect(read.scene.hotspots[1].photos).toEqual(['photos/02-rear-end-1.jpg', 'photos/02-rear-end-2.jpg', 'https://cdn.example/a.jpg']);
     expect(read.scene.hotspots[0].photos).toBeUndefined();
     expect(read.scene.annotations[0].body).toBe('**Carbon**');
+    expect(read.scene.specs).toEqual(specs);
     expect(read.files.map((f) => f.path)).toEqual([SCENE_FILE, MANIFEST_FILE, 'model.glb', 'photos/02-rear-end-1.jpg', 'photos/02-rear-end-2.jpg']);
     expect(readSharePackage(pkg.bytes, { id: 'demo' }).id).toBe('demo');
   });

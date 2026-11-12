@@ -65,7 +65,8 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [ ] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
 - [ ] **Embed packaging**: `embed.html` + postMessage API + `<bike-viewer>` custom element on top of `present/BikePresenter.ts`; scope `styles.css` base rules for Shadow DOM.
 - [ ] **Hotspot auto-suggest**: for captures, propose default areas (Fork, Drivetrain, Cockpit, Wheels, Saddle) by letting the user tap each part once; camera view computed from tapped point + local bounds.
-- [ ] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
+- [x] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
+- [ ] **Spec sheet on short screens**: with 6+ rows the first Present card covers the lower half of the bike on a laptop; collapse the table to a few rows with "All specs" (or a two-column layout on wide cards).
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
 - [ ] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts.
 - [ ] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).

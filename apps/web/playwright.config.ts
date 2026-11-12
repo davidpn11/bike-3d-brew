@@ -46,7 +46,7 @@ export default defineConfig({
     // and run on desktop only, which keeps the suite (and CI) fast.
     {
       name: 'mobile',
-      testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts'],
+      testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts', 'specs.spec.ts'],
       use: { ...devices['iPhone 14'], deviceScaleFactor: 1, browserName: 'chromium', defaultBrowserType: 'chromium' },
     },
     // iPhone 14 in WebKit, the engine of iPhone Safari. Opt-in (`npm run e2e:webkit`, a macOS CI job):
