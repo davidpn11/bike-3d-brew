@@ -31,7 +31,9 @@ export const IPHONE_WIDE: Intrinsics = { hFovDeg: 65, aspect: 4 / 3 };
 export function sampleIntrinsics(camera: PoseSample['camera'], fallback: Intrinsics): Intrinsics {
   if (!camera) return fallback;
   const { width, height, fx, fy } = camera;
-  return { hFovDeg: 2 * Math.atan(width / (2 * fx)) * DEG, aspect: (width * fy) / (height * fx) };
+  const out = { hFovDeg: 2 * Math.atan(width / (2 * fx)) * DEG, aspect: (width * fy) / (height * fx) };
+  const sane = out.hFovDeg >= 1 && out.hFovDeg <= 179 && out.aspect >= 0.1 && out.aspect <= 10; // false for NaN too
+  return sane ? out : IPHONE_WIDE;
 }
 
 export interface RankTarget {

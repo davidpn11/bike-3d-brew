@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { parsePoses, type PoseSample } from '../src/scene/capture';
 import {
   IDENTITY,
+  IPHONE_WIDE,
+  sampleIntrinsics,
   centeringMatrix,
   imageForSample,
   imageMime,
@@ -125,6 +127,17 @@ describe('rankPhotos', () => {
     const parsed = parsePoses({ schema: 'bike-poses/1', samples: [{ sample: 0, transform: pose(0, eye, aim).transform, camera: { width: 4000, height: 3000, fx: -1, fy: 1 } }] });
     expect(parsed.samples[0].camera).toBeUndefined();
     expect(parsePoses({ schema: 'bike-poses/1', samples: [{ ...at(cam(2000))[0] }] }).samples[0].camera).toEqual(cam(2000));
+  });
+
+  it('rejects implausible cameras in the parser and in sampleIntrinsics', () => {
+    const transform = pose(0, [0, 0, 1], [0, 0, 0]).transform;
+    const parse = (camera: object) => parsePoses({ schema: 'bike-poses/1', samples: [{ sample: 0, transform, camera }] }).samples[0].camera;
+    expect(parse({ width: 1e308, height: 1, fx: 1, fy: 1 })).toBeUndefined();
+    expect(parse({ width: 4000, height: 3000, fx: 1e-300, fy: 3000 })).toBeUndefined();
+    expect(parse({ width: 4000, height: 3000, fx: 3000, fy: 3000 })).toBeDefined();
+    // Parser-valid but derived values out of range (hFov < 1° and aspect > 10) → default.
+    expect(sampleIntrinsics({ width: 16, height: 16, fx: 1e6, fy: 1e6 }, IPHONE_WIDE)).toBe(IPHONE_WIDE);
+    expect(sampleIntrinsics({ width: 16384, height: 16, fx: 1000, fy: 1000 }, IPHONE_WIDE)).toBe(IPHONE_WIDE);
   });
 
   it('drops cameras that see the back of the surface', () => {

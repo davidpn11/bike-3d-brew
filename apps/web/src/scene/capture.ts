@@ -92,6 +92,10 @@ export function parseManifest(input: unknown): CaptureManifest {
   return manifest;
 }
 
+/** Plausible sensor size and focal length in pixels; anything else is a corrupt or hostile camera. */
+export const CAMERA_PX_RANGE = [16, 16384] as const;
+export const CAMERA_FOCAL_RANGE = [1, 1e6] as const;
+
 export function parsePoses(input: unknown): CapturePoses {
   if (!isObj(input)) throw new CaptureBundleError('poses.json: expected an object');
   if (input.schema !== POSES_SCHEMA) throw new CaptureBundleError(`poses.json: expected schema "${POSES_SCHEMA}", got ${JSON.stringify(input.schema)}`);
@@ -108,7 +112,8 @@ export function parsePoses(input: unknown): CapturePoses {
     if (isStr(s.file)) out.file = s.file;
     // Untrusted: a bad camera is ignored (the ranking falls back to the iPhone default), not an error.
     const c = s.camera;
-    if (isObj(c) && [c.width, c.height, c.fx, c.fy].every((n) => typeof n === 'number' && Number.isFinite(n) && n > 0)) {
+    const inRange = (n: unknown, [lo, hi]: readonly [number, number]) => typeof n === 'number' && n >= lo && n <= hi; // false for NaN/Infinity too
+    if (isObj(c) && inRange(c.width, CAMERA_PX_RANGE) && inRange(c.height, CAMERA_PX_RANGE) && inRange(c.fx, CAMERA_FOCAL_RANGE) && inRange(c.fy, CAMERA_FOCAL_RANGE)) {
       out.camera = { width: c.width as number, height: c.height as number, fx: c.fx as number, fy: c.fy as number };
     }
     return out;
