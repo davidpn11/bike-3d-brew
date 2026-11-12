@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bike 3D Brew: embedding demo</title>
+    <!-- A stand-in for a shop's product page: plain styles, nothing from the app. -->
+    <style>body{color:#222;background:#faf7f2;max-width:900px;margin:0 auto;padding:16px;font:15px/1.5 Georgia,serif}h2{margin-top:32px}pre{background:#eee;border-radius:6px;padding:10px;font-size:12px;overflow-x:auto}iframe,bike-viewer{border:0;border-radius:10px;width:100%;height:440px}.controls{flex-wrap:wrap;gap:6px;margin:8px 0;display:flex}#log{background:#fff;border:1px solid #ddd;height:7.5em;margin:0;padding:6px 10px;font:12px ui-monospace,monospace;list-style:none;overflow-y:auto}</style>
+    <script type="module" crossorigin src="./assets/embed-demo-Cnsm-Mgx.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-P2Xu9kJm.js">
+    <link rel="modulepreload" crossorigin href="./assets/preload-helper-BFfPHp1S.js">
+    <link rel="modulepreload" crossorigin href="./assets/Viewer-DqtiTMbG.js">
+    <link rel="modulepreload" crossorigin href="./assets/BikePresenter-DHOwvr2H.js">
+    <link rel="modulepreload" crossorigin href="./bike-viewer.js">
+  </head>
+  <body>
+    <h1>Embedding a bike</h1>
+    <p>Two ways to put a published bike on your own page. Both show the read-only customer view.</p>
+
+    <h2>1. iframe + postMessage</h2>
+    <pre>&lt;iframe src="https://davidpn11.github.io/bike-3d-brew/app/embed.html?scene=scenes/demo/scene.bike.json&amp;area=hs-fork"
+        style="width:100%;height:440px;border:0" allow="fullscreen; web-share"&gt;&lt;/iframe&gt;</pre>
+    <iframe id="frame" title="Bike (iframe embed)" src="embed.html?scene=scenes/demo/scene.bike.json" allow="fullscreen; web-share"></iframe>
+    <div class="controls">
+      <button data-cmd="prev">‹ Prev</button>
+      <button data-cmd="next">Next ›</button>
+      <button data-cmd="goToArea" data-area="hs-drivetrain">Drivetrain</button>
+      <button data-cmd="play">Play</button>
+      <button data-cmd="pause">Pause</button>
+      <button data-cmd="setBackground" data-background="green">Green screen</button>
+      <button data-cmd="getState">Get state</button>
+    </div>
+    <ol id="log" aria-label="Events from the iframe"></ol>
+
+    <h2>2. &lt;bike-viewer&gt; custom element</h2>
+    <pre>&lt;script type="module" src="https://davidpn11.github.io/bike-3d-brew/app/bike-viewer.js"&gt;&lt;/script&gt;
+&lt;bike-viewer src="https://davidpn11.github.io/bike-3d-brew/app/scenes/demo/scene.bike.json" area="hs-cockpit"&gt;&lt;/bike-viewer&gt;</pre>
+    <bike-viewer id="element" src="scenes/demo/scene.bike.json" area="hs-cockpit"></bike-viewer>
+
+  </body>
+</html>
