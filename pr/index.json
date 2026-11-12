@@ -1,5 +1,12 @@
 [
   {
+    "number": 25,
+    "title": "[roadmap] COLMAP binary models",
+    "branch": "claude/colmap-binary",
+    "sha": "7410b27",
+    "updatedAt": "2026-11-11T20:56:44-06:00"
+  },
+  {
     "number": 23,
     "title": "Agent setup: Claude Code + Codex roles, iOS and junior engineers",
     "branch": "claude/agent-setup",
