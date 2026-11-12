@@ -1,7 +1,7 @@
 name: Publish site
 
 # Keeps https://davidpn11.github.io/bike-3d-brew/ (gh-pages, deploy from branch) in step with
-# the stack tip (see CLAUDE.md): the newest open, non-draft PR whose head no other open PR uses as its base,
+# the stack tip (see AGENTS.md): the newest open, non-draft PR whose head no other open PR uses as its base,
 # or develop when nothing is open. While the stack waits for review, develop is far behind, so
 # publishing only develop would leave the site weeks stale. tools/publish-pages.sh only replaces
 # the main site and leaves PR previews in /pr/.
