@@ -1,5 +1,12 @@
 [
   {
+    "number": 36,
+    "title": "[roadmap] Clickable prototype (phase 0)",
+    "branch": "claude/proto",
+    "sha": "9319b37",
+    "updatedAt": "2026-11-12T07:22:12-06:00"
+  },
+  {
     "number": 35,
     "title": "Product plan: owner decisions (new bikes, showroom, US)",
     "branch": "claude/showroom-plan",
