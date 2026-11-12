@@ -183,12 +183,13 @@ export class PresentView {
 function specTable(scene: BikeScene): HTMLElement | '' {
   const rows = visibleSpecs(scene.specs);
   if (!rows.length) return '';
-  const trs = rows.map((r) => h('tr', { role: 'row' }, h('th', { scope: 'row', role: 'rowheader' }, r.label), h('td', { role: 'cell' }, r.value)));
+  const trs = rows.map((r) => h('tr', { role: 'row' }, h('th', { scope: 'row', role: 'rowheader' }, r.label), h('td', { role: 'cell', title: r.value }, h('span', { class: 'spec-val' }, r.value))));
   const table = h('table', { class: 'specs' }, h('caption', {}, 'Key specs'), h('tbody', { role: 'rowgroup' }, ...trs));
-  if (!specsCollapsible(rows.length)) return table;
+  if (!specsCollapsible(rows.length)) return (table.classList.add('all'), table); // nothing to expand: show values in full
   const btn = h('button', { class: 'specs-toggle', type: 'button', 'aria-expanded': 'false' }, `All specs (${rows.length})`);
   const sync = (open: boolean) => {
     trs.forEach((tr, i) => (tr.hidden = !open && i >= SPEC_COLLAPSED_ROWS));
+    table.classList.toggle('all', open);
     btn.setAttribute('aria-expanded', String(open));
     btn.textContent = open ? 'Fewer specs' : `All specs (${rows.length})`;
   };

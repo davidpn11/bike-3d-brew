@@ -146,8 +146,11 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .editor h2, .details h2, .spec-sheet h2 { margin: 0; }
 /* Edit → Spec sheet: label | value | × per row. */
 .spec-rows { display: grid; gap: 6px; }
-.spec-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; gap: 6px; }
-.spec-row input { min-width: 0; }
+.spec-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.15fr) auto; gap: 6px; }
+.spec-row input, .spec-row textarea { min-width: 0; }
+.spec-row { align-items: start; }
+.spec-row textarea { resize: none; overflow-y: auto; max-height: 6.4em; font: inherit; line-height: 1.3; padding: 6px 8px; }
+.areas ~ .hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 .history { margin-top: 12px; }
 .history button:disabled { opacity: .35; cursor: default; }
 /* Edit → Model */
