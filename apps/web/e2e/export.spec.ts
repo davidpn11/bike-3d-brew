@@ -28,6 +28,7 @@ test.describe('snapshot / video export', () => {
       const { viewer } = window.__bike!;
       return { stage: { ...viewer.viewport }, buffer: [viewer.renderer.domElement.width, viewer.renderer.domElement.height] };
     });
+    await expect(page.getByRole('button', { name: 'Save PNG' })).toBeHidden();
     await page.getByRole('button', { name: 'Snapshot' }).click();
     await expect(page.getByRole('button', { name: 'Save PNG' })).toBeVisible();
     await snap(page, testInfo, 'export-menu');
@@ -59,6 +60,9 @@ test.describe('snapshot / video export', () => {
       return { buffer: [viewer.renderer.domElement.width, viewer.renderer.domElement.height], alpha: viewer.renderer.getClearAlpha() };
     });
     expect(after).toEqual({ buffer: before.buffer, alpha: 0 });
+    // Escape closes the menu.
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Save PNG' })).toBeHidden();
     expect(errors).toEqual([]);
   });
 
