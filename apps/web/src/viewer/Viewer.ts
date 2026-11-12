@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { easeInOutCubic, lerpView, viewForBox } from '../scene/camera';
 import { type Box, insideBox } from '../scene/crop';
+import { BACKDROP_STOPS, turntableAngle } from '../scene/exportMedia';
 import type { BackgroundMode, CameraView, CropBox, ModelRef, Vec3 } from '../scene/schema';
 import { BVH_MIN_TRIANGLES, accelerateRaycasts, countTriangles } from './bvh';
 import { CropBoxEditor } from './cropBox';
@@ -19,6 +20,8 @@ export interface PickResult {
 }
 
 type FrameListener = () => void;
+/** Draws on top of an exported frame; `scale` is canvas px per CSS px of the stage. */
+export type Overlay = (ctx: CanvasRenderingContext2D, scale: number) => void;
 
 const toVec3 = (v: THREE.Vector3): Vec3 => [round(v.x), round(v.y), round(v.z)];
 const round = (n: number) => Math.round(n * 1e5) / 1e5;
@@ -543,6 +546,118 @@ export class Viewer {
   screenshot(): string {
     this.renderer.render(this.scene, this.camera);
     return this.renderer.domElement.toDataURL('image/png');
+  }
+
+  /** Largest snapshot side the GPU can render in one pass. */
+  maxSnapshotSide(): number {
+    const gl = this.renderer.getContext();
+    return Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), gl.getParameter(gl.MAX_VIEWPORT_DIMS)[0]);
+  }
+
+  /**
+   * PNG of the current view at `size` (same aspect as the stage) on `backdrop`; `overlay` draws on top
+   * (pins), getting canvas px per CSS px. The drawing buffer is resized for one render, then restored.
+   */
+  snapshot(size: { width: number; height: number }, backdrop: BackgroundMode, overlay?: Overlay): Promise<Blob> {
+    const canvas = Object.assign(document.createElement('canvas'), size);
+    const ctx = canvas.getContext('2d')!;
+    const pixelRatio = this.renderer.getPixelRatio();
+    try {
+      this.renderer.setPixelRatio(1);
+      this.renderer.setSize(size.width, size.height, false);
+      this.composite(ctx, backdrop);
+    } finally {
+      this.renderer.setPixelRatio(pixelRatio);
+      this.renderer.setSize(this.viewport.width, this.viewport.height, false);
+      // Resizing cleared the stage; repaint it now rather than flash an empty frame.
+      this.renderer.render(this.scene, this.camera);
+    }
+    overlay?.(ctx, size.width / this.viewport.width);
+    return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the PNG.'))), 'image/png'));
+  }
+
+  /**
+   * Records one camera turn around the orbit target with MediaRecorder; the camera and controls are
+   * restored afterwards. Renders on every animation frame while recording (the on-demand loop is bypassed).
+   */
+  async recordTurntable(opts: { mimeType: string; size: { width: number; height: number }; seconds: number; backdrop: BackgroundMode; overlay?: Overlay; onProgress?: (done: number) => void }): Promise<Blob> {
+    this.cancelFlight();
+    const canvas = Object.assign(document.createElement('canvas'), opts.size);
+    const ctx = canvas.getContext('2d')!;
+    const scale = opts.size.width / this.viewport.width;
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType: opts.mimeType, videoBitsPerSecond: 8_000_000 });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const stopped = new Promise((resolve) => (recorder.onstop = resolve));
+    const start = this.camera.position.clone();
+    const target = this.controls.target.clone();
+    const offset = start.clone().sub(target);
+    const up = new THREE.Vector3(0, 1, 0);
+    const frame = (t: number) => {
+      this.camera.position.copy(target).add(_v.copy(offset).applyAxisAngle(up, turntableAngle(t, 1)));
+      this.camera.lookAt(target);
+      this.composite(ctx, opts.backdrop);
+      for (const fn of this.frameListeners) fn(); // pins follow the turn, on the stage and in the overlay
+      opts.overlay?.(ctx, scale);
+      opts.onProgress?.(t);
+    };
+    this.controls.enabled = false;
+    try {
+      frame(0);
+      recorder.start();
+      const t0 = performance.now();
+      await new Promise<void>((resolve) => {
+        const step = (now: number) => {
+          const t = Math.min(1, (now - t0) / (opts.seconds * 1000));
+          frame(t);
+          if (t < 1) requestAnimationFrame(step);
+          else resolve();
+        };
+        requestAnimationFrame(step);
+      });
+      recorder.stop();
+      await stopped;
+    } finally {
+      if (recorder.state !== 'inactive') recorder.stop();
+      for (const track of stream.getTracks()) track.stop();
+      this.camera.position.copy(start);
+      this.camera.lookAt(target);
+      this.controls.enabled = true;
+      this.requestRender({ shadows: false });
+    }
+    return new Blob(chunks, { type: recorder.mimeType || opts.mimeType });
+  }
+
+  /** Paints `backdrop`, then a fresh render of the model (transparent clear) onto a 2D canvas. */
+  private composite(ctx: CanvasRenderingContext2D, backdrop: BackgroundMode): void {
+    const { width: w, height: h } = ctx.canvas;
+    ctx.clearRect(0, 0, w, h);
+    const stops = BACKDROP_STOPS[backdrop];
+    if (backdrop === 'green') {
+      ctx.fillStyle = `#${CHROMA_GREEN.toString(16).padStart(6, '0')}`;
+      ctx.fillRect(0, 0, w, h);
+    } else if (stops) {
+      // CSS `radial-gradient(ellipse at 50% 35%, …)`: farthest-corner = farthest-side radii × √2.
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.35);
+      ctx.scale(w * 0.5 * Math.SQRT2, h * 0.65 * Math.SQRT2);
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      for (const [at, color] of stops) gradient.addColorStop(at, color);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(-1, -1, 2, 2);
+      ctx.restore();
+    }
+    const clearColor = this.renderer.getClearColor(new THREE.Color());
+    const clearAlpha = this.renderer.getClearAlpha();
+    const ground = this.ground.visible;
+    this.ground.visible = backdrop !== 'green';
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.render(this.scene, this.camera);
+    // Same task as the render: without preserveDrawingBuffer the frame is only readable until it is presented.
+    ctx.drawImage(this.renderer.domElement, 0, 0, w, h);
+    this.renderer.setClearColor(clearColor, clearAlpha);
+    this.ground.visible = ground;
   }
 
   toWorld(v: Vec3): THREE.Vector3 {

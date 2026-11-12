@@ -166,8 +166,10 @@ missing.
 ### What the suite covers
 
 - `view.spec.ts`: demo loads with seeded areas/comments/pins and no console errors; fly to an
-  area and back; comment focus; background modes (and the chroma-green opaque clear); Snapshot
-  downloads a real PNG; Reset view.
+  area and back; comment focus; background modes (and the chroma-green opaque clear); Reset view.
+- `export.spec.ts`: the Snapshot menu saves a 2× transparent PNG (IHDR size, RGBA, see-through
+  corner, opaque bike) and a 1× chroma-green one, restores the drawing buffer and clear color;
+  records a turntable WebM (EBML header) and puts the camera back.
 - `edit.spec.ts`: add/edit/delete a comment picked on the canvas; persistence across reload;
   Cancel/Escape; default area; save/rename/set view/delete areas; bike details.
 - `present.spec.ts`: keys (←, →, space, Esc) and ‹ › buttons with wrap-around; `?mode=present`.

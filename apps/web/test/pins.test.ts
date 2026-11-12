@@ -76,6 +76,40 @@ describe('PinLayer', () => {
     expect(pins()[0].classList.contains('offscreen')).toBe(false);
   });
 
+  it('draws shown, unfiltered pins onto an export canvas at its scale', () => {
+    const { layer, frame, occluded } = setup();
+    layer.setAnnotations([note('a', 'A', 1), note('b', 'B', -1), note('c', 'C', 2), note('d', 'D', 3.5)]);
+    occluded.add(2);
+    layer.filter(['a', 'b', 'c']);
+    frame();
+    const arcs: number[][] = [];
+    const texts: unknown[][] = [];
+    const alphas: number[] = [];
+    const ctx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      fill() {
+        alphas.push(this.globalAlpha);
+      },
+      stroke() {},
+      arc: (...a: number[]) => arcs.push(a.slice(0, 3)),
+      fillText: (...a: unknown[]) => texts.push(a),
+      globalAlpha: 1,
+    };
+    layer.drawInto(ctx as unknown as CanvasRenderingContext2D, 2);
+    // b is behind the camera and d filtered out; c is dimmed like the occluded pin on the stage.
+    expect(arcs).toEqual([
+      [200, 100, 24],
+      [400, 100, 24],
+    ]);
+    expect(texts).toEqual([
+      ['1', 200, 100],
+      ['3', 400, 100],
+    ]);
+    expect(alphas).toEqual([1, 0.35]);
+  });
+
   it('hides pins on geometry the crop box clips away', () => {
     const { layer, frame } = setup();
     layer.setAnnotations([note('a', 'A', 1), note('c', 'Cropped', 3)]);
