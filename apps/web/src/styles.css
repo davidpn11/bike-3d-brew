@@ -136,6 +136,8 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 
 .editor, .details { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
 .details { border-color: var(--line); }
+.history { margin-top: 12px; }
+.history button:disabled { opacity: .35; cursor: default; }
 .editor h2, .details h2 { margin: 0; }
 /* Edit → Model */
 .model-tools { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }

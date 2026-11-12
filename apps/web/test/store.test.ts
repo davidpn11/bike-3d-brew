@@ -92,6 +92,72 @@ describe('SceneStore', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
+  it('undoes and redoes comments, areas and scene fields, persisting each step', () => {
+    const storage = new MemoryStorage();
+    const store = new SceneStore(base(), storage);
+    expect(store.undo()).toBe(false);
+    expect(store.redo()).toBe(false);
+    const hs = store.addHotspot({ name: 'Fork', view: { position: [1, 1, 1], target: [0, 0, 0] } });
+    const a = store.addAnnotation({ position: [0, 1, 0], title: 'Carbon', body: '', kind: 'feature', hotspotId: hs.id });
+    store.updateAnnotation(a.id, { title: 'Full carbon' });
+    store.removeHotspot(hs.id);
+    expect(store.undo()).toBe(true);
+    expect(store.scene.hotspots).toHaveLength(1);
+    expect(store.scene.annotations[0].hotspotId).toBe(hs.id);
+    store.undo();
+    expect(store.scene.annotations[0].title).toBe('Carbon');
+    expect(SceneStore.restore('b1', storage)?.annotations[0].title).toBe('Carbon');
+    store.undo();
+    store.undo();
+    expect(store.scene).toEqual(base());
+    expect(store.canUndo).toBe(false);
+    expect(store.redo()).toBe(true);
+    expect(store.scene.hotspots).toHaveLength(1);
+    // A new edit drops the redo branch.
+    store.update({ name: 'Renamed' });
+    expect(store.canRedo).toBe(false);
+    store.undo();
+    expect(store.scene.name).toBe('Bike');
+    expect(store.canRedo).toBe(true);
+  });
+
+  it('merges same-key edits less than a second apart, and caps the history', () => {
+    vi.useFakeTimers();
+    const store = new SceneStore(base());
+    store.update({ name: 'a' }, 'typing');
+    vi.advanceTimersByTime(500);
+    store.update({ name: 'ab' }, 'typing');
+    store.update({ price: '$1' }); // no key: its own step, and it breaks the run
+    store.update({ name: 'abc' }, 'typing');
+    vi.advanceTimersByTime(1500);
+    store.update({ name: 'abcd' }, 'typing');
+    store.undo();
+    expect(store.scene.name).toBe('abc');
+    store.undo();
+    store.undo();
+    expect([store.scene.name, store.scene.price]).toEqual(['ab', undefined]); // 'a' and 'ab' were one step
+    store.undo();
+    expect(store.scene.name).toBe('Bike');
+    vi.useRealTimers();
+    for (let i = 0; i < 120; i++) store.update({ name: `n${i}` });
+    let steps = 0;
+    while (store.undo()) steps++;
+    expect(steps).toBe(100);
+  });
+
+  it('replace is not an undo step, and another scene id starts a fresh history', () => {
+    const store = new SceneStore(base());
+    store.update({ name: 'Edited' });
+    store.replace({ ...store.scene, price: '$9' });
+    expect(store.canUndo).toBe(true);
+    store.undo();
+    expect(store.scene.name).toBe('Bike');
+    store.redo();
+    store.replace({ ...base(), id: 'b2' });
+    expect(store.canUndo).toBe(false);
+    expect(store.canRedo).toBe(false);
+  });
+
   it('exports pretty JSON that parses back to the same scene', () => {
     const store = new SceneStore(base());
     store.addAnnotation({ position: [0, 1, 0], title: 'x', body: 'y', kind: 'feature' });

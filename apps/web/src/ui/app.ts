@@ -109,7 +109,6 @@ export class App {
 
   /** Loads the scene's model (if changed) and syncs everything to the store. */
   async open(scene: BikeScene, opts: { frame?: boolean } = {}): Promise<void> {
-    if (scene.id !== this.store.scene.id) this.modelTools.clearHistory();
     this.store.replace(scene);
     await this.syncModel(scene.model);
     this.openNote = '';
@@ -339,7 +338,7 @@ export class App {
     const editing = this.mode === 'edit';
     const sections: HTMLElement[] = [];
 
-    if (editing) sections.push(this.detailsEditor(scene));
+    if (editing) sections.push(this.historyButtons(), this.detailsEditor(scene));
     if (editing && scene.model.format !== 'demo') sections.push(this.modelTools.render(scene));
 
     const areas = h(
@@ -397,6 +396,24 @@ export class App {
       ),
     );
     this.els.panel.replaceChildren(...sections);
+  }
+
+  private historyButtons(): HTMLElement {
+    const button = (dir: 'undo' | 'redo', label: string, title: string, enabled: boolean) =>
+      h('button', { type: 'button', title, disabled: !enabled, onclick: () => this.history(dir) }, label);
+    return h(
+      'div',
+      { class: 'row history' },
+      button('undo', '↶ Undo', 'Undo (Ctrl/Cmd+Z)', this.store.canUndo),
+      button('redo', '↷ Redo', 'Redo (Shift+Ctrl/Cmd+Z)', this.store.canRedo),
+    );
+  }
+
+  private history(dir: 'undo' | 'redo'): void {
+    const model = this.store.scene.model;
+    if (!this.store[dir]()) return;
+    // Model changes move the whole bike: frame it again.
+    if (this.store.scene.model !== model) void this.viewer.flyTo(this.viewer.overviewView(), 600);
   }
 
   private detailsEditor(scene: BikeScene): HTMLElement {
@@ -697,6 +714,11 @@ export class App {
       if (this.shareDialog.isOpen) return;
       if (e.key === 'Escape' && this.openMenu) return this.toggleOpenMenu(false);
       if ((e.target as HTMLElement)?.closest?.('input, textarea, select')) return;
+      const key = e.key.toLowerCase();
+      if (this.mode === 'edit' && (e.ctrlKey || e.metaKey) && (key === 'z' || key === 'y')) {
+        e.preventDefault();
+        return this.history(key === 'y' || e.shiftKey ? 'redo' : 'undo');
+      }
       if (this.mode === 'present') {
         if (e.key !== 'k') this.present.kiosk.interact();
         if (e.key === 'ArrowRight' || e.key === ' ') this.goToStep(this.presentStep + 1);
