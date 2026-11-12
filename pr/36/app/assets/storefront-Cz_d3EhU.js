@@ -1,1 +1,0 @@
-import{n as e}from"./dom-DfrrSVCu.js";function t(t,n){t.append(e(`p`,{style:`padding:24px`},`storefront: coming soon`))}export{t as render};
