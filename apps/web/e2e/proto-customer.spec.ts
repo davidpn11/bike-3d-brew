@@ -32,21 +32,40 @@ test.describe('proto: customer screens', () => {
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole('textbox', { name: 'Message' })).toHaveValue(/Ultegra/);
     await expect(sheet.locator('.consent')).toBeHidden();
+    const contact = sheet.locator('#pc-contact');
+    await expect(contact).toHaveAttribute('inputmode', 'email');
+    await expect(contact).toHaveAttribute('autocomplete', 'email');
     await sheet.getByLabel('Text message').check();
+    await expect(contact).toHaveAttribute('inputmode', 'tel');
+    await expect(contact).toHaveAttribute('autocomplete', 'tel');
+    await expect(contact).toHaveAttribute('type', 'tel');
     await expect(sheet.getByText('Reply STOP to opt out')).toBeVisible();
     await sheet.getByRole('button', { name: 'Send' }).click();
     await expect(sheet.getByRole('alert')).toContainText('name');
     await sheet.getByRole('textbox', { name: 'Name' }).fill('Sam');
-    await sheet.getByRole('textbox', { name: 'Email or mobile' }).fill('sam@example.com');
+    await contact.fill('sam@example.com');
     await sheet.getByRole('button', { name: 'Send' }).click();
     await expect(sheet.getByRole('alert')).toContainText('mobile');
-    await sheet.getByRole('textbox', { name: 'Email or mobile' }).fill('(512) 555-0199');
+    await sheet.getByRole('textbox', { name: 'Mobile number' }).fill('(512) 555-0199');
     await shot(page, 'contact-sheet');
     await sheet.getByRole('button', { name: 'Send' }).click();
     await expect(sheet.getByRole('status')).toContainText('Thanks, Sam.');
     await expect(sheet.getByRole('link', { name: /512/ })).toHaveAttribute('href', 'tel:+15125550142');
     await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
+  });
+
+  test('deferred 3D: View in 3D mounts the presenter; a stuck load offers Retry', async ({ page }) => {
+    await page.goto('/proto.html#bike?bike=aero-r1&lite=1');
+    await expect(page.locator('.p-bike .bike-present')).toHaveCount(0);
+    await page.getByRole('button', { name: 'View in 3D' }).click();
+    await expect(page.locator('.p-bike .bike-present')).toHaveCount(1);
+    await expect(page.locator('.p-bike .poster')).toHaveCount(0);
+    await page.goto('/proto.html#bike?bike=aero-r1&loadms=1');
+    await page.reload();
+    await expect(page.getByText(/3D didn’t load/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Talk to a salesperson' })).toBeVisible();
   });
 
   test('contact tab shows the sheet inline', async ({ page }) => {

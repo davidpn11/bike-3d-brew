@@ -17,13 +17,14 @@ function sheetForm(opts: ContactOpts): HTMLElement {
   let replyBy: 'email' | 'sms' = 'email';
   let sent = false;
   const name = h('input', { type: 'text', id: 'pc-name', autocomplete: 'name' });
-  const contact = h('input', { type: 'text', id: 'pc-contact', autocomplete: 'email', inputMode: 'email' });
+  const contact = h('input', { type: 'email', id: 'pc-contact', autocomplete: 'email', inputMode: 'email', placeholder: 'you@example.com' });
   const message = h('textarea', { id: 'pc-msg', rows: 3 });
   if (upgrade) message.value = `I'm interested in the upgrade: ${upgrade.from} → ${upgrade.to} (+${formatUsd(upgrade.priceUsd)}).`;
   const consent = h('p', { class: 'fine consent', hidden: true }, `By choosing text, you agree to get a text reply from ${SHOP.name} at this number. Message and data rates may apply. Reply STOP to opt out.`);
   const error = h('p', { class: 'err', role: 'alert', hidden: true });
   const root = h('div', {});
 
+  const contactLabel = h('label', { for: 'pc-contact' }, 'Email', contact);
   const chips = TOPICS.map((t) =>
     h('button', { type: 'button', class: 'chip', 'aria-pressed': String(topics.has(t)), onclick: (e: Event) => {
       if (topics.has(t)) topics.delete(t); else topics.add(t);
@@ -34,6 +35,13 @@ function sheetForm(opts: ContactOpts): HTMLElement {
     h('label', {}, h('input', { type: 'radio', name: 'pc-reply', value: v, checked: v === replyBy, onchange: () => {
       replyBy = v;
       consent.hidden = v !== 'sms';
+      // Phone keyboard and autofill for texts, email ones otherwise.
+      const sms = v === 'sms';
+      contact.inputMode = sms ? 'tel' : 'email';
+      contact.autocomplete = sms ? 'tel' : 'email';
+      contact.placeholder = sms ? '(512) 555-0100' : 'you@example.com';
+      contact.setAttribute('type', sms ? 'tel' : 'email');
+      contactLabel.firstChild!.textContent = sms ? 'Mobile number' : 'Email';
     } }), label);
 
   const fail = (m: string) => { error.textContent = m; error.hidden = false; };
@@ -60,7 +68,7 @@ function sheetForm(opts: ContactOpts): HTMLElement {
     h('form', { noValidate: true, onsubmit: send },
       h('fieldset', {}, h('legend', {}, 'What would you like to know?'), ...chips),
       h('label', { for: 'pc-name' }, 'Name', name),
-      h('label', { for: 'pc-contact' }, 'Email or mobile', contact),
+      contactLabel,
       h('fieldset', { class: 'reply' }, h('legend', {}, 'Reply by'), radio('email', 'Email'), radio('sms', 'Text message')),
       consent,
       h('label', { for: 'pc-msg' }, 'Message', message),

@@ -3,6 +3,7 @@ import '../ui/present.css';
 import '../present/present.css';
 import './bike-page.css';
 import { mountPresenter, type BikePresenter } from '../present/BikePresenter';
+import { shouldDefer3d } from '../scene/helpers';
 import { h } from '../ui/dom';
 import { openContactSheet } from './contact';
 import { BIKES, SHOP, bikeById, formatUsd, type Upgrade } from './data';
@@ -10,7 +11,8 @@ import type { Cleanup, ScreenContext } from './main';
 
 export function render(host: HTMLElement, ctx: ScreenContext): Cleanup {
   const bike = bikeById(ctx.params.get('bike') ?? '') ?? BIKES[0];
-  const saveData = !!(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string }; deviceMemory?: number };
+  const deferred = ctx.params.get('lite') === '1' || shouldDefer3d({ saveData: nav.connection?.saveData, effectiveType: nav.connection?.effectiveType, deviceMemory: nav.deviceMemory });
   let presenter: BikePresenter | null = null;
   let lastUpgrade: Upgrade | undefined;
   let alive = true;
@@ -34,25 +36,42 @@ export function render(host: HTMLElement, ctx: ScreenContext): Cleanup {
     return h('li', {}, b);
   };
 
+  const label = poster.querySelector('span')!;
+  const loadMs = Number(ctx.params.get('loadms')) || 20_000;
   const mount = () => {
     if (!bike.scene) return;
+    poster.querySelector('button')?.remove();
+    label.textContent = 'Loading 3D…';
+    if (!poster.isConnected) media.append(poster);
     const p = mountPresenter(stage, { scene: bike.scene, header: false, share: false });
     presenter = p;
+    let settled = false;
+    const fail = () => {
+      if (settled || !alive) return;
+      settled = true;
+      p.destroy();
+      presenter = null;
+      label.textContent = '3D didn’t load. The rest of the page still works.';
+      poster.append(h('button', { type: 'button', class: 'view3d', onclick: mount }, 'Retry'));
+    };
+    const timer = window.setTimeout(fail, loadMs);
     p.on('areachange', ({ id }) => id && setActive(id));
+    p.on('error', fail);
     void p.ready.then(() => {
-      if (!alive) return;
+      clearTimeout(timer);
+      if (!alive || settled) return;
+      settled = true;
       poster.remove();
-      const s = p.scene?.specs;
-      if (s?.length) {
+      const sp = p.scene?.specs;
+      if (sp?.length && !specs.childElementCount) {
         specs.hidden = false;
-        specs.append(h('h2', {}, 'Key specs'), h('dl', {}, ...s.flatMap((r) => [h('dt', {}, r.label), h('dd', {}, r.value)])));
+        specs.append(h('h2', {}, 'Key specs'), h('dl', {}, ...sp.flatMap((r) => [h('dt', {}, r.label), h('dd', {}, r.value)])));
       }
     });
   };
-  if (bike.scene && saveData) {
-    const label = poster.querySelector('span')!;
-    label.textContent = 'Data saver is on: 3D loads when you tap';
-    poster.append(h('button', { type: 'button', class: 'view3d', onclick: (e: Event) => { (e.currentTarget as HTMLElement).remove(); label.textContent = 'Loading 3D…'; mount(); } }, 'View in 3D'));
+  if (bike.scene && deferred) {
+    label.textContent = 'Data saver or slow connection: 3D loads when you tap';
+    poster.append(h('button', { type: 'button', class: 'view3d', onclick: mount }, 'View in 3D'));
   } else mount();
 
   const talk = h('button', { type: 'button', class: 'primary talk', onclick: () => openContactSheet({ bike, upgrade: lastUpgrade }) }, 'Talk to a salesperson');
