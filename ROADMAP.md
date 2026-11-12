@@ -12,6 +12,7 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] **PR previews**: publish each open stack PR under `/bike-3d-brew/pr/<n>/` (docs + viewer) and link them from the Progress page, so the owner can test a PR before merging it.
 - [x] **Prune stale previews**: a scheduled job that removes `/pr/<n>/` for PRs that are no longer open (a missed or failed close run leaves them behind), and squashes gh-pages history once it grows large (each preview adds a full site copy to the branch). Done: `prune-previews.yml` runs daily and removes the preview of every closed PR; when gh-pages passes 200 commits it squashes the history, pushing with `--force-with-lease` on the base it read.
 - [x] **Preview link on the PR**: comment (or update one sticky comment) on each PR with its preview URL, so the owner can open it from the GitHub app. Done: `pr-preview.yml` keeps one sticky comment (marker `<!-- pr-preview -->`) with the Docs and Viewer links on each PR.
+- [ ] **Bun as package manager**: pinned Bun 1.4.4 installs (frozen `bun.lock`, root and `apps/docs`) locally, in `orca.yaml` and in GitHub Actions; Node 22 stays the runtime. Plan and trial: [docs/BUN-MIGRATION.md](docs/BUN-MIGRATION.md).
 
 ## Milestone 1: Foundation (PR 1)
 
