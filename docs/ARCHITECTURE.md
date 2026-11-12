@@ -143,6 +143,11 @@ applied to the root as `world = offset + R · (scale · p)`. Annotations and hot
 model-root space, so re-orienting a capture never detaches a comment. The overview camera is
 framed in world space (camera up is world +Y) and converted back.
 
+**Spec sheet** (`specs?: { label, value }[]`, free text, optional and lenient like the crop: rows
+that are not two strings are dropped, text is trimmed and capped, at most 40 rows; `scene/specs.ts`).
+Rows keep the order staff typed. Present mode shows rows with a value on the first card
+(`PresentView`, so the customer link gets it too); a row with an empty value is kept for staff only.
+
 **Crop box** (`crop?: { min, max, enabled }`, model-root space, optional and lenient: a
 malformed crop is dropped, swapped corners are reordered). The viewer turns it into six world
 clipping planes on the model's own materials (local clipping, shadows clipped too), recomputed only
@@ -173,7 +178,9 @@ is on. Turning the crop on/off or fitting it re-grounds the visible part.
 It runs once when a scene is opened with a non-demo model, no comments and no `model.rotation`
 (`shouldAutoOrient`); the offset is then recomputed from exact bounds so the bike stands on the
 ground. Edit → Model exposes the result plus manual rotate/flip/scale/nudge, each one store
-update with a small undo stack. Generate tilted test bundles with
+update and so one step of the scene's undo history (`SceneStore`: every edit pushes the previous
+scene, edits with the same merge key less than a second apart share a step, `replace` is not a
+step and a new scene id clears the history; Ctrl/Cmd+Z in Edit mode). Generate tilted test bundles with
 `node tools/fixtures/make-bike-capture.mjs --rotate 70,25,-40` (ASCII USD mesh in `model.usdz`).
 
 ### `bike-share/1` (share package, `*.bikeshare.zip`) and the customer link

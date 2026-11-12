@@ -185,6 +185,8 @@ missing.
 - `photos.spec.ts`: a saved area shows its best photos (all thumbnails decode), the lightbox
   steps with ←/→ and ‹ › with wrap-around, Esc closes only the lightbox; Present mode shows the
   strip; after a reload the thumbnails come from browser storage.
+- `specs.spec.ts`: edit the spec sheet (change, remove, add a row, Tab between fields keeps focus), Present shows only
+  rows with a value and only on the first card, Export carries them; the customer link shows the published sheet.
 - `files.spec.ts` also drops the committed binary USDC fixture and checks it renders with its
   diffuse and normal textures decoded.
 - `perf.spec.ts`: an idle stage renders 0 frames, orbiting renders and stops again with pins moved, canvas snapshots work without a preserved drawing buffer, and Meshopt / Draco / KTX2 GLBs (from `tools/fixtures/make-compressed-glb.mjs`) open with self-hosted decoders and no foreign requests.
