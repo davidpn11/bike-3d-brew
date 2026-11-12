@@ -1,5 +1,12 @@
 [
   {
+    "number": 35,
+    "title": "Product plan: owner decisions (new bikes, showroom, US)",
+    "branch": "claude/showroom-plan",
+    "sha": "080b6e3",
+    "updatedAt": "2026-11-12T07:21:09-06:00"
+  },
+  {
     "number": 34,
     "title": "Bun migration plan: package manager, local + GitHub Actions",
     "branch": "claude/bun-plan",
