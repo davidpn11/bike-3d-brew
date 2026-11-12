@@ -62,6 +62,12 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .stored small { color: var(--muted); white-space: nowrap; }
 .stored li.on .stored-open { border-color: var(--accent); }
 .menu .hint { margin: 2px 4px; font-size: 12px; color: var(--muted); }
+/* Snapshot menu: PNG size / background / pins, plus the turntable video. */
+.export-menu { position: relative; }
+.export-form { width: min(260px, calc(100vw - 20px)); }
+.export-form[hidden] { display: none; }
+.export-form label { display: flex; white-space: nowrap; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
+.export-form select { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
 
 .layout { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
 .stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; container-type: size; }
@@ -264,6 +270,9 @@ button.share { border-color: var(--accent); }
   body[data-mode='present'] .layout { grid-template-rows: 1fr; }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
+  /* The Snapshot menu hangs from the action row, not its button, so it stays on screen. */
+  .actions { position: relative; }
+  .export-menu { position: static; }
   .menu { left: 0; right: auto; }
   /* Present mode is customer-facing: keep the top bar to the bike, the modes and Share. */
   body[data-mode='present'] .topbar .segmented[aria-label='Background'],

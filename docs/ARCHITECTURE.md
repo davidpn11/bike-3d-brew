@@ -23,7 +23,10 @@ can show real close-up photos for an area (e.g. the fork crown) next to the 3D v
 
 Fallbacks when Object Capture struggles with a bike (thin spokes are the classic failure):
 area mode + a crop box, or a gaussian splat (Scaniverse/Polycam/Luma) for photoreal paint.
-The green background mode exists for compositing snapshots/videos in other tools.
+The green background mode exists for compositing snapshots/videos in other tools. Exports
+(`Viewer.snapshot` / `recordTurntable`, decisions in `scene/exportMedia.ts`) re-render the model with a
+transparent clear onto a 2D canvas over the chosen backdrop (CSS gradients redrawn, chroma green, or
+nothing) and optionally the pins (`PinLayer.drawInto`); video goes through `canvas.captureStream` + MediaRecorder.
 
 ## Contracts
 

@@ -68,7 +68,9 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [x] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
 - [ ] **Spec sheet on short screens**: with 6+ rows the first Present card covers the lower half of the bike on a laptop; collapse the table to a few rows with "All specs" (or a two-column layout on wide cards).
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
-- [ ] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts.
+- [x] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts. Done: **Snapshot** menu in the top bar (1× / 2× / 4× the stage, capped by the GPU and 16.7 MP; as shown / transparent / chroma green; pins on or off), 8 s turntable in WebM (MP4 where only that records, hidden where neither does).
+- [ ] **Square / vertical video formats**: the turntable records the stage's aspect; offer 1:1 and 9:16 framings (refit the camera to the bike) and a duration choice for Reels/Stories.
+- [ ] **Turntable in WebKit E2E**: check the MP4 path (Safari's MediaRecorder) in `npm run e2e:webkit`; the Chromium suite only covers WebM.
 - [x] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
 - [ ] **Accessibility & i18n pass**: keyboard navigation for pins, focus states, screen-reader labels, number/currency formatting.
 

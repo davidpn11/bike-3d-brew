@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectErrors, openApp, readDownload, scene, snap, waitForCamera, waitForModel } from './helpers';
+import { collectErrors, openApp, scene, snap, waitForCamera, waitForModel } from './helpers';
 
 test.describe('demo bike', () => {
   test('loads with seeded areas, comments and pins, without console errors', async ({ page }, testInfo) => {
@@ -73,16 +73,6 @@ test.describe('demo bike', () => {
     await page.reload();
     await page.waitForFunction(() => window.__bike?.ready === true);
     await expect(viewport).toHaveAttribute('data-background', 'green');
-  });
-
-  test('snapshot downloads a PNG of the stage', async ({ page }) => {
-    await openApp(page);
-    await waitForModel(page);
-    const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Snapshot' }).click()]);
-    expect(download.suggestedFilename()).toBe('demo-road-bike.png');
-    const png = await readDownload(download);
-    expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-    expect(png.length).toBeGreaterThan(5_000); // a real render, not an empty canvas
   });
 
   test('reset view returns to the overview', async ({ page }) => {

@@ -1,8 +1,23 @@
 import { viewForPoint } from '../scene/camera';
 import { shouldAutoOrient } from '../scene/orient';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
-import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
+import { captureSummary, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
 import { type CachedCapture, type CaptureCache, formatBytes } from '../scene/captureCache';
+import {
+  DEFAULT_SNAPSHOT_SCALE,
+  EXPORT_BACKGROUNDS,
+  EXPORT_BACKGROUND_LABEL,
+  type ExportBackground,
+  SNAPSHOT_SCALES,
+  TURNTABLE_SECONDS,
+  exportBackdrop,
+  snapshotFileName,
+  snapshotSize,
+  turntableFileName,
+  videoExtension,
+  videoMimeType,
+  videoSize,
+} from '../scene/exportMedia';
 import { KIOSK_DEFAULTS } from '../scene/kiosk';
 import { type RankTarget, type RankedPhoto, rankPhotos } from '../scene/photos';
 import {
@@ -79,6 +94,9 @@ export class App {
   /** Bundles kept in browser storage so capture scenes survive reloads (newest first). */
   storedCaptures: CachedCapture[] = [];
   private openMenu = false;
+  private exportMenuEl: HTMLElement | null = null;
+  /** Turntable length; E2E shortens it. */
+  turntableSeconds = TURNTABLE_SECONDS;
   /** Photos of the open capture (`captureUrl`), and the matrix from pose space into model-root space. */
   private photos: PhotoLibrary | null = null;
   private captureUrl = '';
@@ -290,7 +308,7 @@ export class App {
         this.openMenu && this.storedCaptures.length ? this.storedMenu(fileInput) : null,
       ),
       h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.bike.json`, this.store.toJSON()) }, 'Export'),
-      h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.png`, dataUrlToBlob(this.viewer.screenshot())) }, 'Snapshot'),
+      this.exportMenu(),
       h('button', { type: 'button', onclick: () => void this.focusHotspot(null) }, 'Reset view'),
       share,
       fileInput,
@@ -301,6 +319,72 @@ export class App {
       bg,
       menu,
     );
+  }
+
+  /** Snapshot / turntable menu, built once so its choices survive top-bar re-renders. */
+  private exportMenu(): HTMLElement {
+    if (this.exportMenuEl) return this.exportMenuEl;
+    const supported = typeof MediaRecorder !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype;
+    const mime = videoMimeType(supported ? (t) => MediaRecorder.isTypeSupported(t) : null);
+    const scale = h('select', {}, ...SNAPSHOT_SCALES.map((s) => h('option', { value: String(s), selected: s === DEFAULT_SNAPSHOT_SCALE }, `${s}× stage`)));
+    const background = h('select', {}, ...EXPORT_BACKGROUNDS.map((b) => h('option', { value: b }, EXPORT_BACKGROUND_LABEL[b])));
+    const withPins = h('input', { type: 'checkbox' });
+    const overlay = () => (withPins.checked ? (ctx: CanvasRenderingContext2D, s: number) => this.pins.drawInto(ctx, s) : undefined);
+    const backdrop = (video = false) => exportBackdrop(background.value as ExportBackground, this.store.scene.background, video);
+    const fail = (err: unknown) => this.toast(`Export failed: ${err instanceof Error ? err.message : String(err)}`, 'error', 8000);
+    const savePng = async () => {
+      const { width, height } = this.viewer.viewport;
+      const size = snapshotSize(width, height, Number(scale.value), this.viewer.maxSnapshotSide());
+      const bd = backdrop();
+      try {
+        download(snapshotFileName(this.store.scene.name, bd, size), await this.viewer.snapshot(size, bd, overlay()));
+      } catch (err) {
+        fail(err);
+      }
+    };
+    const recordLabel = mime ? `Record 360° ${videoExtension(mime) === 'mp4' ? 'MP4' : 'WebM'}` : '';
+    const record = h('button', { type: 'button', onclick: () => void recordTurntable() }, recordLabel);
+    const recordTurntable = async () => {
+      if (!mime || record.disabled) return;
+      record.disabled = true;
+      const { width, height } = this.viewer.viewport;
+      try {
+        const blob = await this.viewer.recordTurntable({
+          mimeType: mime,
+          size: videoSize(width, height, this.viewer.renderer.getPixelRatio()),
+          seconds: this.turntableSeconds,
+          backdrop: backdrop(true),
+          overlay: overlay(),
+          onProgress: (t) => (record.textContent = `Recording… ${Math.round(t * 100)}%`),
+        });
+        download(turntableFileName(this.store.scene.name, mime), blob);
+      } catch (err) {
+        fail(err);
+      } finally {
+        record.disabled = false;
+        record.textContent = recordLabel;
+      }
+    };
+    const menu = h(
+      'div',
+      { class: 'menu export-form', hidden: true },
+      h('label', {}, 'Size', scale),
+      h('label', {}, 'Background', background),
+      h('label', {}, 'Show pins', withPins),
+      h('button', { type: 'button', class: 'primary', onclick: () => void savePng() }, 'Save PNG'),
+      // Hidden where the browser cannot record a canvas (no MediaRecorder, or no WebM/MP4 encoder).
+      mime ? record : null,
+      mime ? h('p', { class: 'hint' }, `One turn around the bike, ${this.turntableSeconds} s. Videos have no transparency: Transparent records on the studio backdrop.`) : null,
+    );
+    const toggle = h('button', { type: 'button', title: 'Save a high-res PNG or a 360° turntable video', 'aria-haspopup': 'true', 'aria-expanded': 'false' }, 'Snapshot');
+    const show = (open: boolean) => {
+      menu.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+    };
+    toggle.addEventListener('click', () => show(!!menu.hidden));
+    window.addEventListener('pointerdown', (e) => !menu.hidden && !(e.target as HTMLElement)?.closest?.('.export-menu') && show(false));
+    window.addEventListener('keydown', (e) => e.key === 'Escape' && show(false));
+    return (this.exportMenuEl = h('div', { class: 'export-menu' }, toggle, menu));
   }
 
   private toggleOpenMenu(open = !this.openMenu): void {
@@ -919,7 +1003,3 @@ export class App {
 /** Published close-ups are plain URLs: nothing to decode or cache. */
 const URL_PHOTOS: PhotoSource = { errors: new Map(), get: (path) => Promise.resolve(path) };
 
-function dataUrlToBlob(dataUrl: string): Blob {
-  const { mime, bytes } = dataUrlToBytes(dataUrl);
-  return new Blob([bytes as BlobPart], { type: mime });
-}
