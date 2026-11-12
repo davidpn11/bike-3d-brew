@@ -119,7 +119,8 @@ npm run e2e -- --project=desktop files.spec   # one project, one file
 npm run e2e -- -g "present mode"              # by title
 npm run e2e:ui                                # Playwright UI mode
 E2E_SKIP_BUILD=1 npm run e2e                  # reuse an existing dist/
-E2E_PORT=4290 npm run e2e                     # another port (parallel worktrees: locally a running server is reused)
+E2E_PORT=4290 npm run e2e                     # another port: give each parallel worktree its own (a busy port fails fast)
+E2E_REUSE=1 npm run e2e                       # reuse a server already running on the port
 npx playwright show-report                    # HTML report after a run
 ```
 

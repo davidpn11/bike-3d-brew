@@ -17,7 +17,7 @@ PR that adds something testable extends the "What each PR adds" table at the bot
    then in the viewer tap **Open…** and pick it from Files. A red low-poly bike replaces the demo
    and the scene is named "Synthetic test bike".
 
-The site is republished automatically from `develop` on every push. Each open PR also gets its
+The site is republished automatically on every push to the stack tip (the newest open PR nothing else is stacked on, or `develop` when none is open). Each open PR also gets its
 own copy at `https://davidpn11.github.io/bike-3d-brew/pr/<n>/` (viewer at `/pr/<n>/app/`),
 listed under **PR previews** on the home and Progress pages, so you can try a PR before
 merging it. The home page says which commit and branch it was built from.
@@ -73,3 +73,4 @@ the viewer. If the model does not show, note what the viewer says and add it to
 | #14 iOS capture guidance + JPEG photos | On the iPhone: during a capture tap **Checklist**: orbits tick themselves after each completed pass, close-ups tick on tap, the top bar shows shots for the current pass. Export a bundle: the zip has `photos/*.jpg` next to `images/*.HEIC` and `manifest.json` has `"photos": "photos/"`. Open it in desktop Chrome: close-up photos appear without the HEIC decoder (no `heic` worker request in DevTools → Network). Web side alone: `npm test` (capture.test.ts covers the `photos/` preference). |
 | #16 WebKit E2E | Nothing new to click. On a Mac: `npx playwright install webkit && npm run e2e:webkit` runs the iPhone flows in Safari's engine (45 tests). Open the customer link in Safari on your phone: no console error when the Present card changes height. |
 | #15 Auto-publish + PR previews | Open the home page: **PR previews** lists open PRs with Viewer and Docs links; open `/bike-3d-brew/pr/15/app/` and the demo bike loads. Push to a PR and its preview updates a few minutes later (Actions → "PR preview"); close it and it disappears from the list. Merging into `develop` updates the main site (Actions → "Publish site"). |
+| #17 Site follows the stack tip | The home page has no credits box any more. Push to the top PR of the stack (or press *Run workflow* on Actions → "Publish site" from it): the main site shows that branch a few minutes later (the footer names it). Pushes to other branches skip publishing. |
