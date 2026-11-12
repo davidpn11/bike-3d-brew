@@ -7,6 +7,13 @@
     "updatedAt": "2026-11-11T20:56:52-06:00"
   },
   {
+    "number": 26,
+    "title": "[roadmap] Real intrinsics in close-ups",
+    "branch": "claude/real-intrinsics",
+    "sha": "376d64b",
+    "updatedAt": "2026-11-11T20:56:48-06:00"
+  },
+  {
     "number": 25,
     "title": "[roadmap] COLMAP binary models",
     "branch": "claude/colmap-binary",
