@@ -50,7 +50,7 @@ export default defineConfig({
       testMatch: ['view.spec.ts', 'edit.spec.ts', 'present.spec.ts', 'photos.spec.ts', 'specs.spec.ts', 'export.spec.ts', 'share.spec.ts', 'embed.spec.ts'],
       use: { ...devices['iPhone 14'], deviceScaleFactor: 1, browserName: 'chromium', defaultBrowserType: 'chromium' },
     },
-    // iPhone 14 in WebKit, the engine of iPhone Safari. Opt-in (`npm run e2e:webkit`, a macOS CI job):
+    // iPhone 14 in WebKit, the engine of iPhone Safari. Opt-in (`bun run e2e:webkit`, a macOS CI job):
     // WebKit's Linux build needs extra system packages, and the Chromium projects stay the fast default.
     {
       name: 'webkit',

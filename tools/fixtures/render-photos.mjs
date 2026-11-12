@@ -11,7 +11,6 @@
 // global install) with three.js from node_modules. Intrinsics match the ranking's assumption
 // (src/scene/photos.ts IPHONE_WIDE: 65° horizontal, 4:3, landscape).
 
-import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
@@ -20,11 +19,7 @@ import { MODEL_ORIGIN, capturePoses, createFixtureBike } from './make-capture-bu
 
 const require = createRequire(import.meta.url);
 function playwright() {
-  try {
-    return require('playwright');
-  } catch {
-    return require(join(execSync('npm root -g').toString().trim(), 'playwright'));
-  }
+  return require('playwright');
 }
 
 const here = fileURLToPath(new URL('.', import.meta.url));

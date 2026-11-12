@@ -6,8 +6,10 @@ Capture bikes with an iPhone, show them as background-free 3D models, zoom into 
 - **`apps/ios`**: iPhone capture app (Apple Object Capture: background removed automatically, on-device 3D build, camera poses, shareable bundle).
 - **`apps/web`**: three.js viewer and editor: clear / chroma-green / studio backgrounds, fly-to areas, comment pins, presentation mode, JSON export.
 
+Prerequisites: Bun 1.4.4 and Node.js 22 (used by browser tooling and runtime-sensitive scripts).
+
 ```sh
-npm ci && npm run dev   # open http://localhost:5190, the demo bike loads with sample comments
+bun install --frozen-lockfile && bun run dev   # open http://localhost:5190, the demo bike loads with sample comments
 ```
 
 Drop a `.bikecapture.zip` from the iPhone app (or a `.glb`, `.usdz`, `.ply`) onto the viewer to use your own capture. Switch to **Edit** to

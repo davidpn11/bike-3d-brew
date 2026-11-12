@@ -24,24 +24,24 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
 ## Commands
 
 ```sh
-npm ci
-npm run dev         # http://localhost:5190
-npm run typecheck
-npm test            # vitest, apps/web/test
-npm run test:coverage  # + V8 coverage; fails under the thresholds in apps/web/vite.config.ts
-npm run build       # → dist/
-npm run e2e         # Playwright, apps/web/e2e (builds + serves dist/ itself)
-npm run fixtures    # synthetic *.bikecapture.zip fixtures → apps/web/e2e/.fixtures/
-npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: npm --prefix apps/docs ci)
-npm run docs:build  # → apps/docs/out/
-npm run e2e:coverage && npm run coverage:merge   # E2E V8 coverage merged with the unit report → coverage-all/
+bun install --frozen-lockfile
+bun run dev         # http://localhost:5190
+bun run typecheck
+bun run test            # vitest, apps/web/test
+bun run test:coverage  # + V8 coverage; fails under the thresholds in apps/web/vite.config.ts
+bun run build       # → dist/
+bun run e2e         # Playwright, apps/web/e2e (builds + serves dist/ itself)
+bun run fixtures    # synthetic *.bikecapture.zip fixtures → apps/web/e2e/.fixtures/
+bun run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: bun install --cwd apps/docs --frozen-lockfile)
+bun run docs:build  # → apps/docs/out/
+bun run e2e:coverage && bun run coverage:merge   # E2E V8 coverage merged with the unit report → coverage-all/
 node tools/fixtures/make-capture-bundle.mjs --sample /tmp/test.bikecapture.zip   # synthetic capture bundle
 tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
 tools/publish-pages.sh --pr <n> --no-push --out /tmp/site   # PR-preview build (basePath /bike-3d-brew/pr/<n>), local only
 ```
 
 Testing is documented in `docs/TESTING.md`. In agent containers Chromium is preinstalled: run
-E2E with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e` and never `playwright install`.
+E2E with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium bun run e2e` and never `playwright install`.
 
 The owner follows progress at https://davidpn11.github.io/bike-3d-brew/ (viewer at `/app/`).
 Publishing is automatic: every push to the stack tip (or `develop` when no PR is open) republishes
@@ -110,8 +110,8 @@ for review, work is **stacked**:
 Several agents can build roadmap items at once, each in its own git worktree:
 
 - One worktree per branch under `.claude/worktrees/<name>` (gitignored):
-  `git worktree add -B claude/<item> .claude/worktrees/<item> origin/<tip-branch>`, then `npm ci` inside it.
-- Give each worktree its own E2E port (`E2E_PORT=4191 npm run e2e`, 4192, …). The suite never reuses a
+  `git worktree add -B claude/<item> .claude/worktrees/<item> origin/<tip-branch>`, then `bun install --frozen-lockfile` inside it.
+- Give each worktree its own E2E port (`E2E_PORT=4191 bun run e2e`, 4192, …). The suite never reuses a
   server already on the port, so a clash fails fast instead of testing another checkout's build.
 - Parallel items start from the same tip and open their PRs against it. When they are done, chain them
   (merge the previous PR's branch into the next one, resolve ROADMAP/CHANGELOG/TESTING-GUIDE by keeping
@@ -135,8 +135,8 @@ Sessions are started on a schedule with no human watching. Each session:
    Claim it immediately: push a first commit that flips it to `[~]` and open a **draft** PR
    titled `[roadmap] <item name>` whose base is the tip branch, so a parallel session sees the
    claim and stacks on you instead.
-4. **Build it properly.** Small, reviewable diff. Add/extend unit and E2E tests. Run `npm run typecheck`,
-   `npm run test:coverage`, `npm run build`, `npm run e2e`. For UI changes, drive the app with Playwright (Chromium is
+4. **Build it properly.** Small, reviewable diff. Add/extend unit and E2E tests. Run `bun run typecheck`,
+   `bun run test:coverage`, `bun run build`, `bun run e2e`. For UI changes, drive the app with Playwright (Chromium is
    preinstalled; launch with `--use-angle=swiftshader --enable-unsafe-swiftshader`) and check
    screenshots. For Swift, re-read the diff carefully against Apple's API, since only CI compiles it.
 5. **Finish.** Flip the item to `[x]`, add any follow-ups you discovered as new `[ ]` items in

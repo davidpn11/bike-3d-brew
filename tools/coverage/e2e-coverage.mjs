@@ -90,13 +90,13 @@ export function alignTo(unit, e2e) {
 }
 
 const readJson = (file) => {
-  if (!existsSync(file)) throw new Error(`Missing ${file}: run \`npm run test:coverage\` and \`npm run e2e:coverage\` first`);
+  if (!existsSync(file)) throw new Error(`Missing ${file}: run \`bun run test:coverage\` and \`bun run e2e:coverage\` first`);
   return JSON.parse(readFileSync(file, 'utf8'));
 };
 
 /** Unit report + E2E reports → one report of apps/web/src in `outDir`. Returns the totals. */
 export function mergeReports(unitJson = UNIT_JSON, e2eJsons = e2eReports(), outDir = OUT_DIR) {
-  if (!e2eJsons.length) throw new Error('No E2E coverage: run `npm run e2e:coverage` first');
+  if (!e2eJsons.length) throw new Error('No E2E coverage: run `bun run e2e:coverage` first');
   const unit = readJson(unitJson);
   const map = createCoverageMap(unit);
   for (const file of e2eJsons) {
