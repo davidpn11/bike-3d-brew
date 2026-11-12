@@ -1,0 +1,32 @@
+.p-bike { display: grid; grid-template-columns: 1fr; color: var(--text); font: 15px/1.45 system-ui, sans-serif; background: var(--bg); min-height: calc(100dvh - 50px); }
+.p-bike .top { padding: 12px 16px; letter-spacing: .08em; }
+.p-bike .media { position: relative; height: 56dvh; min-height: 300px; background: var(--surface); }
+.p-bike .stage-host { position: absolute; inset: 0; }
+.p-bike .poster { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; background: radial-gradient(ellipse at 50% 35%, #2b2d33, #131417 75%); color: var(--muted); padding: 16px; }
+.p-bike .poster strong { color: var(--text); font-size: 22px; }
+.p-bike .view3d { min-height: 48px; padding: 0 20px; }
+.p-bike .side { display: grid; gap: 16px; align-content: start; padding: 16px 16px 0; min-width: 0; }
+.p-bike h1 { margin: 0; font-size: 24px; }
+.p-bike h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.p-bike p { margin: 4px 0 0; }
+.p-bike .from { font-size: 18px; font-weight: 600; }
+.p-bike .sizes { color: var(--muted); }
+.p-bike ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.p-bike .row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; width: 100%; min-height: 48px; text-align: left; padding: 10px 12px; background: var(--surface); }
+.p-bike .row small { grid-column: 1 / -1; color: var(--muted); }
+.p-bike .row .price { color: var(--upgrade); font-weight: 600; }
+.p-bike .row[data-kind='upgrade'] { border-left: 3px solid var(--upgrade); }
+.p-bike .row[aria-current='true'] { border-color: var(--accent); background: var(--surface-2); }
+.p-bike .row:focus-visible, .p-bike .talk:focus-visible, .p-bike .view3d:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.p-bike dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
+.p-bike dt { color: var(--muted); } .p-bike dd { margin: 0; }
+.p-bike .cta { position: sticky; bottom: 0; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); z-index: 4; }
+.p-bike .talk { width: 100%; min-height: 52px; font-size: 16px; }
+@media (min-width: 900px) {
+  .p-bike { grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr); grid-template-rows: auto 1fr; }
+  .p-bike .top { grid-column: 1 / -1; }
+  .p-bike .media { position: sticky; top: 50px; height: calc(100dvh - 120px); margin: 0 0 16px 16px; border-radius: 12px; overflow: hidden; }
+  .p-bike .side { padding: 0 24px 0 24px; }
+}
+.p-bike .bike-present { grid-template-rows: minmax(0, 1fr); } /* no header row */
+.p-bike .present-card { display: none; } /* the Components/Upgrades rows are the navigation here */
