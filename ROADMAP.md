@@ -59,6 +59,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [ ] **Drop the WASM HEIC decoder**: once every exported bundle has `photos/`, remove `libheif-js` (LGPL) or keep it only for old bundles; also check the exported zip size growth (~0.5 MB per photo) on a real capture.
 - [ ] **Validate close-ups on a real capture**: confirm Object Capture poses share the USDZ frame and the 65° landscape intrinsics assumption (portrait captures, EXIF rotation); read real intrinsics if the iOS app can export them.
 - [ ] **Portrait captures in close-ups**: test and handle rotated/portrait sample cameras in `scene/photos.ts` ranking (the horizontal FOV comes from `width` and `fx`; a portrait frame may need its axes swapped).
+- [ ] **Flag missing close-ups**: read the bundle manifest `checklist` in the viewer and warn about unticked close-ups (e.g. "no derailleur photos").
 - [ ] **Occlusion-aware close-ups**: raycast from each candidate camera to the target against the loaded mesh and drop photos where the bike hides it.
 - [ ] **Pin favourite close-ups**: let staff star photos for an area (the schema already has `Hotspot.photos`) and show starred ones first, also in shared links.
 
@@ -84,7 +85,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [ ] **In-app viewer**: RealityKit/SceneKit view of `model.usdz` with the same areas and comments (read `bike-scene/1` JSON), so sales staff can present from the phone offline.
 - [x] **Capture guidance for bikes**: checklist overlay (3 orbits: hub height, saddle height, top-down; close-ups of fork crown, dropouts, rear derailleur, cockpit), shot counter per pass, tips for reflective paint (dulling spray / polarizer), turntable support. Done: checklist in the capture screen (orbits ticked by Object Capture's pass detection, close-ups ticked by hand, shots per pass). Turntable: not possible with `ObjectCaptureSession` (ARKit world tracking needs the object still); documented in the app and README.
 - [ ] **Turntable capture via the Mac**: a fixed-camera photo mode (plain `AVCapturePhotoOutput` shots while the bike spins on a turntable) reconstructed by `PhotogrammetrySession` on the Mac (see Mac high-detail reconstruction), which accepts turntable sets.
-- [~] **Save the capture checklist**: store ticked close-ups and shots per pass in `record.json` / the manifest so the web side can flag missing close-ups (e.g. "no derailleur photos").
+- [x] **Save the capture checklist**: store ticked close-ups and shots per pass in `record.json` / the manifest so the web side can flag missing close-ups (e.g. "no derailleur photos"). Done: the app keeps each checklist item (`id`, `label`, `done`, `pass`) in the bike's `record.json`; the exported manifest gets an optional `checklist: [{id, label, done}]` (left out when empty). Simulator build checked by iOS CI only.
 - [ ] **Mac high-detail reconstruction**: `tools/mac-reconstruct` Swift CLI running `PhotogrammetrySession` at `.full` / `.raw` detail from an exported bundle, writing `model.usdz` + `poses.json` back.
 - [ ] **On-device GLB export**: convert the USDZ to GLB (ModelIO → glTF writer) so the web viewer never needs conversion.
 - [ ] **Upload to viewer**: share sheet target / direct upload of bundles to the web app storage (see Milestone 5).
