@@ -1,4 +1,5 @@
-:root {
+/* :host too: the <bike-viewer> element (present/element.ts) inlines this file in its shadow root. */
+:root, :host {
   --bg: #111214;
   --surface: #1a1b1f;
   --surface-2: #24262b;
@@ -62,6 +63,12 @@ button.danger:hover { border-color: #ef4444; color: #fca5a5; }
 .stored small { color: var(--muted); white-space: nowrap; }
 .stored li.on .stored-open { border-color: var(--accent); }
 .menu .hint { margin: 2px 4px; font-size: 12px; color: var(--muted); }
+/* Snapshot menu: PNG size / background / pins, plus the turntable video. */
+.export-menu { position: relative; }
+.export-form { width: min(260px, calc(100vw - 20px)); }
+.export-form[hidden] { display: none; }
+.export-form label { display: flex; white-space: nowrap; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
+.export-form select { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
 
 .layout { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
 .stage { position: relative; overflow: hidden; min-height: 0; touch-action: none; container-type: size; }
@@ -134,9 +141,15 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .meta { display: flex; gap: 8px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
 .meta .price { text-transform: none; letter-spacing: 0; font-size: 12px; }
 
-.editor, .details { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
-.details { border-color: var(--line); }
-.editor h2, .details h2 { margin: 0; }
+.editor, .details, .spec-sheet { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
+.details, .spec-sheet { border-color: var(--line); }
+.editor h2, .details h2, .spec-sheet h2 { margin: 0; }
+/* Edit → Spec sheet: label | value | × per row. */
+.spec-rows { display: grid; gap: 6px; }
+.spec-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; gap: 6px; }
+.spec-row input { min-width: 0; }
+.history { margin-top: 12px; }
+.history button:disabled { opacity: .35; cursor: default; }
 /* Edit → Model */
 .model-tools { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
 .model-tools summary { cursor: pointer; list-style: none; }
@@ -155,7 +168,7 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .crop .row { align-items: center; }
 label.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
 label.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
-.crop .hint { margin: 0; font-size: 12px; color: var(--muted); }
+.crop .hint, .spec-sheet .hint { margin: 0; font-size: 12px; color: var(--muted); }
 .crop-row { display: grid; grid-template-columns: 34px repeat(3, 1fr); gap: 4px; align-items: center; font-size: 12px; color: var(--muted); }
 .crop-row input { padding: 5px 6px; font-size: 12px; min-width: 0; }
 
@@ -258,6 +271,9 @@ button.share { border-color: var(--accent); }
   body[data-mode='present'] .layout { grid-template-rows: 1fr; }
   .topbar { gap: 6px; padding: 8px 10px; }
   .actions button { padding: 5px 8px; font-size: 13px; }
+  /* The Snapshot menu hangs from the action row, not its button, so it stays on screen. */
+  .actions { position: relative; }
+  .export-menu { position: static; }
   .menu { left: 0; right: auto; }
   /* Present mode is customer-facing: keep the top bar to the bike, the modes and Share. */
   body[data-mode='present'] .topbar .segmented[aria-label='Background'],

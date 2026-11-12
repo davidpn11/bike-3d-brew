@@ -114,7 +114,7 @@ test.describe('crop box', () => {
     expect(dragged.min).toEqual(before.min);
     await snap(page, testInfo, 'dragged-top');
 
-    await page.locator('.model-tools').getByRole('button', { name: 'Undo' }).click();
+    await page.getByRole('button', { name: '↶ Undo' }).click();
     expect((await scene(page)).crop).toEqual(before);
     // Off keeps the box for later; the floor is back.
     await page.locator('.model-tools input[name=crop]').uncheck();

@@ -302,6 +302,11 @@ describe('PresentView', () => {
     expect(view.el.querySelector('header small')!.textContent).toBe('1 / 2');
     expect(view.el.querySelector('header strong')!.textContent).toBe('Demo Road Bike');
     expect(view.el.querySelector('.lede')!.textContent).toBe('Brew · Aero');
+    expect(view.el.querySelector('table.specs')).toBeNull();
+    render(0, { scene: { ...scene, specs: [{ label: 'Weight', value: '8.2 kg' }, { label: 'Sizes', value: '' }] } });
+    const specRows = [...view.el.querySelectorAll('table.specs tr')].map((tr) => [...tr.children].map((c) => c.textContent));
+    expect(specRows).toEqual([['Weight', '8.2 kg']]);
+    expect(view.el.querySelector('table.specs caption')!.textContent).toBe('Key specs');
     render(1, { photos: document.createElement('figure') });
     expect(view.el.querySelector('header strong')!.textContent).toBe('Fork');
     const notes = view.el.querySelectorAll('li.note');

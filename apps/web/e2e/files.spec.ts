@@ -59,7 +59,7 @@ test.describe('capture bundles', () => {
     await openApp(page);
     await openViaPicker(page, fixture('bike.bikecapture.zip'));
     // A fresh capture is auto-oriented once (it has no comments and no rotation yet).
-    await expect(toast(page)).toHaveText('Opened capture “Fixture Gravel Bike” · 32 photos · 32 camera poses. Auto-oriented. Undo in Edit → Model');
+    await expect(toast(page)).toHaveText('Opened capture “Fixture Gravel Bike” · 32 photos · 32 camera poses. Auto-oriented. Undo in Edit mode');
     await expect(page.locator('#topbar .brand strong')).toHaveText('Fixture Gravel Bike');
     // Object Capture removes the background, so captures open on the clear stage.
     await expect(page.locator('#viewport')).toHaveAttribute('data-background', 'transparent');

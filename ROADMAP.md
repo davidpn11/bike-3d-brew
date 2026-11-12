@@ -28,10 +28,13 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 
 - [x] **Reconstruction research**: options for bikes (Object Capture on macOS, COLMAP + OpenMVS, Meshroom, Gaussian splats, cloud APIs, AI image-to-3D), recommendation, photo and video capture protocols, owner decisions (docs/MANUAL-STEPS.md). Vendor prices/terms still to verify against current pages.
 - [ ] **`ingest` CLI** (`tools/reconstruct/`, Node/TS + ffmpeg): photos and videos → sharp, deduplicated, EXIF-upright JPEG frames (variance-of-Laplacian sharpness + novelty selection, 80–200 frames), HEIC → JPEG, coverage report; unit-tested scoring.
-- [ ] **COLMAP → `bike-poses/1` conversion**: parse `cameras.txt`/`images.txt`/`points3D.txt`, world→camera OpenCV axes → camera→model −Z/+Y, with tests on synthetic COLMAP output generated from ground truth.
+- [x] **COLMAP → `bike-poses/1` conversion**: parse `cameras.txt`/`images.txt`/`points3D.txt`, world→camera OpenCV axes → camera→model −Z/+Y, with tests on synthetic COLMAP output generated from ground truth. Done: `tools/reconstruct/colmap.mjs` (`cli.mjs poses`), round-trip + reprojection tests in `apps/web/test/reconstruct.test.ts`; each sample also carries the COLMAP intrinsics as `camera`.
+- [ ] **COLMAP binary models + real run**: read `cameras.bin`/`images.bin` directly (skip `model_converter`), and check the converter on a real `colmap automatic_reconstructor` run over rendered fixture photos (part of the synthetic end-to-end eval).
+- [ ] **Real intrinsics in close-ups**: use `poses.json` `samples[].camera` (fx, fy, width, height) in `scene/photos.ts` ranking instead of the 65° iPhone assumption when present.
 - [ ] **`reconstruct --backend colmap`**: COLMAP + OpenMVS via `tools/reconstruct/docker/` (and native), dense mesh + texture, crop the mesh to the dominant object, optional photo masking (rembg).
 - [ ] **`reconstruct --backend object-capture`**: Swift CLI `tools/reconstruct/macos/` (`PhotogrammetrySession` over an image folder → `model.usdz` + poses), built by a path-filtered macos-latest CI job.
-- [ ] **`package`**: result → `bike-capture/1` zip (GLB model, `poses.json`, `images/*.jpg`, manifest with `source: photos|video` and `backend`).
+- [x] **`package`**: result → `bike-capture/1` zip (GLB model, `poses.json`, `images/*.jpg`, manifest with `source: photos|video` and `backend`). Done: `tools/reconstruct/package.mjs` (`cli.mjs package`), the zip is checked through the viewer's own `readCaptureBundle` in a unit test; the web manifest parser keeps `source`/`backend`.
+- [ ] **`package` polish**: convert OpenMVS OBJ/PLY to GLB (gltf-transform) and decimate for the web (`tools/optimize-glb.mjs`), crop the mesh to the dominant object, resize frames to ≤ 2048 px; show `source`/`backend` in the viewer's capture info.
 - [ ] **Synthetic end-to-end eval**: render the fixture bike with texture + textured floor from 60–120 posed cameras and as an orbit video (`tools/fixtures/render-photos.mjs`), run ingest → reconstruct → package, measure pose error after similarity alignment, Chamfer distance / completeness vs ground truth and close-up ranking; report in `docs/RECONSTRUCTION-EVAL.md`.
 - [ ] **Web upload flow**: drop a folder of photos or a video on the viewer, send it to a reconstruction backend, open the result.
 - [ ] **Cloud backend**: one paid API behind `reconstruct --backend <vendor>` once the owner picks a vendor and budget.
@@ -61,14 +64,17 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 
 - [x] **Shareable read-only link**: `?scene=` URL loads a published scene in Present mode with editing hidden; "Copy share link" button. Scenes + models served from `apps/web/public/scenes/<id>/`.
 - [x] **Comment polish**: leader lines from pin to card in Present mode, auto-advance/kiosk mode, comment ordering (drag to reorder), markdown-lite (bold, bullet lists) in bodies.
-- [ ] **Embeddable viewer**: an `embed.html` page + `postMessage` bridge and a `<bike-viewer>` custom element around `mountPresenter` (`present/BikePresenter.ts`), so shops can put a bike on their own site; scope the `styles.css` base rules first so it works inside Shadow DOM.
-- [ ] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
-- [ ] **Embed packaging**: `embed.html` + postMessage API + `<bike-viewer>` custom element on top of `present/BikePresenter.ts`; scope `styles.css` base rules for Shadow DOM.
+- [x] **Embeddable viewer** (was also listed as *Embed packaging*): an `embed.html` page + `postMessage` bridge and a `<bike-viewer>` custom element around `mountPresenter` (`present/BikePresenter.ts`), so shops can put a bike on their own site; scope the `styles.css` base rules first so it works inside Shadow DOM.
+- [x] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
+- [ ] **Cross-origin embed check**: an E2E run that loads `bike-viewer.js` and `embed.html` from a second origin (two preview ports) to prove CORS module loading, the `?origin=` lock end to end, and the BVH build falling back to the main thread when the worker cannot start cross-origin (shop pages); add `interval`/`idle` attributes to `<bike-viewer>`.
 - [ ] **Hotspot auto-suggest**: for captures, propose default areas (Fork, Drivetrain, Cockpit, Wheels, Saddle) by letting the user tap each part once; camera view computed from tapped point + local bounds.
-- [ ] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
+- [x] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
+- [ ] **Spec sheet on short screens**: with 6+ rows the first Present card covers the lower half of the bike on a laptop; collapse the table to a few rows with "All specs" (or a two-column layout on wide cards).
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
-- [ ] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts.
-- [ ] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
+- [x] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts. Done: **Snapshot** menu in the top bar (1× / 2× / 4× the stage, capped by the GPU and 16.7 MP; as shown / transparent / chroma green; pins on or off), 8 s turntable in WebM (MP4 where only that records, hidden where neither does).
+- [ ] **Square / vertical video formats**: the turntable records the stage's aspect; offer 1:1 and 9:16 framings (refit the camera to the bike) and a duration choice for Reels/Stories.
+- [ ] **Turntable in WebKit E2E**: check the MP4 path (Safari's MediaRecorder) in `npm run e2e:webkit`; the Chromium suite only covers WebM.
+- [x] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
 - [ ] **Accessibility & i18n pass**: keyboard navigation for pins, focus states, screen-reader labels, number/currency formatting.
 
 ## Milestone 4: iOS app depth

@@ -8,8 +8,18 @@ export default defineConfig({
   // Relative base so the build works from GitHub Pages or any sub-path.
   base: './',
   server: { port: 5190, host: true },
-  // E2E_COVERAGE=1 (npm run e2e:coverage): source maps and readable code, so V8 coverage maps back to src/ precisely.
-  build: { outDir: '../../dist', emptyOutDir: true, chunkSizeWarningLimit: 1200, ...(process.env.E2E_COVERAGE ? { sourcemap: true, minify: false } : {}) },
+  build: {
+    outDir: '../../dist',
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      // The app, the iframe embed and its demo page; `bike-viewer.js` keeps a stable name so shops can link it.
+      input: { main: `${root}index.html`, embed: `${root}embed.html`, 'embed-demo': `${root}embed-demo.html`, 'bike-viewer': `${root}src/present/element.ts` },
+      output: { entryFileNames: (chunk) => (chunk.name === 'bike-viewer' ? 'bike-viewer.js' : 'assets/[name]-[hash].js') },
+    },
+    // E2E_COVERAGE=1 (npm run e2e:coverage): source maps and readable code, so V8 coverage maps back to src/ precisely.
+    ...(process.env.E2E_COVERAGE ? { sourcemap: true, minify: false } : {}),
+  },
   test: {
     root,
     include: ['test/**/*.test.ts'],
@@ -26,6 +36,8 @@ export default defineConfig({
         'src/entry.ts', // picks the editor or customer chunk from the URL
         'src/present/BikePresenter.ts', // customer presenter over the WebGL Viewer (e2e/share.spec.ts)
         'src/present/customer.ts', // customer page bootstrap
+        'src/present/embed.ts', // iframe page bootstrap + postMessage bridge (e2e/embed.spec.ts)
+        'src/present/element.ts', // <bike-viewer> custom element (e2e/embed.spec.ts)
         'src/ui/heic.worker.ts', // Web Worker running libheif WASM
         'src/**/*.d.ts', // type declarations only
       ],
