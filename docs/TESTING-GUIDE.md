@@ -27,7 +27,8 @@ PR that adds something testable extends the "What each PR adds" table at the bot
 The site is republished automatically on every push to the stack tip (the newest open PR nothing else is stacked on, or `develop` when none is open). Each open PR also gets its
 own copy at `https://davidpn11.github.io/bike-3d-brew/pr/<n>/` (viewer at `/pr/<n>/app/`),
 listed under **PR previews** on the home and Progress pages, so you can try a PR before
-merging it. The home page says which commit and branch it was built from.
+merging it. Each PR also gets a comment with Docs and Viewer links; closed previews are removed
+daily when their PR is no longer open. The home page says which commit and branch it was built from.
 
 ## On a laptop
 

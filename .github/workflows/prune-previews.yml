@@ -1,0 +1,63 @@
+name: Prune PR previews
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pages-gh-pages
+      cancel-in-progress: false
+    steps:
+      - name: Check out published site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+      - name: Remove previews for closed PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 1000 --json number > "$RUNNER_TEMP/open-prs.json"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { execFileSync } = require('node:child_process');
+          const open = new Set(JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/open-prs.json', 'utf8')).map((pr) => String(pr.number)));
+          const root = path.join(process.cwd(), 'pr');
+          if (!fs.existsSync(root)) process.exit(0);
+          for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+            if (entry.isDirectory() && /^\d+$/.test(entry.name) && !open.has(entry.name)) {
+              fs.rmSync(path.join(root, entry.name), { recursive: true, force: true });
+              console.log(`Removed stale preview ${entry.name}`);
+            }
+          }
+          NODE
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A pr
+            git commit -m "Prune previews for closed pull requests"
+            git push origin gh-pages
+          fi
+      - name: Squash oversized gh-pages history
+        run: |
+          count=$(git rev-list --count gh-pages)
+          echo "gh-pages commits: $count"
+          if [ "$count" -gt 200 ]; then
+            # Keep the current published tree but drop old generated-site commits that make fetches grow indefinitely.
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git checkout --orphan gh-pages-squashed
+            git add -A
+            git commit -m "Squash published site history"
+            git push --force origin HEAD:gh-pages
+          fi
