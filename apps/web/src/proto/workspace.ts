@@ -1,6 +1,8 @@
 import { h } from '../ui/dom';
 import { bikeById, formatUsd } from './data';
 import { mountPresenter } from '../present/BikePresenter';
+import '../ui/present.css';
+import '../present/present.css';
 import './workspace.css';
 import type { Cleanup, ScreenContext } from './main';
 
@@ -28,7 +30,14 @@ export function render(host: HTMLElement, ctx: ScreenContext): Cleanup {
     root.replaceChildren(h('header', { class: 'p-w-header' }, h('button', { class: 'p-w-back', onclick: () => ctx.navigate('#studio') }, '← Bikes'), h('div', { class: 'p-w-title' }, h('h1', {}, bike.name), h('span', { class: `p-state ${published ? 'live' : 'draft'}` }, published ? 'Live' : 'Draft'), h('small', {}, 'Saved')), h('div', { class: 'p-w-actions' }, h('button', { onclick: () => ctx.navigate(`#bike?bike=${bike.id}`) }, 'Preview as customer'), h('button', { class: 'p-primary', onclick: () => { published = true; paint(); notify(`${bike.name} published`); } }, published ? 'Publish update' : 'Publish'))),
       h('div', { class: 'p-w-layout' }, h('section', { class: 'p-w-main' }, h('div', { class: 'p-w-pin-toggle', role: 'group', 'aria-label': 'Next pin kind' }, h('button', { class: kind === 'Component' ? 'selected' : '', 'aria-pressed': kind === 'Component', onclick: () => { kind = 'Component'; paint(); } }, 'Component ●'), h('button', { class: kind === 'Upgrade' ? 'selected' : '', 'aria-pressed': kind === 'Upgrade', onclick: () => { kind = 'Upgrade'; paint(); } }, 'Upgrade ▲')), stage, h('p', { class: 'p-w-next' }, `Next tap adds: ${kind}`)),
         h('aside', { class: 'p-w-panel' }, h('h2', {}, `Ready to publish  ${bike.readiness.filter((r) => r.done).length}/${bike.readiness.length}`), h('ul', { class: 'p-w-checklist' }, ...bike.readiness.map((r) => h('li', { class: r.done ? 'done' : 'todo' }, `${r.done ? '✓' : '○'} ${r.label}`))), h('div', { class: 'p-w-tabs', role: 'tablist' }, ...['Details', 'Components', 'Upgrades', 'Specs'].map((t) => h('button', { role: 'tab', 'aria-selected': tab === t, class: tab === t ? 'active' : '', onclick: () => { tab = t; paint(); } }, t))), details)), h('div', { class: 'p-w-toast', role: 'status', hidden: true }));
-    if (bike.scene) presenter = mountPresenter(root.querySelector('.p-w-presenter') as HTMLElement, { scene: bike.scene, header: false, share: false });
+    if (bike.scene) {
+      const presenterHost = root.querySelector<HTMLElement>('.p-w-presenter')!;
+      presenter = mountPresenter(presenterHost, { scene: bike.scene, header: false, share: false });
+      const mountedPresenter = presenter;
+      void mountedPresenter.ready.then(() => {
+        if (presenter === mountedPresenter) presenterHost.dataset.presenterReady = 'true';
+      });
+    }
   };
   host.append(root);
   paint();
