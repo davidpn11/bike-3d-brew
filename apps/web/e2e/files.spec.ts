@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test';
 import { USDC_FIXTURE, blockCaptureStorage, collectErrors, dropFile, fixture, modelPoint, openApp, openViaPicker, readDownload, scene, snap, tapCanvas, toast, waitForModel, waitReady } from './helpers';
 
 const CAPTURE_ID = 'capture-fixture-gravel-bike-20260102030405';

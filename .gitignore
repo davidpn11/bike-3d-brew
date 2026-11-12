@@ -11,6 +11,8 @@ DerivedData/
 data/captures-in/
 # Test output
 coverage/
+coverage-e2e/
+coverage-all/
 test-results/
 playwright-report/
 apps/web/e2e/.fixtures/

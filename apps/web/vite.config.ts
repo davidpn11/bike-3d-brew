@@ -8,7 +8,8 @@ export default defineConfig({
   // Relative base so the build works from GitHub Pages or any sub-path.
   base: './',
   server: { port: 5190, host: true },
-  build: { outDir: '../../dist', emptyOutDir: true, chunkSizeWarningLimit: 1200 },
+  // E2E_COVERAGE=1 (npm run e2e:coverage): source maps and readable code, so V8 coverage maps back to src/ precisely.
+  build: { outDir: '../../dist', emptyOutDir: true, chunkSizeWarningLimit: 1200, ...(process.env.E2E_COVERAGE ? { sourcemap: true, minify: false } : {}) },
   test: {
     root,
     include: ['test/**/*.test.ts'],
@@ -28,7 +29,8 @@ export default defineConfig({
         'src/ui/heic.worker.ts', // Web Worker running libheif WASM
         'src/**/*.d.ts', // type declarations only
       ],
-      reporter: ['text', 'html', 'json-summary'],
+      // json: coverage-final.json, merged with the E2E report by tools/coverage/e2e-coverage.mjs.
+      reporter: ['text', 'html', 'json-summary', 'json'],
       reportsDirectory: '../../coverage',
       // Ratchet: set just under the current numbers. Raise them when coverage goes up; never lower.
       thresholds: {

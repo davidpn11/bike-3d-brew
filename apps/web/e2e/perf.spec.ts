@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test';
 import { writeCompressedGlbs } from '../../../tools/fixtures/make-compressed-glb.mjs';
 import { FIXTURE_DIR, collectErrors, dropFile, fixture, openApp, toast } from './helpers';
 

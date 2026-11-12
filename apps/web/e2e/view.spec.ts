@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test';
 import { collectErrors, openApp, readDownload, scene, snap, waitForCamera, waitForModel } from './helpers';
 
 test.describe('demo bike', () => {

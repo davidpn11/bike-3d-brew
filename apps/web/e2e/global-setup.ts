@@ -1,4 +1,5 @@
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
+import { E2E_DIR } from '../../../tools/coverage/e2e-coverage.mjs';
 import { buildBikeCapture } from '../../../tools/fixtures/make-bike-capture.mjs';
 import { buildPhotoBundle, capturePoses, writeFixtures } from '../../../tools/fixtures/make-capture-bundle.mjs';
 import { renderPhotos } from '../../../tools/fixtures/render-photos.mjs';
@@ -11,6 +12,8 @@ import { FIXTURE_DIR, PHOTO_BUNDLE, fixture } from './helpers';
  *   for the photo close-up tests.
  */
 export default async function globalSetup(): Promise<void> {
+  // A coverage run starts from nothing, so a report never mixes in an older build's counts.
+  if (process.env.E2E_COVERAGE) rmSync(E2E_DIR, { recursive: true, force: true });
   await writeFixtures(FIXTURE_DIR);
   // A scan that came out lying on its side (auto-orient), and an area-mode scan with a floor slab,
   // a wall and a crate around the bike (crop box).
