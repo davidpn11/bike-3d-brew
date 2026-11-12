@@ -112,6 +112,31 @@ export class PinLayer {
     }
   }
 
+  /** Paints the pins as the stage shows them onto an exported frame; `scale` is canvas px per CSS px. */
+  drawInto(ctx: CanvasRenderingContext2D, scale: number): void {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${12 * scale}px system-ui, sans-serif`;
+    ctx.lineWidth = 2 * scale;
+    ctx.strokeStyle = '#fff';
+    for (const pin of this.order) {
+      if (!pin.shown || !Number.isFinite(pin.x) || pin.el.classList.contains('filtered')) continue;
+      const style = getComputedStyle(pin.el);
+      const x = pin.x * scale;
+      const y = pin.y * scale;
+      ctx.globalAlpha = pin.occluded ? 0.35 : 1;
+      ctx.beginPath();
+      ctx.arc(x, y, 12 * scale, 0, 2 * Math.PI);
+      ctx.fillStyle = style.backgroundColor;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = style.color;
+      ctx.fillText(pin.el.textContent ?? '', x, y);
+    }
+    ctx.restore();
+  }
+
   /** Runs after every drawn frame. */
   update(): void {
     this.generation++;

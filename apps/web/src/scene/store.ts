@@ -9,14 +9,20 @@ export interface KeyValueStorage {
 type Listener = (scene: BikeScene) => void;
 
 const storageKey = (id: string) => `bike-scene:${id}`;
+const HISTORY = 100;
+/** Edits sharing a merge key less than this far apart are one undo step. */
+const MERGE_MS = 1000;
 
 /**
  * Single source of truth for the open scene. Every mutation persists to storage
  * (best effort: private windows and full quotas must not break editing) and
- * notifies listeners so the viewer and panel re-render.
+ * notifies listeners so the viewer and panel re-render. Every edit is also an undo step.
  */
 export class SceneStore {
   private listeners = new Set<Listener>();
+  private past: BikeScene[] = [];
+  private future: BikeScene[] = [];
+  private merge = { key: '', at: 0 };
 
   constructor(
     private current: BikeScene,
@@ -32,68 +38,82 @@ export class SceneStore {
     return () => this.listeners.delete(fn);
   }
 
-  /** Replaces the whole scene (load / import). */
+  get canUndo(): boolean {
+    return this.past.length > 0;
+  }
+
+  get canRedo(): boolean {
+    return this.future.length > 0;
+  }
+
+  /** Replaces the whole scene (load / import). Not an undo step; another scene id starts a fresh history. */
   replace(scene: BikeScene): void {
+    if (scene.id !== this.current.id) {
+      this.past = [];
+      this.future = [];
+    }
+    this.merge.key = '';
     this.current = scene;
     this.commit();
   }
 
-  update(patch: Partial<Omit<BikeScene, 'schema' | 'id' | 'hotspots' | 'annotations'>>): void {
-    this.current = { ...this.current, ...patch };
-    this.commit();
+  /** `merge`: repeated edits with the same key (rapid nudges) collapse into one undo step. */
+  update(patch: Partial<Omit<BikeScene, 'schema' | 'id' | 'hotspots' | 'annotations'>>, merge = ''): void {
+    this.set({ ...this.current, ...patch }, merge);
+  }
+
+  undo(): boolean {
+    return this.step(this.past, this.future);
+  }
+
+  redo(): boolean {
+    return this.step(this.future, this.past);
   }
 
   addHotspot(h: Omit<Hotspot, 'id'>): Hotspot {
     const hotspot: Hotspot = { ...h, id: newId('hs') };
-    this.current = { ...this.current, hotspots: [...this.current.hotspots, hotspot] };
-    this.commit();
+    this.set({ ...this.current, hotspots: [...this.current.hotspots, hotspot] });
     return hotspot;
   }
 
   updateHotspot(id: string, patch: Partial<Omit<Hotspot, 'id'>>): void {
-    this.current = {
+    this.set({
       ...this.current,
       hotspots: this.current.hotspots.map((h) => (h.id === id ? { ...h, ...patch } : h)),
-    };
-    this.commit();
+    });
   }
 
   removeHotspot(id: string): void {
-    this.current = {
+    this.set({
       ...this.current,
       hotspots: this.current.hotspots.filter((h) => h.id !== id),
       // Comments stay; they just lose their area grouping.
       annotations: this.current.annotations.map((a) => (a.hotspotId === id ? { ...a, hotspotId: undefined } : a)),
-    };
-    this.commit();
+    });
   }
 
   addAnnotation(a: Omit<Annotation, 'id' | 'createdAt'>): Annotation {
     const annotation: Annotation = { ...a, id: newId('note'), createdAt: new Date().toISOString() };
-    this.current = { ...this.current, annotations: [...this.current.annotations, annotation] };
-    this.commit();
+    this.set({ ...this.current, annotations: [...this.current.annotations, annotation] });
     return annotation;
   }
 
   updateAnnotation(id: string, patch: Partial<Omit<Annotation, 'id' | 'createdAt'>>): void {
-    this.current = {
+    this.set({
       ...this.current,
       annotations: this.current.annotations.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-    };
-    this.commit();
+    });
   }
 
   removeAnnotation(id: string): void {
-    this.current = { ...this.current, annotations: this.current.annotations.filter((a) => a.id !== id) };
-    this.commit();
+    this.set({ ...this.current, annotations: this.current.annotations.filter((a) => a.id !== id) });
   }
 
   /** Reorders comments (the order customers see and the pin numbers); `visible` limits the move to a shown subset. */
   moveAnnotation(id: string, to: number, visible?: readonly string[]): void {
     const annotations = moveItem(this.current.annotations, id, to, visible);
     if (annotations === this.current.annotations) return;
-    this.current = { ...this.current, annotations };
-    this.commit();
+    this.set({ ...this.current, annotations });
   }
 
   annotationsFor(hotspotId: string | null): Annotation[] {
@@ -117,6 +137,28 @@ export class SceneStore {
     } catch {
       return null;
     }
+  }
+
+  private set(next: BikeScene, merge = ''): void {
+    const now = Date.now();
+    if (!merge || merge !== this.merge.key || now - this.merge.at > MERGE_MS) {
+      this.past.push(this.current);
+      if (this.past.length > HISTORY) this.past.shift();
+    }
+    this.merge = { key: merge, at: now };
+    this.future = [];
+    this.current = next;
+    this.commit();
+  }
+
+  private step(from: BikeScene[], to: BikeScene[]): boolean {
+    const next = from.pop();
+    if (!next) return false;
+    to.push(this.current);
+    this.merge.key = '';
+    this.current = next;
+    this.commit();
+    return true;
   }
 
   private commit(): void {

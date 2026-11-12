@@ -1,8 +1,23 @@
 import { viewForPoint } from '../scene/camera';
 import { shouldAutoOrient } from '../scene/orient';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
-import { captureSummary, dataUrlToBytes, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
+import { captureSummary, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
 import { type CachedCapture, type CaptureCache, formatBytes } from '../scene/captureCache';
+import {
+  DEFAULT_SNAPSHOT_SCALE,
+  EXPORT_BACKGROUNDS,
+  EXPORT_BACKGROUND_LABEL,
+  type ExportBackground,
+  SNAPSHOT_SCALES,
+  TURNTABLE_SECONDS,
+  exportBackdrop,
+  snapshotFileName,
+  snapshotSize,
+  turntableFileName,
+  videoExtension,
+  videoMimeType,
+  videoSize,
+} from '../scene/exportMedia';
 import { KIOSK_DEFAULTS } from '../scene/kiosk';
 import { type RankTarget, type RankedPhoto, rankPhotos } from '../scene/photos';
 import {
@@ -14,11 +29,13 @@ import {
   type BikeScene,
   type Hotspot,
   type ModelRef,
+  type SpecRow,
   type Vec3,
   emptyScene,
   formatFromFilename,
   parseScene,
 } from '../scene/schema';
+import { cleanSpecs, specsForEdit } from '../scene/specs';
 import { type Published, type SharePackageInput, type ViewParams, publishedPhotoUrls, shareOption } from '../scene/share';
 import type { SceneStore } from '../scene/store';
 import { requestPersistence } from '../storage/backends';
@@ -77,6 +94,9 @@ export class App {
   /** Bundles kept in browser storage so capture scenes survive reloads (newest first). */
   storedCaptures: CachedCapture[] = [];
   private openMenu = false;
+  private exportMenuEl: HTMLElement | null = null;
+  /** Turntable length; E2E shortens it. */
+  turntableSeconds = TURNTABLE_SECONDS;
   /** Photos of the open capture (`captureUrl`), and the matrix from pose space into model-root space. */
   private photos: PhotoLibrary | null = null;
   private captureUrl = '';
@@ -109,7 +129,6 @@ export class App {
 
   /** Loads the scene's model (if changed) and syncs everything to the store. */
   async open(scene: BikeScene, opts: { frame?: boolean } = {}): Promise<void> {
-    if (scene.id !== this.store.scene.id) this.modelTools.clearHistory();
     this.store.replace(scene);
     await this.syncModel(scene.model);
     this.openNote = '';
@@ -185,6 +204,9 @@ export class App {
 
   render(): void {
     const scene = this.store.scene;
+    // Undo can remove the focused area or the comment being edited (its Save would write nowhere); a changed one re-renders from the scene.
+    if (this.activeHotspot && !scene.hotspots.some((x) => x.id === this.activeHotspot)) this.activeHotspot = null;
+    if (this.draft?.id && !scene.annotations.some((a) => a.id === this.draft!.id)) this.draft = null;
     this.viewer.applyTransform(scene.model);
     this.viewer.setBackground(scene.background);
     this.viewer.setCrop(scene.crop);
@@ -286,7 +308,7 @@ export class App {
         this.openMenu && this.storedCaptures.length ? this.storedMenu(fileInput) : null,
       ),
       h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.bike.json`, this.store.toJSON()) }, 'Export'),
-      h('button', { type: 'button', onclick: () => download(`${slugify(scene.name)}.png`, dataUrlToBlob(this.viewer.screenshot())) }, 'Snapshot'),
+      this.exportMenu(),
       h('button', { type: 'button', onclick: () => void this.focusHotspot(null) }, 'Reset view'),
       share,
       fileInput,
@@ -297,6 +319,72 @@ export class App {
       bg,
       menu,
     );
+  }
+
+  /** Snapshot / turntable menu, built once so its choices survive top-bar re-renders. */
+  private exportMenu(): HTMLElement {
+    if (this.exportMenuEl) return this.exportMenuEl;
+    const supported = typeof MediaRecorder !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype;
+    const mime = videoMimeType(supported ? (t) => MediaRecorder.isTypeSupported(t) : null);
+    const scale = h('select', {}, ...SNAPSHOT_SCALES.map((s) => h('option', { value: String(s), selected: s === DEFAULT_SNAPSHOT_SCALE }, `${s}× stage`)));
+    const background = h('select', {}, ...EXPORT_BACKGROUNDS.map((b) => h('option', { value: b }, EXPORT_BACKGROUND_LABEL[b])));
+    const withPins = h('input', { type: 'checkbox' });
+    const overlay = () => (withPins.checked ? (ctx: CanvasRenderingContext2D, s: number) => this.pins.drawInto(ctx, s) : undefined);
+    const backdrop = (video = false) => exportBackdrop(background.value as ExportBackground, this.store.scene.background, video);
+    const fail = (err: unknown) => this.toast(`Export failed: ${err instanceof Error ? err.message : String(err)}`, 'error', 8000);
+    const savePng = async () => {
+      const { width, height } = this.viewer.viewport;
+      const size = snapshotSize(width, height, Number(scale.value), this.viewer.maxSnapshotSide());
+      const bd = backdrop();
+      try {
+        download(snapshotFileName(this.store.scene.name, bd, size), await this.viewer.snapshot(size, bd, overlay()));
+      } catch (err) {
+        fail(err);
+      }
+    };
+    const recordLabel = mime ? `Record 360° ${videoExtension(mime) === 'mp4' ? 'MP4' : 'WebM'}` : '';
+    const record = h('button', { type: 'button', onclick: () => void recordTurntable() }, recordLabel);
+    const recordTurntable = async () => {
+      if (!mime || record.disabled) return;
+      record.disabled = true;
+      const { width, height } = this.viewer.viewport;
+      try {
+        const blob = await this.viewer.recordTurntable({
+          mimeType: mime,
+          size: videoSize(width, height, this.viewer.renderer.getPixelRatio()),
+          seconds: this.turntableSeconds,
+          backdrop: backdrop(true),
+          overlay: overlay(),
+          onProgress: (t) => (record.textContent = `Recording… ${Math.round(t * 100)}%`),
+        });
+        download(turntableFileName(this.store.scene.name, mime), blob);
+      } catch (err) {
+        fail(err);
+      } finally {
+        record.disabled = false;
+        record.textContent = recordLabel;
+      }
+    };
+    const menu = h(
+      'div',
+      { class: 'menu export-form', hidden: true },
+      h('label', {}, 'Size', scale),
+      h('label', {}, 'Background', background),
+      h('label', {}, 'Show pins', withPins),
+      h('button', { type: 'button', class: 'primary', onclick: () => void savePng() }, 'Save PNG'),
+      // Hidden where the browser cannot record a canvas (no MediaRecorder, or no WebM/MP4 encoder).
+      mime ? record : null,
+      mime ? h('p', { class: 'hint' }, `One turn around the bike, ${this.turntableSeconds} s. Videos have no transparency: Transparent records on the studio backdrop.`) : null,
+    );
+    const toggle = h('button', { type: 'button', title: 'Save a high-res PNG or a 360° turntable video', 'aria-haspopup': 'true', 'aria-expanded': 'false' }, 'Snapshot');
+    const show = (open: boolean) => {
+      menu.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+    };
+    toggle.addEventListener('click', () => show(!!menu.hidden));
+    window.addEventListener('pointerdown', (e) => !menu.hidden && !(e.target as HTMLElement)?.closest?.('.export-menu') && show(false));
+    window.addEventListener('keydown', (e) => e.key === 'Escape' && show(false));
+    return (this.exportMenuEl = h('div', { class: 'export-menu' }, toggle, menu));
   }
 
   private toggleOpenMenu(open = !this.openMenu): void {
@@ -339,7 +427,7 @@ export class App {
     const editing = this.mode === 'edit';
     const sections: HTMLElement[] = [];
 
-    if (editing) sections.push(this.detailsEditor(scene));
+    if (editing) sections.push(this.historyButtons(), this.detailsEditor(scene), this.specsEditor(scene));
     if (editing && scene.model.format !== 'demo') sections.push(this.modelTools.render(scene));
 
     const areas = h(
@@ -396,7 +484,28 @@ export class App {
           : this.commentList(list, numberOf, editing),
       ),
     );
+    // Saving a field re-renders the panel: put focus back on the same field (Tab from a spec name to its value).
+    const focusKey = (document.activeElement as HTMLElement | null)?.dataset?.focus;
     this.els.panel.replaceChildren(...sections);
+    if (focusKey) this.els.panel.querySelector<HTMLElement>(`[data-focus="${focusKey}"]`)?.focus();
+  }
+
+  private historyButtons(): HTMLElement {
+    const button = (dir: 'undo' | 'redo', label: string, title: string, enabled: boolean) =>
+      h('button', { type: 'button', title, disabled: !enabled, onclick: () => this.history(dir) }, label);
+    return h(
+      'div',
+      { class: 'row history' },
+      button('undo', '↶ Undo', 'Undo (Ctrl/Cmd+Z)', this.store.canUndo),
+      button('redo', '↷ Redo', 'Redo (Shift+Ctrl/Cmd+Z)', this.store.canRedo),
+    );
+  }
+
+  private history(dir: 'undo' | 'redo'): void {
+    const model = this.store.scene.model;
+    if (!this.store[dir]()) return;
+    // Model changes move the whole bike: frame it again.
+    if (this.store.scene.model !== model) void this.viewer.flyTo(this.viewer.overviewView(), 600);
   }
 
   private detailsEditor(scene: BikeScene): HTMLElement {
@@ -410,6 +519,37 @@ export class App {
       field('Brand', scene.brand ?? '', (v) => this.store.update({ brand: v || undefined })),
       field('Model', scene.modelName ?? '', (v) => this.store.update({ modelName: v || undefined })),
       field('Price', scene.price ?? '', (v) => this.store.update({ price: v || undefined })),
+    );
+  }
+
+  /** Spec sheet rows: saved from the inputs on every change, so an added row exists only once it has text. */
+  private specsEditor(scene: BikeScene): HTMLElement {
+    const list = h('div', { class: 'spec-rows' });
+    const save = () => {
+      const rows = [...list.querySelectorAll<HTMLElement>('.spec-row')].map((r) => ({ label: r.querySelector<HTMLInputElement>('[name=label]')!.value, value: r.querySelector<HTMLInputElement>('[name=value]')!.value }));
+      const specs = cleanSpecs(rows);
+      this.store.update({ specs: specs.length ? specs : undefined });
+    };
+    // `change` fires before Tab moves focus: save once it has landed, so the re-render can put it back.
+    const saveSoon = () => setTimeout(save);
+    const row = (r: SpecRow, i: number) => {
+      const el: HTMLElement = h(
+        'div',
+        { class: 'spec-row' },
+        h('input', { name: 'label', dataset: { focus: `spec-${i}-label` }, value: r.label, placeholder: 'Spec', 'aria-label': 'Spec name', onchange: saveSoon }),
+        h('input', { name: 'value', dataset: { focus: `spec-${i}-value` }, value: r.value, placeholder: 'Value', 'aria-label': `${r.label || 'Spec'} value`, onchange: saveSoon }),
+        h('button', { type: 'button', class: 'danger', title: 'Remove row', 'aria-label': `Remove ${r.label || 'row'}`, onclick: () => (el.remove(), save()) }, '×'),
+      );
+      return el;
+    };
+    list.append(...specsForEdit(scene.specs).map(row));
+    return h(
+      'section',
+      { class: 'spec-sheet' },
+      h('h2', {}, 'Spec sheet'),
+      list,
+      h('button', { type: 'button', class: 'add', onclick: () => list.append(row({ label: '', value: '' }, list.children.length)) }, '+ Add spec'),
+      h('p', { class: 'hint' }, 'Shown on the first Present card. Rows without a value stay hidden.'),
     );
   }
 
@@ -697,6 +837,11 @@ export class App {
       if (this.shareDialog.isOpen) return;
       if (e.key === 'Escape' && this.openMenu) return this.toggleOpenMenu(false);
       if ((e.target as HTMLElement)?.closest?.('input, textarea, select')) return;
+      const key = e.key.toLowerCase();
+      if (this.mode === 'edit' && (e.ctrlKey || e.metaKey) && (key === 'z' || key === 'y')) {
+        e.preventDefault();
+        return this.history(key === 'y' || e.shiftKey ? 'redo' : 'undo');
+      }
       if (this.mode === 'present') {
         if (e.key !== 'k') this.present.kiosk.interact();
         if (e.key === 'ArrowRight' || e.key === ' ') this.goToStep(this.presentStep + 1);
@@ -858,7 +1003,3 @@ export class App {
 /** Published close-ups are plain URLs: nothing to decode or cache. */
 const URL_PHOTOS: PhotoSource = { errors: new Map(), get: (path) => Promise.resolve(path) };
 
-function dataUrlToBlob(dataUrl: string): Blob {
-  const { mime, bytes } = dataUrlToBytes(dataUrl);
-  return new Blob([bytes as BlobPart], { type: mime });
-}

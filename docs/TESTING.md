@@ -166,8 +166,10 @@ missing.
 ### What the suite covers
 
 - `view.spec.ts`: demo loads with seeded areas/comments/pins and no console errors; fly to an
-  area and back; comment focus; background modes (and the chroma-green opaque clear); Snapshot
-  downloads a real PNG; Reset view.
+  area and back; comment focus; background modes (and the chroma-green opaque clear); Reset view.
+- `export.spec.ts`: the Snapshot menu saves a 2× transparent PNG (IHDR size, RGBA, see-through
+  corner, opaque bike) and a 1× chroma-green one, restores the drawing buffer and clear color;
+  records a turntable WebM (EBML header) and puts the camera back.
 - `edit.spec.ts`: add/edit/delete a comment picked on the canvas; persistence across reload;
   Cancel/Escape; default area; save/rename/set view/delete areas; bike details.
 - `present.spec.ts`: keys (←, →, space, Esc) and ‹ › buttons with wrap-around; `?mode=present`.
@@ -183,6 +185,8 @@ missing.
 - `photos.spec.ts`: a saved area shows its best photos (all thumbnails decode), the lightbox
   steps with ←/→ and ‹ › with wrap-around, Esc closes only the lightbox; Present mode shows the
   strip; after a reload the thumbnails come from browser storage.
+- `specs.spec.ts`: edit the spec sheet (change, remove, add a row, Tab between fields keeps focus), Present shows only
+  rows with a value and only on the first card, Export carries them; the customer link shows the published sheet.
 - `files.spec.ts` also drops the committed binary USDC fixture and checks it renders with its
   diffuse and normal textures decoded.
 - `share.spec.ts`: the customer link (`?view=present`, `&area=`), Share, the share package →
