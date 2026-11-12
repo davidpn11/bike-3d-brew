@@ -188,13 +188,23 @@ describe('capture scenes', () => {
 });
 
 describe('fixture generator', () => {
-  it('produces a bundle the importer reads', async () => {
-    const { makeBundle } = await import('../../../tools/fixtures/make-capture.mjs');
-    const b = await readCaptureBundle(makeBundle({ count: 6, closeups: false }));
-    expect(b.manifest.name).toBe('Fixture Road Bike');
+  it('produces a photo bundle the importer reads', async () => {
+    const { POSE_COUNT, CLOSEUP_COUNT, buildPhotoBundle } = await import('../../../tools/fixtures/make-capture-bundle.mjs');
+    const b = await readCaptureBundle(buildPhotoBundle());
+    expect(b.manifest.name).toBe('Fixture Photo Bike');
     expect(b.model.format).toBe('usdz');
-    expect(b.poses?.samples).toHaveLength(6);
-    expect(b.images).toHaveLength(6);
+    expect(b.poses?.samples).toHaveLength(POSE_COUNT + CLOSEUP_COUNT);
+    expect(b.images).toHaveLength(POSE_COUNT + CLOSEUP_COUNT);
     expect(b.warnings).toEqual([]);
+    expect(() => buildPhotoBundle({ images: [] })).toThrow(/needs 40 photos/);
+  });
+
+  it('produces the Pages sample bundle (GLB, poses, no photos)', async () => {
+    const { POSE_COUNT, buildSampleBundle } = await import('../../../tools/fixtures/make-capture-bundle.mjs');
+    const b = await readCaptureBundle(await buildSampleBundle({ name: 'Sample', createdAt: '2026-05-06T07:08:09Z' }));
+    expect(b.manifest).toMatchObject({ name: 'Sample', createdAt: '2026-05-06T07:08:09Z', imageCount: 0 });
+    expect(b.model.format).toBe('glb');
+    expect(b.poses?.samples).toHaveLength(POSE_COUNT);
+    expect(b.images).toHaveLength(0);
   });
 });

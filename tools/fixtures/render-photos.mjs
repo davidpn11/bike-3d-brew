@@ -2,7 +2,7 @@
 // Renders the fixture bike from every fixture camera pose, so the synthetic capture bundle has
 // "photos" that really show what each pose sees (useful to eyeball the close-up ranking):
 //
-//   node tools/fixtures/render-photos.mjs [outDir] && node tools/fixtures/make-capture.mjs out.zip --images outDir
+//   node tools/fixtures/render-photos.mjs [outDir] && node tools/fixtures/make-capture-bundle.mjs --photos out.zip --images outDir
 //
 // Also importable: `renderPhotos(poses, { executablePath })` returns JPEG bytes per pose (the E2E
 // global setup uses it to build `bike-photos.bikecapture.zip`).
@@ -16,7 +16,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildBike, capturePoses } from './make-capture.mjs';
+import { MODEL_ORIGIN, capturePoses, createFixtureBike } from './make-capture-bundle.mjs';
 
 const require = createRequire(import.meta.url);
 function playwright() {
@@ -50,11 +50,10 @@ window.render = (meshes, poses, w, h, hFov) => {
   scene.add(sun);
   let minY = Infinity;
   for (const m of meshes) {
-    const pos = [];
-    for (const f of m.faces) for (let i = 1; i + 1 < f.length; i++) pos.push(...m.points[f[0]], ...m.points[f[i]], ...m.points[f[i + 1]]);
-    for (const p of m.points) minY = Math.min(minY, p[1]);
+    for (let i = 1; i < m.position.length; i += 3) minY = Math.min(minY, m.position[i]);
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('position', new THREE.Float32BufferAttribute(m.position, 3));
+    g.setIndex(m.index);
     g.computeVertexNormals();
     scene.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...m.color, THREE.SRGBColorSpace), roughness: 0.55, side: THREE.DoubleSide })));
   }
@@ -80,7 +79,7 @@ window.render = (meshes, poses, w, h, hFov) => {
     ctx.fillRect(10, h - 40, 150, 30);
     ctx.fillStyle = '#fff';
     ctx.font = '600 18px system-ui, sans-serif';
-    ctx.fillText(p.file, 20, h - 18);
+    ctx.fillText(p.file.split('.')[0], 20, h - 18);
     return label.toDataURL('image/jpeg', 0.85);
   });
 };
@@ -103,7 +102,9 @@ export async function renderPhotos(poses, { executablePath } = {}) {
     });
     await tab.goto('https://fixture.local/index.html');
     await tab.waitForFunction(() => window.ready);
-    const shots = await tab.evaluate(([meshes, poses, w, h, fov]) => window.render(meshes, poses, w, h, fov), [buildBike(), poses, W, H, H_FOV]);
+    // The same bike, at the same off-origin spot, as the photo bundle's model.usdz.
+    const meshes = createFixtureBike(MODEL_ORIGIN).children.map(({ geometry: g }) => ({ color: [...g.attributes.color.array.slice(0, 3)], position: [...g.attributes.position.array], index: [...g.index.array] }));
+    const shots = await tab.evaluate(([meshes, poses, w, h, fov]) => window.render(meshes, poses, w, h, fov), [meshes, poses, W, H, H_FOV]);
     return shots.map((url, i) => ({ file: poses[i].file, data: new Uint8Array(Buffer.from(url.split(',')[1], 'base64')) }));
   } finally {
     await browser.close();
@@ -112,8 +113,8 @@ export async function renderPhotos(poses, { executablePath } = {}) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const outDir = resolve(process.argv[2] ?? 'tools/fixtures/out/photos');
-  const photos = await renderPhotos(capturePoses(24), { executablePath: process.env.PW_CHROMIUM_PATH });
+  const photos = await renderPhotos(capturePoses().samples, { executablePath: process.env.PW_CHROMIUM_PATH });
   mkdirSync(outDir, { recursive: true });
-  for (const { file, data } of photos) writeFileSync(join(outDir, `${file}.jpg`), data);
+  for (const { file, data } of photos) writeFileSync(join(outDir, file.replace(/\.\w+$/, '.jpg')), data);
   console.log(`wrote ${photos.length} photos to ${outDir}`);
 }

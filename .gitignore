@@ -10,7 +10,9 @@ DerivedData/
 # Captures are private: extract exports here, never commit them
 data/captures-in/
 # Test output
-coverage/
+/coverage/
+/coverage-e2e/
+/coverage-all/
 test-results/
 playwright-report/
 apps/web/e2e/.fixtures/

@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, openApp, readDownload, scene, snap } from './helpers';
 
 const specTable = (page: Page) => page.locator('.present-card table.specs');

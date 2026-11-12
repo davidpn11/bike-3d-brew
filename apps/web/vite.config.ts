@@ -17,6 +17,8 @@ export default defineConfig({
       input: { main: `${root}index.html`, embed: `${root}embed.html`, 'embed-demo': `${root}embed-demo.html`, 'bike-viewer': `${root}src/present/element.ts` },
       output: { entryFileNames: (chunk) => (chunk.name === 'bike-viewer' ? 'bike-viewer.js' : 'assets/[name]-[hash].js') },
     },
+    // E2E_COVERAGE=1 (npm run e2e:coverage): source maps and readable code, so V8 coverage maps back to src/ precisely.
+    ...(process.env.E2E_COVERAGE ? { sourcemap: true, minify: false } : {}),
   },
   test: {
     root,
@@ -39,7 +41,8 @@ export default defineConfig({
         'src/ui/heic.worker.ts', // Web Worker running libheif WASM
         'src/**/*.d.ts', // type declarations only
       ],
-      reporter: ['text', 'html', 'json-summary'],
+      // json: coverage-final.json, merged with the E2E report by tools/coverage/e2e-coverage.mjs.
+      reporter: ['text', 'html', 'json-summary', 'json'],
       reportsDirectory: '../../coverage',
       // Ratchet: set just under the current numbers. Raise them when coverage goes up; never lower.
       thresholds: {

@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, modelPoint, openApp, scene, snap, tapCanvas, waitReady } from './helpers';
 
 const titles = async (page: Page) => (await scene(page)).annotations.map((a) => a.title);
