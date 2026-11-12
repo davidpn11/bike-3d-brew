@@ -6,12 +6,18 @@ import UniformTypeIdentifiers
 /// Packs a bike folder into `<name>.bikecapture.zip` (contract `bike-capture/1`) for AirDrop
 /// or Files. The web viewer and tools/ scripts read this layout:
 ///
-///     manifest.json   { schema, name, createdAt, device, mode, model, poses, images }
+///     manifest.json   { schema, name, createdAt, device, mode, model, poses, images, checklist? }
 ///     model.usdz
 ///     poses.json
 ///     images/*.HEIC
 ///     photos/*.jpg    2048 px copies of images/ (same stems), upright, for browsers
 enum BundleExporter {
+    struct ChecklistItem: Codable {
+        var id: String
+        var label: String
+        var done: Bool
+    }
+
     struct Manifest: Codable {
         var schema = "bike-capture/1"
         var name: String
@@ -24,6 +30,7 @@ enum BundleExporter {
         var images = "images/"
         var photos: String? = "photos/"
         var imageCount: Int
+        var checklist: [ChecklistItem]?
     }
 
     /// Long edge of the browser copies: plenty for a full-screen close-up, ~0.5 MB each.
@@ -41,7 +48,8 @@ enum BundleExporter {
             mode: record.mode,
             model: fm.fileExists(atPath: library.modelURL(for: record.id).path) ? "model.usdz" : nil,
             poses: fm.fileExists(atPath: library.posesURL(for: record.id).path) ? "poses.json" : nil,
-            imageCount: library.imageCount(for: record.id)
+            imageCount: library.imageCount(for: record.id),
+            checklist: record.checklist.isEmpty ? nil : record.checklist.map { ChecklistItem(id: $0.id, label: $0.label, done: $0.done) }
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
