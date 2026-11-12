@@ -63,4 +63,22 @@ test.describe('spec sheet', () => {
     await snap(page, testInfo, 'specs-link');
     expect(errors).toEqual([]);
   });
+
+  test('long spec sheets collapse behind an All specs toggle', async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await openApp(page, 'scene=scenes/demo/scene.bike.json&view=present');
+    const toggle = page.getByRole('button', { name: /^All specs \(6\)$/ });
+    const shown = () => specTable(page).locator('tr:visible');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(shown()).toHaveCount(4);
+    await snap(page, testInfo, 'specs-collapsed');
+    await toggle.click();
+    await expect(page.getByRole('button', { name: 'Fewer specs' })).toHaveAttribute('aria-expanded', 'true');
+    await expect(shown()).toHaveCount(6);
+    await snap(page, testInfo, 'specs-expanded');
+    await page.getByRole('button', { name: 'Fewer specs' }).click();
+    await expect(shown()).toHaveCount(4);
+    expect(errors).toEqual([]);
+  });
 });
