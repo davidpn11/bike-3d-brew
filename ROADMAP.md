@@ -58,7 +58,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [x] **iOS JPEG photo export**: write `images/*.jpg` (or a `photos/` folder of 2048 px JPEGs) next to the HEICs in the bundle so Chrome/Firefox skip the 2 MB WASM HEIC decoder and decoding is instant; the web side already prefers whatever decodes natively. Done: `photos/*.jpg` (2048 px, upright) + `manifest.photos`; the web reader uses them when present.
 - [ ] **Drop the WASM HEIC decoder**: once every exported bundle has `photos/`, remove `libheif-js` (LGPL) or keep it only for old bundles; also check the exported zip size growth (~0.5 MB per photo) on a real capture.
 - [ ] **Validate close-ups on a real capture**: confirm Object Capture poses share the USDZ frame and the 65° landscape intrinsics assumption (portrait captures, EXIF rotation); read real intrinsics if the iOS app can export them.
-- [ ] **Portrait captures in close-ups**: test and handle rotated/portrait sample cameras in `scene/photos.ts` ranking (the FOV is taken from `width` and `fx`, so a portrait frame needs its axes swapped).
+- [ ] **Portrait captures in close-ups**: test and handle rotated/portrait sample cameras in `scene/photos.ts` ranking (the horizontal FOV comes from `width` and `fx`; a portrait frame may need its axes swapped).
 - [ ] **Occlusion-aware close-ups**: raycast from each candidate camera to the target against the loaded mesh and drop photos where the bike hides it.
 - [ ] **Pin favourite close-ups**: let staff star photos for an area (the schema already has `Hotspot.photos`) and show starred ones first, also in shared links.
 
