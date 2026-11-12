@@ -585,7 +585,10 @@ export class Viewer {
     const canvas = Object.assign(document.createElement('canvas'), opts.size);
     const ctx = canvas.getContext('2d')!;
     const scale = opts.size.width / this.viewport.width;
-    const stream = canvas.captureStream(30);
+    // Frames are pushed explicitly after each draw: a timed capture (captureStream(30)) can sample
+    // nothing on a slow device and produce a header-only file.
+    const stream = canvas.captureStream(0);
+    const track = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack;
     const recorder = new MediaRecorder(stream, { mimeType: opts.mimeType, videoBitsPerSecond: 8_000_000 });
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
@@ -600,6 +603,7 @@ export class Viewer {
       this.composite(ctx, opts.backdrop);
       for (const fn of this.frameListeners) fn(); // pins follow the turn, on the stage and in the overlay
       opts.overlay?.(ctx, scale);
+      track.requestFrame();
       opts.onProgress?.(t);
     };
     this.controls.enabled = false;
