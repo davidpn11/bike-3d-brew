@@ -12,7 +12,7 @@ Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an op
 - [x] **PR previews**: publish each open stack PR under `/bike-3d-brew/pr/<n>/` (docs + viewer) and link them from the Progress page, so the owner can test a PR before merging it.
 - [x] **Prune stale previews**: a scheduled job that removes `/pr/<n>/` for PRs that are no longer open (a missed or failed close run leaves them behind), and squashes gh-pages history once it grows large (each preview adds a full site copy to the branch). Done: `prune-previews.yml` runs daily and removes the preview of every closed PR; when gh-pages passes 200 commits it squashes the history, pushing with `--force-with-lease` on the base it read.
 - [x] **Preview link on the PR**: comment (or update one sticky comment) on each PR with its preview URL, so the owner can open it from the GitHub app. Done: `pr-preview.yml` keeps one sticky comment (marker `<!-- pr-preview -->`) with the Docs and Viewer links on each PR.
-- [ ] **Bun as package manager**: pinned Bun 1.4.4 installs (frozen `bun.lock`, root and `apps/docs`) locally, in `orca.yaml` and in GitHub Actions; Node 22 stays the runtime. Plan and trial: [docs/BUN-MIGRATION.md](docs/BUN-MIGRATION.md).
+- [x] **Bun as package manager**: Bun 1.4.4 with frozen root and docs locks, Bun scripts in CI/Pages/Orca and repo docs; Node 22 stays the runtime. Done: [docs/BUN-MIGRATION.md](docs/BUN-MIGRATION.md).
 
 ## Milestone 1: Foundation (PR 1)
 
@@ -79,7 +79,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 - [ ] **Branding**: shop logo, accent color and font in scene settings; applied to Present mode.
 - [x] **Snapshot / video export**: high-res PNG with transparent or green background; 360° turntable WebM via MediaRecorder for social posts. Done: **Snapshot** menu in the top bar (1× / 2× / 4× the stage, capped by the GPU and 16.7 MP; as shown / transparent / chroma green; pins on or off), 8 s turntable in WebM (MP4 where only that records, hidden where neither does).
 - [ ] **Square / vertical video formats**: the turntable records the stage's aspect; offer 1:1 and 9:16 framings (refit the camera to the bike) and a duration choice for Reels/Stories.
-- [ ] **Turntable in WebKit E2E**: check the MP4 path (Safari's MediaRecorder) in `npm run e2e:webkit`; the Chromium suite only covers WebM.
+- [ ] **Turntable in WebKit E2E**: check the MP4 path (Safari's MediaRecorder) in `bun run e2e:webkit`; the Chromium suite only covers WebM.
 - [x] **Undo/redo for the whole scene**: Edit → Model has its own undo stack; extend it to comments and areas (store-level history, Ctrl/Cmd+Z).
 - [ ] **Accessibility & i18n pass**: keyboard navigation for pins, focus states, screen-reader labels, number/currency formatting.
 

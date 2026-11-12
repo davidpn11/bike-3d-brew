@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Rendering/loading benchmark for the web viewer (docs/PERFORMANCE.md).
 //
-//   npm run build && node tools/bench/bench.mjs [--model big.usdz] [--pins 50] [--out result.json] [--skip-build]
+//   bun run build && node tools/bench/bench.mjs [--model big.usdz] [--pins 50] [--out result.json] [--skip-build]
 //
 // Drives the production build in Chromium (SwiftShader WebGL, like the E2E suite) through the
 // `?e2e` test hook: boots the demo, idles, orbits with the mouse, adds N pins and orbits again,

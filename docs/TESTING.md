@@ -4,10 +4,10 @@ Three layers, cheapest first. CI (`.github/workflows/ci.yml`) runs all of them o
 
 | Layer | Where | Runs in | Command |
 | --- | --- | --- | --- |
-| Unit | `apps/web/test/*.test.ts` | Vitest, Node (happy-dom per file where needed) | `npm test` |
-| Coverage | same tests, V8 coverage | Vitest | `npm run test:coverage` |
-| End-to-end | `apps/web/e2e/*.spec.ts` | Playwright, Chromium + SwiftShader WebGL | `npm run e2e` |
-| Merged coverage | unit + E2E V8 coverage | Playwright + `tools/coverage/e2e-coverage.mjs` | `npm run e2e:coverage && npm run coverage:merge` |
+| Unit | `apps/web/test/*.test.ts` | Vitest, Node (happy-dom per file where needed) | `bun run test` |
+| Coverage | same tests, V8 coverage | Vitest | `bun run test:coverage` |
+| End-to-end | `apps/web/e2e/*.spec.ts` | Playwright, Chromium + SwiftShader WebGL | `bun run e2e` |
+| Merged coverage | unit + E2E V8 coverage | Playwright + `tools/coverage/e2e-coverage.mjs` | `bun run e2e:coverage && bun run coverage:merge` |
 
 Fixtures for both come from one generator: `tools/fixtures/make-capture-bundle.mjs`.
 
@@ -47,7 +47,7 @@ Excluded from unit coverage in `apps/web/vite.config.ts`, each covered by the E2
 
 ### Coverage
 
-`npm run test:coverage` writes `coverage/` (text summary, HTML report, `coverage-summary.json`).
+`bun run test:coverage` writes `coverage/` (text summary, HTML report, `coverage-summary.json`).
 Thresholds in `apps/web/vite.config.ts` are a ratchet set just under the current numbers,
 globally and for `src/scene/**`; CI fails when coverage drops below them (and the web job
 prints the totals in its step summary). At the time of writing: lines 99.8%, statements 98.9%,
@@ -56,7 +56,7 @@ coverage, raise the thresholds in the same PR. Never lower them to make a PR pas
 
 ### E2E coverage
 
-`E2E_COVERAGE=1` (`npm run e2e:coverage`) makes the suite measure what the browser runs:
+`E2E_COVERAGE=1` (`bun run e2e:coverage`) makes the suite measure what the browser runs:
 
 - the build keeps source maps and skips minification (`apps/web/vite.config.ts`), so coverage
   maps back to `src/` line by line;
@@ -66,8 +66,8 @@ coverage, raise the thresholds in the same PR. Never lower them to make a PR pas
 - the global teardown converts it with `ast-v8-to-istanbul` (the converter Vitest uses) to
   `coverage-e2e/coverage-final.json`, `src/` files only.
 
-`npm run coverage:merge` then merges `coverage/coverage-final.json` (unit, needs
-`npm run test:coverage` first) with every `coverage-e2e/**/coverage-final.json` into
+`bun run coverage:merge` then merges `coverage/coverage-final.json` (unit, needs
+`bun run test:coverage` first) with every `coverage-e2e/**/coverage-final.json` into
 `coverage-all/` (text summary, HTML, `coverage-summary.json`). For files both runs measure, the
 E2E counts are kept only on the statements, functions and branches the unit report has: the
 production bundler and Vitest's transform place a few of them differently, and unmatched
@@ -82,7 +82,7 @@ is absent from the E2E data rather than counted as uncovered, and the Web Worker
 CI runs both E2E shards with `E2E_COVERAGE`, uploads each shard's `coverage-final.json`, and a
 `coverage` job merges them with a fresh unit run, checks the merged thresholds, prints the totals
 (and `app.ts` / `Viewer.ts` / `main.ts`) in its step summary and uploads `coverage-all/`. So CI's
-E2E runs the unminified build; a local `npm run e2e` still tests the minified production build.
+E2E runs the unminified build; a local `bun run e2e` still tests the minified production build.
 
 ## Fixtures
 
@@ -90,15 +90,15 @@ All output is synthetic; no real capture is ever committed.
 
 | Generator | Output | Used by |
 | --- | --- | --- |
-| `tools/fixtures/make-capture-bundle.mjs` | one bike geometry and one pose layout, as: the bundle variants below (USDZ, GLB, flat, broken…); the photo bundle (`--photos`, `buildPhotoBundle()`); the Pages sample (`--sample`, `buildSampleBundle()`). Deterministic | E2E (global setup), `fixtures.test.ts`, `photos.test.ts`, `capture.test.ts`, `viewer-node.test.ts`, `npm run fixtures`, `tools/publish-pages.sh` |
-| `tools/fixtures/render-photos.mjs` | JPEG renders of the photo bundle's bike from each of its poses | E2E photo close-ups (`bike-photos.bikecapture.zip`), `npm run fixture:photos` |
+| `tools/fixtures/make-capture-bundle.mjs` | one bike geometry and one pose layout, as: the bundle variants below (USDZ, GLB, flat, broken…); the photo bundle (`--photos`, `buildPhotoBundle()`); the Pages sample (`--sample`, `buildSampleBundle()`). Deterministic | E2E (global setup), `fixtures.test.ts`, `photos.test.ts`, `capture.test.ts`, `viewer-node.test.ts`, `bun run fixtures`, `tools/publish-pages.sh` |
+| `tools/fixtures/render-photos.mjs` | JPEG renders of the photo bundle's bike from each of its poses | E2E photo close-ups (`bike-photos.bikecapture.zip`), `bun run fixture:photos` |
 | `tools/fixtures/make-bike-capture.mjs` | tilted and area-mode bundles of the demo bike | E2E auto-orient and crop (`tilted-bike`, `area-bike`) |
 | `tools/fixtures/make-usdc.py` | binary USDC (crate) packages in `apps/web/test/fixtures/` (committed, small) | `usdz.test.ts`, E2E "binary USDC loads textured"; needs Pixar USD to regenerate |
 
 ### `make-capture-bundle.mjs`
 
 ```sh
-npm run fixtures                      # writes apps/web/e2e/.fixtures/ (gitignored)
+bun run fixtures                      # writes apps/web/e2e/.fixtures/ (gitignored)
 node tools/fixtures/make-capture-bundle.mjs /some/dir
 ```
 
@@ -121,7 +121,7 @@ The photos are PNG stand-ins: real captures have HEIC, which Node cannot encode.
 Two more variants, written on request:
 
 ```sh
-node tools/fixtures/make-capture-bundle.mjs --photos out.zip [--images <dir>]   # npm run fixture:capture
+node tools/fixtures/make-capture-bundle.mjs --photos out.zip [--images <dir>]   # bun run fixture:capture
 node tools/fixtures/make-capture-bundle.mjs --sample out.zip [--name "…"]      # the Pages sample
 ```
 
@@ -151,26 +151,26 @@ suite into two parallel shards (`--shard=1/2`, `2/2`).
 
 A third project, `webkit`, runs the iPhone 14 profile in Playwright's WebKit (the engine of iPhone
 Safari) over the view, edit, present, photos, share and files specs. It is opt-in
-(`npm run e2e:webkit`, after `npx playwright install webkit`; the global setup also needs Chromium, which renders the photo fixtures) and local-only for now: on GitHub's
+(`bun run e2e:webkit`, after `bunx playwright install webkit`; the global setup also needs Chromium, which renders the photo fixtures) and local-only for now: on GitHub's
 GPU-less macOS runners every WebKit page load timed out (WebGL), see ROADMAP. It found two
 Safari-only issues: a "ResizeObserver loop" page error from the Present card's height update
 (now applied on the next frame), and test contexts without OPFS, where captures use the
 IndexedDB fallback.
 
 ```sh
-npm run e2e                                   # desktop + mobile (Chromium)
-npm run e2e:webkit                            # iPhone profile in WebKit (Safari's engine)
-npm run e2e -- --project=desktop files.spec   # one project, one file
-npm run e2e -- -g "present mode"              # by title
-npm run e2e:ui                                # Playwright UI mode
-npm run e2e:coverage                          # with V8 coverage (see "E2E coverage"); then npm run coverage:merge
-E2E_SKIP_BUILD=1 npm run e2e                  # reuse an existing dist/
-E2E_PORT=4290 npm run e2e                     # another port: give each parallel worktree its own (a busy port fails fast)
-E2E_REUSE=1 npm run e2e                       # reuse a server already running on the port
-npx playwright show-report                    # HTML report after a run
+bun run e2e                                   # desktop + mobile (Chromium)
+bun run e2e:webkit                            # iPhone profile in WebKit (Safari's engine)
+bun run e2e -- --project=desktop files.spec   # one project, one file
+bun run e2e -- -g "present mode"              # by title
+bun run e2e:ui                                # Playwright UI mode
+bun run e2e:coverage                          # with V8 coverage (see "E2E coverage"); then bun run coverage:merge
+E2E_SKIP_BUILD=1 bun run e2e                  # reuse an existing dist/
+E2E_PORT=4290 bun run e2e                     # another port: give each parallel worktree its own (a busy port fails fast)
+E2E_REUSE=1 bun run e2e                       # reuse a server already running on the port
+bunx playwright show-report                    # HTML report after a run
 ```
 
-Browser: CI runs `npx playwright install --with-deps --only-shell chromium`. On a machine with a
+Browser: CI runs `bunx playwright install --with-deps --only-shell chromium`. On a machine with a
 preinstalled Chromium (e.g. the agent containers: `/opt/pw-browsers/chromium`), do not run
 `playwright install`; set `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium` and the config uses it as
 `launchOptions.executablePath`. `@playwright/test` is pinned to the version whose browsers are

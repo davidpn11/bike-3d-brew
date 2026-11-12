@@ -24,8 +24,8 @@ in `AGENTS.md`). Never guess at intent: an ambiguous brief is `escalate`, not a 
 1. Read `AGENTS.md` Conventions and the files you will touch.
 2. For a rename or a changed string, grep every use first and change all of them.
 3. Make the smallest edit, in the style of the surrounding code.
-4. Run the brief's verify commands; with none given, run `npm run typecheck` and `npm test` for web
-   changes, `npm run docs:build` for docs changes. For `apps/ios/**`, `cd apps/ios && xcodegen generate`
+4. Run the brief's verify commands; with none given, run `bun run typecheck` and `bun run test` for web
+   changes, `bun run docs:build` for docs changes. For `apps/ios/**`, `cd apps/ios && xcodegen generate`
    and the CI build command from the `ios-engineer` skill if Xcode is installed.
 5. If a check fails for a reason outside your change, stop and report it; do not fix other code.
 
