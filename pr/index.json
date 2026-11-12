@@ -1,5 +1,12 @@
 [
   {
+    "number": 33,
+    "title": "[roadmap] Area views with depth + long specs",
+    "branch": "claude/edit-polish",
+    "sha": "17184fd",
+    "updatedAt": "2026-11-12T05:48:09-06:00"
+  },
+  {
     "number": 30,
     "title": "Product views plan: screens for shops, the shop floor and customers",
     "branch": "claude/product-views",
