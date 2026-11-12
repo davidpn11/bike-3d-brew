@@ -1,5 +1,12 @@
 [
   {
+    "number": 28,
+    "title": "[roadmap] Save the capture checklist",
+    "branch": "claude/ios-checklist",
+    "sha": "313df63",
+    "updatedAt": "2026-11-11T20:56:56-06:00"
+  },
+  {
     "number": 27,
     "title": "[roadmap] Spec sheet on short screens",
     "branch": "claude/spec-sheet-short",
