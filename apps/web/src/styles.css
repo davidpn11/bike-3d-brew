@@ -141,6 +141,8 @@ button.add { margin-top: 8px; width: 100%; border-style: dashed; background: tra
 .spec-rows { display: grid; gap: 6px; }
 .spec-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; gap: 6px; }
 .spec-row input { min-width: 0; }
+.history { margin-top: 12px; }
+.history button:disabled { opacity: .35; cursor: default; }
 /* Edit → Model */
 .model-tools { display: grid; gap: 8px; padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
 .model-tools summary { cursor: pointer; list-style: none; }

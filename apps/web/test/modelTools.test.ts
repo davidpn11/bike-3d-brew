@@ -73,19 +73,23 @@ function setup(points = lyingBike()) {
 }
 
 describe('ModelTools', () => {
-  it('auto-orients a lying bike upright and grounds it in one store update', () => {
+  it('auto-orients a lying bike upright and grounds it in one undo step', () => {
     const { store, viewer, tools } = setup();
     const updates = vi.fn();
     store.subscribe(updates);
     expect(tools.autoOrient()).toBe(true);
-    expect(updates).toHaveBeenCalledTimes(1);
+    expect(updates).toHaveBeenCalledTimes(2); // identity baseline, then the orientation
     const m = matrixFromEulerXYZ(store.scene.model.rotation!);
     // Undoes the 90° about X the fixture was lying with.
     expect(rotationDistance(m, axisAngle('x', -Math.PI / 2))).toBeLessThan(0.05);
     expect(store.scene.model.offset).toEqual([0.1, 0.2, 0.3]);
     expect(viewer.groundedOffset).toHaveBeenCalledWith({ rotation: store.scene.model.rotation, scale: undefined });
     expect(store.scene.annotations[0].position).toEqual([0.1, 0.5, 0]);
-    expect(AUTO_ORIENT_NOTE).toContain('Undo in Edit → Model');
+    expect(AUTO_ORIENT_NOTE).toContain('Undo in Edit mode');
+    store.undo();
+    // Back to as loaded, but explicit so the next load does not auto-orient again.
+    expect(store.scene.model.rotation).toEqual([0, 0, 0]);
+    expect(store.canUndo).toBe(false);
   });
 
   it('says so when the model has no usable points', () => {
@@ -132,35 +136,32 @@ describe('ModelTools', () => {
     expect(panel().querySelector<HTMLInputElement>('input[name=length]')!.value).toBe('170');
   });
 
-  it('undoes step by step, then resets to the model as loaded', () => {
-    const { store, toast, click } = setup();
-    click('Undo the last model change');
-    expect(toast).toHaveBeenCalledWith('Nothing to undo.');
+  it('undoes step by step through the store, then resets to the model as loaded', () => {
+    const { store, click } = setup();
     click('Stand the bike upright, length along the X axis, on the ground');
     const oriented = store.scene.model.rotation;
     click('Rotate +90° about Z');
-    click('Undo the last model change');
+    store.undo();
     expect(store.scene.model.rotation).toEqual(oriented);
-    click('Undo the last model change');
-    // Back to as loaded, but explicit so the next load does not auto-orient again.
+    store.undo();
     expect(store.scene.model.rotation).toEqual([0, 0, 0]);
     click('Back to the model as loaded');
     expect(store.scene.model).toMatchObject({ rotation: [0, 0, 0], scale: 1, offset: [0, 0, 0] });
   });
 
-  it('keeps the section open or closed across re-renders and caps the undo history', () => {
-    const { tools, panel, click, store } = setup();
+  it('keeps the section open or closed across re-renders and merges rapid nudges into one undo step', () => {
+    const { panel, click, store } = setup();
     const details = panel() as HTMLDetailsElement;
     expect(details.open).toBe(true);
     details.open = false;
     details.dispatchEvent(new Event('toggle'));
     expect((panel() as HTMLDetailsElement).open).toBe(false);
-    for (let i = 0; i < 40; i++) click('Move +1 cm along Z');
-    for (let i = 0; i < 40; i++) click('Undo the last model change');
-    expect(store.scene.model.offset).toEqual([0, 0, 0.1]); // 30 steps of history
-    tools.clearHistory();
-    click('Undo the last model change');
-    expect(store.scene.model.offset).toEqual([0, 0, 0.1]);
+    for (let i = 0; i < 5; i++) click('Move +1 cm along Z');
+    expect(store.scene.model.offset).toEqual([0, 0, 0.05]);
+    click('Move +1 cm along X');
+    store.undo();
+    expect(store.scene.model.offset).toBeUndefined();
+    expect(store.canUndo).toBe(false);
   });
 
   it('ignores bad lengths, unmeasurable models and a failed Auto-orient button', () => {
@@ -180,7 +181,7 @@ describe('ModelTools', () => {
   });
 
   it('turns the crop on with a fitted box, re-grounds, and keeps it when turned off', () => {
-    const { store, viewer, check, button, panel, click } = setup(new Float32Array(uprightAreaScan()));
+    const { store, viewer, check, button, panel } = setup(new Float32Array(uprightAreaScan()));
     expect(panel().querySelector('.crop-row')).toBeNull();
     check('crop', true);
     const crop = store.scene.crop!;
@@ -193,7 +194,7 @@ describe('ModelTools', () => {
     check('crop', false);
     expect(store.scene.crop).toEqual({ ...crop, enabled: false });
     expect(panel().querySelector('.crop .hint')).toBeNull();
-    click('Undo the last model change');
+    store.undo();
     expect(store.scene.crop).toEqual(crop);
     button('Clear');
     expect(store.scene.crop).toBeUndefined();

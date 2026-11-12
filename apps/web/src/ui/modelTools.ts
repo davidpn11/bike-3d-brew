@@ -5,24 +5,19 @@ import type { SceneStore } from '../scene/store';
 import type { Viewer } from '../viewer/Viewer';
 import { h } from './dom';
 
-export const AUTO_ORIENT_NOTE = 'Auto-oriented. Undo in Edit → Model';
+export const AUTO_ORIENT_NOTE = 'Auto-oriented. Undo in Edit mode';
 export const AREA_CROP_NOTE = 'Area-mode capture: turn on Crop in Edit → Model to hide the room around the bike';
 
 type Axis = 'x' | 'y' | 'z';
 const AXES: Axis[] = ['x', 'y', 'z'];
 const NUDGE = 0.01; // 1 cm in world meters
-const HISTORY = 30;
-
-type Snapshot = Pick<BikeScene, 'model' | 'crop'>;
 
 /**
  * Edit → Model: orientation, scale and position of the loaded model, and its crop box. Every
  * action writes `model.rotation/scale/offset` or `crop` in one store update; comments, areas and
- * the crop box live in model-root space, so they move with the bike. Keeps its own small undo
- * stack of these model settings.
+ * the crop box live in model-root space, so they move with the bike. Undo is the store's.
  */
 export class ModelTools {
-  private history: Snapshot[] = [];
   private open = true;
 
   constructor(
@@ -31,10 +26,6 @@ export class ModelTools {
     private toast: (message: string, tone?: 'info' | 'error', ms?: number) => void,
   ) {}
 
-  clearHistory(): void {
-    this.history = [];
-  }
-
   /** Stands the bike upright facing +X, centered on the ground. Returns false if the model gave no usable points. */
   autoOrient(): boolean {
     const result = estimateOrientation(this.viewer.samplePositions());
@@ -42,7 +33,10 @@ export class ModelTools {
       this.toast('Could not work out the orientation of this model. Use the rotate buttons instead.', 'error');
       return false;
     }
-    const scale = this.store.scene.model.scale;
+    const scene = this.store.scene;
+    // Undo must land on an explicit identity rotation, or the next load would auto-orient the capture again.
+    if (!scene.model.rotation) this.store.replace({ ...scene, model: { ...scene.model, rotation: [0, 0, 0] } });
+    const scale = scene.model.scale;
     this.apply({ rotation: result.rotation, offset: this.viewer.groundedOffset({ rotation: result.rotation, scale }) });
     return true;
   }
@@ -86,7 +80,6 @@ export class ModelTools {
         button('Auto-orient', 'Stand the bike upright, length along the X axis, on the ground', () => {
           if (this.autoOrient()) this.reframe();
         }, 'primary'),
-        button('Undo', 'Undo the last model change', () => this.undo()),
         button('Reset', 'Back to the model as loaded', () => this.apply({ rotation: [0, 0, 0], scale: 1, offset: [0, 0, 0] }, true)),
       ),
       axisRow('Rotate 90°', (axis, sign) =>
@@ -227,26 +220,13 @@ export class ModelTools {
   private nudge(axis: Axis, sign: 1 | -1): void {
     const offset: Vec3 = [...(this.store.scene.model.offset ?? [0, 0, 0])];
     offset[AXES.indexOf(axis)] = round(offset[AXES.indexOf(axis)] + sign * NUDGE);
-    this.apply({ offset });
+    this.apply({ offset }, false, 'nudge');
   }
 
-  private undo(): void {
-    const prev = this.history.pop();
-    if (!prev) {
-      this.toast('Nothing to undo.');
-      return;
-    }
-    // An explicit identity rotation stops the next load from auto-orienting the capture again.
-    this.store.update({ model: { ...prev.model, rotation: prev.model.rotation ?? [0, 0, 0] }, crop: prev.crop });
-    this.reframe();
-  }
-
-  private apply(patch: Partial<Pick<ModelRef, 'rotation' | 'scale' | 'offset'>> & { crop?: CropBox }, reframe = false): void {
-    const { model, crop } = this.store.scene;
-    this.history.push({ model, crop });
-    if (this.history.length > HISTORY) this.history.shift();
+  private apply(patch: Partial<Pick<ModelRef, 'rotation' | 'scale' | 'offset'>> & { crop?: CropBox }, reframe = false, merge = ''): void {
+    const { model } = this.store.scene;
     const { crop: nextCrop, ...transform } = patch;
-    this.store.update('crop' in patch ? { model: { ...model, ...transform }, crop: nextCrop } : { model: { ...model, ...transform } });
+    this.store.update('crop' in patch ? { model: { ...model, ...transform }, crop: nextCrop } : { model: { ...model, ...transform } }, merge);
     if (reframe) this.reframe();
   }
 

@@ -175,7 +175,9 @@ is on. Turning the crop on/off or fitting it re-grounds the visible part.
 It runs once when a scene is opened with a non-demo model, no comments and no `model.rotation`
 (`shouldAutoOrient`); the offset is then recomputed from exact bounds so the bike stands on the
 ground. Edit → Model exposes the result plus manual rotate/flip/scale/nudge, each one store
-update with a small undo stack. Generate tilted test bundles with
+update and so one step of the scene's undo history (`SceneStore`: every edit pushes the previous
+scene, edits with the same merge key less than a second apart share a step, `replace` is not a
+step and a new scene id clears the history; Ctrl/Cmd+Z in Edit mode). Generate tilted test bundles with
 `node tools/fixtures/make-bike-capture.mjs --rotate 70,25,-40` (ASCII USD mesh in `model.usdz`).
 
 ### `bike-share/1` (share package, `*.bikeshare.zip`) and the customer link
