@@ -10,6 +10,13 @@ import Observation
 ///       model.usdz         on-device reconstruction (background removed by object masking)
 ///       poses.json         per-image camera poses from PhotogrammetrySession (.poses request)
 struct BikeRecord: Codable, Identifiable, Hashable, Sendable {
+    struct ChecklistItem: Codable, Hashable, Sendable {
+        var id: String
+        var label: String
+        var done: Bool
+        var pass: Int?
+    }
+
     enum Status: String, Codable, Sendable {
         case capturing, captured, reconstructing, ready, failed
     }
@@ -28,6 +35,34 @@ struct BikeRecord: Codable, Identifiable, Hashable, Sendable {
     var mode: CaptureMode
     var imageCount: Int = 0
     var lastError: String?
+    var checklist: [ChecklistItem] = []
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, createdAt, status, mode, imageCount, lastError, checklist
+    }
+
+    init(id: UUID, name: String, createdAt: Date, status: Status, mode: CaptureMode, imageCount: Int = 0, lastError: String? = nil, checklist: [ChecklistItem] = []) {
+        self.id = id
+        self.name = name
+        self.createdAt = createdAt
+        self.status = status
+        self.mode = mode
+        self.imageCount = imageCount
+        self.lastError = lastError
+        self.checklist = checklist
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        createdAt = try values.decode(Date.self, forKey: .createdAt)
+        status = try values.decode(Status.self, forKey: .status)
+        mode = try values.decode(CaptureMode.self, forKey: .mode)
+        imageCount = try values.decodeIfPresent(Int.self, forKey: .imageCount) ?? 0
+        lastError = try values.decodeIfPresent(String.self, forKey: .lastError)
+        checklist = try values.decodeIfPresent([ChecklistItem].self, forKey: .checklist) ?? []
+    }
 }
 
 @Observable
