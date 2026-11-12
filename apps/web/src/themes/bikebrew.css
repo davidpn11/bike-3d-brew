@@ -11,6 +11,8 @@
   /* The shop's #707070 is too faint for 14px text on --surface. */
   --muted: #a0a0a0;
   --accent: #0eb994;
+  /* White on this teal is 2.5:1; the dark surface colour gives about 7.5:1. */
+  --on-accent: #121212;
   --overlay: rgb(18 18 18 / .9);
   --font: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --radius: 6px;
