@@ -35,8 +35,12 @@ test.describe('undo / redo', () => {
     expect((await titles(page)).at(-2)).toBe('Undo me');
     await page.keyboard.press('ControlOrMeta+z'); // move undone
     expect((await titles(page)).at(-1)).toBe('Undo me');
-    await page.keyboard.press('ControlOrMeta+z'); // comment gone
+    // Open the comment in the editor, then undo its creation: the editor goes away with it.
+    await page.locator('.comments .comment', { hasText: 'Undo me' }).getByRole('button', { name: 'Edit' }).click();
+    await expect(form.locator('input[name=title]')).toHaveValue('Undo me');
+    await undo.click(); // comment gone
     expect(await titles(page)).toEqual(original);
+    await expect(form).toHaveCount(0);
     await expect(undo).toBeDisabled();
     await expect(page.locator('.pin-layer .pin')).toHaveCount(original.length);
 

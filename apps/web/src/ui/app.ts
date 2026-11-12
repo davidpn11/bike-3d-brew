@@ -184,6 +184,9 @@ export class App {
 
   render(): void {
     const scene = this.store.scene;
+    // Undo can remove the focused area or the comment being edited (its Save would write nowhere); a changed one re-renders from the scene.
+    if (this.activeHotspot && !scene.hotspots.some((x) => x.id === this.activeHotspot)) this.activeHotspot = null;
+    if (this.draft?.id && !scene.annotations.some((a) => a.id === this.draft!.id)) this.draft = null;
     this.viewer.applyTransform(scene.model);
     this.viewer.setBackground(scene.background);
     this.viewer.setCrop(scene.crop);
