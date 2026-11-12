@@ -1,5 +1,12 @@
 [
   {
+    "number": 30,
+    "title": "Product views plan: screens for shops, the shop floor and customers",
+    "branch": "claude/product-views",
+    "sha": "959b013",
+    "updatedAt": "2026-11-11T21:49:06-06:00"
+  },
+  {
     "number": 29,
     "title": "[roadmap] Branding: CSS tokens + Bike and Brew theme",
     "branch": "design/bikebrew",
