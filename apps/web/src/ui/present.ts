@@ -183,8 +183,8 @@ export class PresentView {
 function specTable(scene: BikeScene): HTMLElement | '' {
   const rows = visibleSpecs(scene.specs);
   if (!rows.length) return '';
-  const trs = rows.map((r) => h('tr', {}, h('th', { scope: 'row' }, r.label), h('td', {}, r.value)));
-  const table = h('table', { class: 'specs' }, h('caption', {}, 'Key specs'), h('tbody', {}, ...trs));
+  const trs = rows.map((r) => h('tr', { role: 'row' }, h('th', { scope: 'row', role: 'rowheader' }, r.label), h('td', { role: 'cell' }, r.value)));
+  const table = h('table', { class: 'specs' }, h('caption', {}, 'Key specs'), h('tbody', { role: 'rowgroup' }, ...trs));
   if (!specsCollapsible(rows.length)) return table;
   const btn = h('button', { class: 'specs-toggle', type: 'button', 'aria-expanded': 'false' }, `All specs (${rows.length})`);
   const sync = (open: boolean) => {
