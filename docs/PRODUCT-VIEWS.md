@@ -4,6 +4,17 @@ Planning document for the commercial product: who uses it, which screens it has,
 deliberately do not build, and in what order. Nothing here is built unless marked **exists**. Owner decisions
 are collected in [section 9](#9-owner-decisions).
 
+> **Owner decisions, 12 Nov 2026 (these override anything below that disagrees).**
+>
+> - **New bikes only.** No used or consignment bikes, so there are no condition notes, grades or defect lists.
+> - **A showroom, not a sales page.** The customer page informs buyers: see the bike in 3D, explore its
+>   components, and check the upgrades the shop offers. It has no checkout, hold, reservation or "buy" flow. Its
+>   one action is **Talk to a salesperson**.
+> - **US market first.** English, USD (`$4,299`), and contact by email or SMS (a text message), plus a call
+>   button. No WhatsApp.
+> - **Bun 1.4.4** as the package manager, with Node 22 as the runtime, an empty trusted-scripts list, and
+>   GitHub Actions on version tags (see [BUN-MIGRATION.md](BUN-MIGRATION.md)).
+
 How it was written: Claude and Codex each drafted a proposal independently from the same inputs. The drafts
 were merged and the disagreements settled ([section 10](#10-where-the-two-drafts-disagreed)). A Codex red-team
 then attacked the merged plan as a shop owner, a customer on a cheap Android and the phase 1 engineer, and its
@@ -11,23 +22,25 @@ twelve findings are applied here.
 
 ## 1. The bet
 
-A shop does not buy "3D". It buys **fewer wasted visits and test rides, faster sales of used and custom bikes,
-and listings that look better than everyone else's** on WhatsApp, Instagram and its own site. Every view is
-judged by one question: does it help a shop sell a specific bike sooner, or help a customer decide sooner?
+A shop does not buy "3D". It buys **customers who arrive already understanding the bike**: which groupset,
+which wheels, what the upgrade path costs, and why this model and not the one below it. That makes floor time
+shorter and the conversation better. Every view is judged by one question: does it help a customer understand
+a specific bike, or help a salesperson explain it?
 
 What follows from that:
 
-- **The wedge is used, consignment and custom bikes.** A stock 2026 road bike already has forty brand photos.
-  A used bike with a scratched top tube and upgraded wheels has none: it is unique, its condition matters, and
-  trust is what blocks the sale. A 3D model with pinned condition notes is a real advantage there. New-bike
-  stock comes later, when a brand supplies one scan that every dealer reuses.
-- **The customer never "uses an app".** They tap a link (WhatsApp, Instagram, a QR on the tag, the shop's
-  site). The customer view is a fast product page with 3D as the hero, not a 3D viewer with a price on it.
-  Price, size, condition and a way to act never wait for the model to load.
+- **New bikes, explained part by part.** A 2026 road bike has forty brand photos, but no page lets a customer
+  look at *this shop's build* up close, tap the rear derailleur and read what it is, or see that the wheels can be
+  upgraded for $600. The 3D model with **component pins** and **upgrade pins** is the advantage. Because a model is
+  sold many times, one capture serves every unit of that model, and later every dealer if a brand supplies it.
+- **Inform, then hand over to a person.** The page sells nothing by itself. Its one action, **Talk to a
+  salesperson**, sends a short message by email or SMS with the bike and the parts the customer asked about.
+- **The customer never "uses an app".** They tap a link (the shop's site, Instagram, a QR on the floor bike's
+  tag, a text from staff). Specs and the contact button never wait for the model to load.
 - **Staff have one hand and 30 seconds.** Floor tools are big buttons, no setup, task words ("Show customer",
   "Preview"), never "Edit mode" or "Present mode".
-- **3D is the differentiator, not a gate.** A bike can be listed with photos and specs first and get its 3D
-  capture later, so the shop's catalog is complete from day one and our capture app never blocks a listing.
+- **3D is the differentiator, not a gate.** A model can be listed with photos and specs first and get its 3D
+  capture later.
 
 ## 2. Challenging the three-screen brief
 
@@ -35,23 +48,23 @@ The brief asked for an admin screen, a shop screen and a client screen. Each nam
 
 | Brief | Problem | Plan |
 |---|---|---|
-| Admin | Mixes the **shop owner** (bikes, staff, branding, leads) with **us**, the platform (tenants, storage, billing, support). | **Studio** for the shop. A thin **Platform console** for us, not before about ten active shops; until then, audited database operations and scripts. |
+| Admin | Mixes the **shop owner** (bikes, staff, branding, messages) with **us**, the platform (tenants, storage, billing, support). | **Studio** for the shop. A thin **Platform console** for us, not before about ten active shops; until then, audited database operations and scripts. |
 | Shop | The back office and the shop floor are different jobs on different devices. | Back office lives in **Studio**. The floor gets **Show customer**: the bike page in an assisted, big-button variant on a shared tablet, and **Window mode** for a dedicated shop-window screen. These are modes of the bike page, not a separate app. |
 | Client | A viewer is not what a buyer needs. | A **Bike page** (one bike: decide and act) and a **Storefront** (the shop's catalog). Both public, no customer login. The **Embed** on the shop's own site is the main way customers reach it. |
 
 Plus two screens the brief did not name, which a shop will ask for in week one:
 
-- **Leads** (in Studio): questions, test-ride requests and reservation requests from bike pages. Without
+- **Messages** (in Studio): "Talk to a salesperson" messages from bike pages (sizing, upgrades, test rides). Without
   them the customer page has no purpose.
 - **Captures** (in Studio): uploads from the iPhone app, and later photo/video reconstruction jobs, waiting to
   become bikes. This replaces today's "AirDrop a zip to a laptop and drop it on the viewer".
 
 The resulting screens:
 
-- **Studio**: Library, Bike workspace, Leads, Captures, Settings.
+- **Studio**: Library, Bike workspace, Messages, Captures, Settings.
 - **Bike page**, with the Show customer and Window modes.
 - **Storefront** and **Embed**.
-- **Request form**.
+- **Talk to a salesperson** (contact sheet).
 - **Platform console**, later.
 - **iPhone app**, which exists and gains "Upload".
 
@@ -60,9 +73,9 @@ The resulting screens:
 | Person | Device | Jobs |
 |---|---|---|
 | **Owner / manager** | laptop, iPad | list bikes, set prices, choose what is public, brand the pages, see which bikes and links bring requests, invite staff, pay us |
-| **Staff who capture** (mechanic, salesperson) | iPhone, shared iPad | list a bike between repair jobs: photos and specs first, a 3D capture when there is time, then areas, condition notes and reused snippets; save a draft. Mechanics know the components; salespeople own the customer wording. How long each step really takes is measured with the pilot shop before any target is promised |
+| **Staff who capture** (mechanic, salesperson) | iPhone, shared iPad | list a bike between repair jobs: photos and specs first, a 3D capture when there is time, then areas, component and upgrade pins and reused snippets; save a draft. Mechanics know the components; salespeople own the customer wording. How long each step really takes is measured with the pilot shop before any target is promised |
 | **Salesperson on the floor** | shared iPad, shop TV | show a bike, or two side by side, at the area the customer asks about; hand off a link; reset for the next customer |
-| **Customer at home** | phone, often over 4G | decide whether the bike is worth a trip: price, size and fit, condition, close-ups; ask or request a test ride |
+| **Customer at home** | phone, often over 4G | understand the bike before visiting: components, upgrade options, sizes, close-ups; message a salesperson |
 | **Customer in store** | their own phone, via QR | look again later, send it to a partner, come back |
 | **Brand rep** | any | look at a dealer's demo bike. The public bike page covers this; no rep portal until a brand pays for it |
 | **Us (platform)** | laptop | onboard shops, fix failed uploads, watch storage and limits, suspend abuse; never browse shop data by default |
@@ -78,31 +91,26 @@ The resulting screens:
 
 ```
 ┌ Brew Cycles ▾ ─────────────────────────────────────────────────── [＋ Add bike] (DM) ┐
-│ Bikes   Leads ③   Captures ①   Storefront ↗   Settings                               │
+│ Bikes   Messages ③   Captures ①   Storefront ↗   Settings                             │
 ├──────────────────────────────────────────────────────────────────────────────────────┤
-│ [Search…]   State: All ▾  Type ▾  New/Used/Consignment ▾  Size ▾        ▦ grid ☰ list │
-│ Needs attention: 2 drafts missing close-ups · 1 lead unanswered for 24 h              │
+│ [Search…]   State: All ▾  Type ▾  Brand ▾  Size ▾                       ▦ grid ☰ list │
+│ Needs attention: 2 drafts missing close-ups · 1 message unanswered for 24 h           │
 │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                                  │
 │ │ ⟳ 3D     │ │ ⟳ 3D     │ │ ⟳ 3D     │ │ ▒ photos │                                  │
 │ │ Aero R1  │ │ Endurace │ │ Brompton │ │ Gravel X │                                  │
-│ │ $4,299   │ │ $1,850 U │ │ $1,200 C │ │ $2,100 U │                                  │
-│ │ ● Live   │ │ ● Live   │ │ ◐ Reserv.│ │ ○ Draft  │                                  │
-│ │ 312 views│ │ 2 leads  │ │ held→Fri │ │ 4/6 ready│                                  │
+│ │ $4,299   │ │ $1,850   │ │ $1,200   │ │ $2,100   │                                  │
+│ │ ● Live   │ │ ● Live   │ │ ◐ Unavail│ │ ○ Draft  │                                  │
+│ │ 312 views│ │ 2 msgs   │ │ no stock │ │ 4/6 ready│                                  │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘                                  │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **States**: Draft → Live → Reserved → Sold → Archived, plus **Unavailable**.
-  - **Reserved** always has an expiry date ("held until Fri"). At expiry the bike goes back to Live and the person
-    who set the hold is notified. The public page says "On hold until Friday", never "Sold".
-  - **Unavailable** is a temporary pull: out for a test ride, in the workshop, or the price is being reviewed.
-    The page stays up and says "Not available right now".
-  - Sold bikes keep their page, which says "Sold" and offers similar bikes, because old Instagram posts keep
-    sending traffic.
-  - Archived bikes leave the public site.
-  - Every live page shows "Availability checked on <date>". Library flags bikes not checked for 14 days, so a
-    stale "In store" never lingers.
-- Each card shows the one number that matters in its state: views or leads when live, readiness when draft.
+- **States**: Draft → Live → Archived, plus **Unavailable** (no Reserved or Sold: the page lists a *model*
+  the shop carries, not one physical unit).
+  - **Unavailable**: the model is out of stock or discontinued. The page stays up and says "Ask us about
+    availability", so old links still inform.
+  - Archived models leave the public site.
+- Each card shows the one number that matters in its state: views or messages when live, readiness when draft.
 - **Add bike** starts a bike from a capture in the inbox, a `.bikecapture.zip`, a GLB, or just photos and specs.
 
 ### 4.2 Studio: Bike workspace
@@ -114,34 +122,28 @@ The resulting screens:
   readiness check.
 
 ```
-┌ ← Bikes   Endurace CF 7 · Used               Draft · Saved   [Preview as customer] [Publish] ┐
+┌ ← Bikes   Endurace CF 7 · 2026               Draft · Saved   [Preview as customer] [Publish] ┐
 ├────────────────────────────────────────────┬────────────────────────────────────────────────┤
 │                                            │ Ready to publish  4/6                          │
-│            3D stage                        │  ✓ Price, size, condition                      │
+│            3D stage                        │  ✓ Price, sizes, specs                         │
 │         ● ● ●  pins     areas ▸            │  ✓ 5 areas                                     │
 │                                            │  ✓ Poster image                                │
-│                                            │  ✗ Condition notes (used bike)                 │
+│                                            │  ✗ Upgrades: none added yet                    │
 │                                            │  ✗ Close-ups missing: rear derailleur, cockpit │
 │ Next tap adds:                             │────────────────────────────────────────────────│
-│ [Feature ●] [Condition ●] [Upgrade ●]      │ Details | Areas | Comments | Specs | Photos    │
+│ [Component ●] [Upgrade ●]                  │ Details | Areas | Comments | Specs | Photos    │
 │                                            │ Snippet: "Shimano 105 Di2" → insert (6 bikes)  │
 └────────────────────────────────────────────┴────────────────────────────────────────────────┘
 ```
 
-- **Condition is structured, not free text**: for used and consignment bikes the shop fills in
-  - a grade from a fixed scale (Like new, Very good, Good, Fair) with a one-line definition of each;
-  - "Inspected on <date> by <name>";
-  - a known-defects checklist (frame damage, crash history, wear on chain, cassette, brake pads and tyres,
-    service due), each item either "none found" or linked to a Condition pin.
-
-  The public page labels all of this "Brew Cycles' assessment" and shows known defects as prominently as the
-  grade. The workshop can correct it, and corrections are dated.
+- **Upgrades are structured**: each Upgrade pin names the stock part, the upgrade part, its price difference
+  ("+$600") and an optional note ("ask about fitting time"). Upgrade prices show as add-ons to the model price,
+  never as a configurator total.
 - **Pin kinds**:
-  - **Feature**: what sells the bike.
-  - **Condition**: scratches and wear, stated honestly; this builds trust on used bikes.
-  - **Upgrade**: what the shop can add, such as wheels or a fit.
+  - **Component**: what a part is and why it matters ("Shimano 105 Di2: wireless electronic shifting").
+  - **Upgrade**: what the shop can swap or add, with the price difference.
 
-  Customers can filter by kind, and Show customer hides Condition pins by default.
+  Customers can filter by kind on the bike page.
 - **Snippets**: a shop-wide library of reusable comments, keyed by component ("Shimano 105 Di2", "tubeless ready").
   Writing copy is the real cost of each listing, and snippets cut it to minutes.
 - **Readiness check**:
@@ -157,7 +159,7 @@ The resulting screens:
 
 ### 4.3 Bike page (the customer view)
 
-- **Who**: customers at home and in store, brand reps.
+- **Who**: customers at home and in store.
 - **Entry**: `/s/:shop/:bike`. QR codes, social links and embeds all lead here, and today's `?scene=` links
   keep working.
 - **Device**: a phone, over 4G.
@@ -166,51 +168,42 @@ The resulting screens:
 
 ```
 ┌──────────────────────────────┐   phone, 390 px
-│ BREW CYCLES           ♡  ⇪   │
+│ BREW CYCLES              ⇪   │
 │┌────────────────────────────┐│
 ││ poster image (instant)     ││ ← still image first, 3D streams in behind it
 ││ → live 3D when ready  ⟳    ││
 ││ Fork · Drivetrain · Cockpit││ ← area chips (guided tour)
 │└────────────────────────────┘│
-│ Endurace CF 7                │
-│ $1,850 · Used, Very good ⓘ   │ ← the shop's assessment, inspected 3 Jun
-│ Size 56 · guide 175–183 cm   │
-│ ✓ In store, Lisbon           │
-│ ── What we noticed ───────── │
-│ ● 2 condition notes  →       │ ← opens the 3D view at those pins
-│ ── Key specs ─────────────── │
-│ Frame   Carbon               │
-│ Group   Shimano 105 Di2      │
-│ (below the fold: photos,     │
-│  more from Brew Cycles, ph 2)│
+│ Aero R1 · 2026               │
+│ from $4,299 · sizes 49–61    │
+│ ── Components ───────────── │
+│ ● Drivetrain  Shimano 105 Di2│ ← tap: the 3D view flies to the part
+│ ● Wheels      Aero 45 carbon │
+│ ● Brakes      Hydraulic disc │
+│ ── Upgrades ─────────────── │
+│ ▲ Wheels → DT Swiss  +$600   │ ← tap: flies to the part, shows the note
+│ ▲ Saddle → Fizik     +$120   │
+│ ── Key specs ────────────── │
+│ (below the fold: photos)     │
 │┌────────────────────────────┐│
-││ [Request a test ride]      ││ ← sticky; only the actions this shop answers
+││ [Talk to a salesperson]    ││ ← sticky, the page's one action
 │└────────────────────────────┘│
 └──────────────────────────────┘
 ```
 
 - **The still image comes first**, within a byte budget:
-  - The page with its facts and poster stays under about 300 KB, with the poster image itself under about
-    150 KB, so it is readable within seconds on a slow 4G phone.
-  - A snapshot (Snapshot export exists) paints at once. Model bytes load only when the visitor taps "View in 3D"
-    when the phone signals Save-Data, a slow connection (`navigator.connection`) or low memory; otherwise they
-    load once the page is idle.
-  - The 3D view shows download progress, a timeout with **Retry**, and a plain failure message that leaves
-    the rest of the page working.
-  - Pages are server-rendered HTML with Open Graph image, title and price, so WhatsApp and Instagram previews
-    look right and search engines index each bike.
-  - When WebGL fails, or the visitor prefers reduced motion, the page shows photos and still works.
-- **The page works before the 3D does**: price, availability, condition, fit and the contact action are above
-  the fold. The 3D view never blocks them.
-- **Actions are set per shop, and per bike**: request a test ride, ask a question, WhatsApp or call. The page
-  only shows actions this shop has said it answers, with one primary. The default (WhatsApp-first or
-  email-first) is chosen with the pilot shop for its market. A "Hold it for me" button is a request until the
-  shop confirms it, and the page says so. Nothing on the page implies a booking is confirmed.
-- **Guided tour**: today's Present mode, with areas, comment cards and leader lines.
-- **Fit line**: from a size table for each model, labelled as a guide ("usually fits 175–183 cm; come in for
-  a fit"). After price, it is the most common question. It is never a guarantee.
-- **Used bikes**: condition and known defects show openly. The page never implies a sold bike is available.
-- **No customer accounts**: "♡" is stored on the device, and sharing is the link.
+  - The page with its facts and poster stays under about 300 KB, with the poster image under about 150 KB.
+  - Model bytes load only when the visitor taps "View in 3D" when the phone signals Save-Data, a slow connection
+    or low memory; otherwise they load once the page is idle.
+  - The 3D view shows download progress, a timeout with **Retry**, and a plain failure message that leaves the
+    rest of the page working.
+  - Pages are generated as static HTML with Open Graph tags, so link previews in texts and social apps look right.
+- **Components and upgrades are the content**: two lists that mirror the pins. Tapping a row flies the 3D view
+  to that part and opens its card. The guided tour (today's Present mode) walks the areas in order.
+- **Price is optional**: the shop chooses whether to show "from $4,299" and upgrade price differences. It is
+  information, not a cart: there is no total, no checkout and no hold.
+- **One action: Talk to a salesperson.** It opens the contact sheet (4.7). On phones it is sticky at the bottom.
+- **Fit line**: "Sizes 49–61; ask us to find yours" from the model's size table, never a guarantee.
 
 ### 4.4 Show customer and Window mode (the shop floor)
 
@@ -259,7 +252,7 @@ The resulting screens:
 
 It shows:
 - a grid of live bikes with turntable thumbnails;
-- filters for type, size, price and new/used/consignment;
+- filters for type, brand, size and price;
 - a "Recently sold" row.
 
 It is deliberately thin. Most shops already have a website, so the **Embed is the main way customers arrive**,
@@ -272,47 +265,48 @@ and the storefront serves shops without a site and Instagram bio links.
   - "Copy embed" for each bike in Studio;
   - a whole-catalog embed (the storefront grid in an iframe);
   - copy-paste guides for Shopify, WooCommerce and Squarespace.
-- The embed is for discovering and looking at bikes. Its actions open the bike page or the request form, so
+- The embed is for discovering and looking at bikes. Its actions open the bike page or Talk to a salesperson, so
   every lead ends up in one inbox.
 
-### 4.7 Request form
+### 4.7 Talk to a salesperson
 
 - **Who**: customers.
 - **Exists**: no.
-- **Opens as**: a sheet over the bike page, with the bike and the request type already filled in.
+- **Opens as**: a sheet over the bike page, with the bike filled in.
 
 ```
-┌ Ask Brew Cycles about Endurace CF 7 ───────────────┐
-│ ( ) Question  (•) Test ride  ( ) Hold it for me     │
-│ Name            [______________________]           │
-│ Email or phone  [______________________]           │
-│ When suits you  [Sat morning__________] (optional) │
-│ Message         [______________________]           │
-│ Brew Cycles replies within one working day.        │
-│ Privacy: Brew Cycles uses this to answer you and   │
-│ deletes it after 12 months. More ›                 │
-│                               [ Send request ]      │
+┌ Talk to Brew Cycles about the Aero R1 ─────────────┐
+│ What would you like to know?                       │
+│ [☐ Sizing] [☐ Upgrades] [☐ Test ride] [☐ Other]    │
+│ Name             [______________________]          │
+│ Email or mobile  [______________________]          │
+│ Reply by         (•) Email  ( ) Text message       │
+│ Message          [______________________]          │
+│ Brew Cycles replies within one business day.       │
+│ Privacy: used only to answer you; deleted after    │
+│ 12 months. More ›                                  │
+│   [ Send ]        or call (512) 555-0142           │
 └────────────────────────────────────────────────────┘
 ```
 
-- **Short form**: a name and one contact method. A test ride asks for a time window and is not a confirmed
-  booking. "Hold it for me" is a request, not a guarantee.
-- **After sending**, the customer sees a confirmation with what happens next and the shop's phone number as a
-  fallback. A double tap or a resend within a few minutes does not create a second lead.
-- **Abuse**: a honeypot field and per-IP and per-bike rate limits, with no CAPTCHA unless spam shows up.
-- **Delivery**: notification emails are retried. If a lead still cannot be delivered, Studio shows a red
-  "undelivered" alert, so the core promise never fails silently.
-- **No browsing history on leads.** A lead holds only what the customer typed. Which areas get attention is
-  shown per bike, in aggregate (see section 7).
+- **Short form**: a name and one contact method, and how the customer wants the reply (email or text).
+  Topic chips are optional. If the customer tapped an upgrade before opening the sheet, it is named in the message.
+- **SMS consent**: choosing "Text message" shows one line of consent copy and "Reply STOP to opt out" (TCPA and
+  carrier rules). Email needs no extra consent.
+- **After sending**: a confirmation with what happens next and the shop's phone number. A double tap or a resend
+  within a few minutes does not create a second message.
+- **Abuse and delivery**: a honeypot field, per-IP and per-bike rate limits, retried notifications, and a red
+  "undelivered" alert in Studio if a message cannot be delivered.
+- **No browsing history on messages.** A message holds only what the customer typed and the bike.
 
-### 4.8 Studio: Leads
+### 4.8 Studio: Messages
 
 - **Who**: owner and salespeople.
 - **What it shows**: requests per bike, with type, contact, source (Instagram, QR, embed, direct), time and status.
   - Statuses: New, Contacted, Test ride booked, Won, Lost.
-  - Notifications by email, and WhatsApp later, for each new lead.
+  - Notifications by email, and SMS for the shop if it wants, for each new message.
 - **Scope**: assign a lead to someone and export CSV. This is not a CRM.
-- **Privacy tools**: delete a lead, export one person's data, and delete leads automatically after the shop's
+- **Privacy tools**: delete a lead, export one person's data, and delete messages automatically after the shop's
   retention period (12 months by default).
 
 ### 4.9 Studio: Captures
@@ -325,11 +319,11 @@ Incoming uploads from the iPhone app (roadmap: Upload to viewer), and later phot
 
 ### 4.10 Studio: Settings
 
-- **Shop**: profile (name, address, hours, WhatsApp) and branding (logo and accent color first; fonts later).
+- **Shop**: profile (name, address, hours, phone, SMS number) and branding (logo and accent color first; fonts later).
 - **Domains**: a subdomain or path now, custom domains later.
 - **Staff and roles**:
   - **Owner**: everything, including billing.
-  - **Editor**: publish and answer leads.
+  - **Editor**: publish and answer messages.
   - **Contributor**: capture and save drafts only.
 
   One person can belong to several shops.
@@ -354,10 +348,10 @@ Incoming uploads from the iPhone app (roadmap: Upload to viewer), and later phot
 ## 5. How people move between screens
 
 ```
-     Instagram · WhatsApp · Google · QR on the tag · shop website (Embed)
+     Instagram · texts · Google · QR on the tag · shop website (Embed)
                                   │
-       Storefront ─────────────►  Bike page ──► Guided tour (areas, condition notes)
-            ▲                      │    ├─────► Request form ──► Leads (Studio) ──► email / WhatsApp reply
+       Storefront ─────────────►  Bike page ──► Guided tour (areas, components, upgrades)
+            ▲                      │    ├─────► Talk to a salesperson ──► Messages (Studio) ──► email / SMS reply
             │                      │    └─────► Sold → similar bikes
   Show customer / Window ── QR ────┘
             ▲
@@ -366,7 +360,7 @@ Incoming uploads from the iPhone app (roadmap: Upload to viewer), and later phot
   iPhone app (Upload)
 ```
 
-Every link carries its source (QR, Instagram, embed), so Leads and the Library know which channel works.
+Every link carries its source (QR, Instagram, embed), so Messages and the Library know which channel works.
 
 ## 6. What we will not build, and why
 
@@ -380,7 +374,7 @@ Every link carries its source (QR, Instagram, embed), so Leads and the Library k
   so last-write-wins, undo history and "edited by" are enough.
 - **A separate tablet app.** Show customer is a web mode that can be installed as a PWA.
 - **AR "bike in your room", AI-written descriptions, rep portals, session replay.** They are demos, extra
-  maintenance or privacy cost, and none of them answer price, size or condition.
+  maintenance or privacy cost, and none of them answer what the bike is made of or how it fits.
 - **A bespoke platform admin as an early milestone.**
 
 ## 7. Data and backend
@@ -389,15 +383,15 @@ Every link carries its source (QR, Instagram, embed), so Leads and the Library k
 - **Tables**:
   - `Shop`: slug, profile, branding, request actions, plan.
   - `Member`: user, shop, role.
-  - `Bike`: shop, slug, state, price, currency, condition, size, type, external ID, published version, draft version.
+  - `Bike`: shop, slug, state, price (optional), currency, sizes, type, brand, model year, external ID, published version, draft version.
   - `BikeVersion`: a frozen `bike-scene/1` scene, poster, model and photo object IDs, published by, published at.
   - `Capture`: shop, bundle object, status, error.
   - `Lead`: shop, bike, type, contact, time window, status, assignee, source, consent notice version, delete-after date.
   - `Snippet`: shop, component key, markdown.
   - `Event`: shop, bike, kind, source, day-scoped session hash.
-- **Stock stays out of the scene**: price, availability and condition change often, so they live in `Bike`.
+- **Stock stays out of the scene**: price and availability change often, so they live in `Bike`.
   `bike-scene/1` grows only by optional, presentation-only fields:
-  - pin `kind` (feature, condition, upgrade);
+  - pin `kind` (component, upgrade), and for upgrades the part names and price difference;
   - a `poster`;
   - a branding reference.
 
@@ -407,33 +401,30 @@ Every link carries its source (QR, Instagram, embed), so Leads and the Library k
   - Models and photos are 5–30 MB objects with stable IDs, uploaded through signed URLs.
   - Drafts are private. Published versions are public and cacheable.
 - **Analytics**:
-  - Events: page view, model ready or failed, area opened, condition notes opened, request button tapped, request
+  - Events: page view, model ready or failed, area opened, component or upgrade opened, contact button tapped, message
     sent, QR or campaign source.
   - Only aggregate counters per bike, per day and per source. Phase 1 has no session hash and no device storage.
     IP addresses are not stored with events, and server logs are kept for 30 days for operations only.
   - Without identifiers or device storage, no consent banner is expected. Before launch, check that against the
     ePrivacy rules of the pilot market, and add a hash only if the aggregate counts prove insufficient. A hash
     would count as pseudonymous personal data.
-- **Privacy roles (GDPR)**:
-  - The **shop is the controller** of its leads, and **we are the processor**, under a data processing agreement
+- **Privacy roles (US first; GDPR-ready)**: the US launch needs a privacy notice at collection (CCPA/CPRA style),
+  TCPA consent for texts, and deletion on request. The roles below also make an EU launch possible later:
+  - The **shop is the controller** of its messages, and **we are the processor**, under a data processing agreement
     in the terms of service.
   - The lawful basis for a request is steps taken at the customer's request before a contract (Art. 6(1)(b)).
   - The form shows a collection notice (Art. 13): who, why, how long, and how to delete. The shop configures it;
     we provide the default.
-  - Retention defaults to 12 months. Leads can be deleted or exported, staff only see their own shop's leads, and
+  - Retention defaults to 12 months. Messages can be deleted or exported, staff only see their own shop's messages, and
     a breach procedure is documented before the first real lead.
-- **Consumer law**: condition and fit are the shop's own statements. They are structured, dated and attributed,
-  and known defects are as visible as the grade (section 4.2). This keeps listings away from misleading
-  omissions.
-- **Hosting**: most traffic is phones downloading 20 MB models, so egress cost matters. Decide after a thin spike:
-  tenant auth, a signed upload, public reads, and the cost of 1,000 views of a 20 MB model on Cloudflare
-  (R2, Workers, D1) and on Supabase.
+- **Consumer claims**: component names and upgrade prices are the shop's own statements; the page dates them
+  ("specs checked <date>") and says upgrade prices are confirmed in store.
 
 ## 8. Phases
 
 **Phase 0: clickable prototype (no backend).**
 - A `/app/proto/` page on the PR preview with tabs: Studio · Bike workspace · Bike page · Show customer · Storefront ·
-  Request form.
+  Talk to a salesperson.
 - It uses the demo bike and made-up data, so the owner can try each screen on a laptop, an iPad and a phone.
 - It also runs the hosting cost spike.
 
@@ -443,8 +434,8 @@ Every link carries its source (QR, Instagram, embed), so Leads and the Library k
 - One shop's hosted listings. There is no signup; we create the shop and its staff logins.
 - Private drafts and published snapshots.
 - Today's editor, saving to the hosted draft instead of browser storage, with photos-only listings allowed.
-- The bike page within its byte budget, with structured condition and the request form → email.
-- Each bike page is generated as static HTML when it is published, with Open Graph tags, so WhatsApp and
+- The bike page within its byte budget, with component and upgrade lists and Talk to a salesperson → email or SMS.
+- Each bike page is generated as static HTML when it is published, with Open Graph tags, so texts and
   Instagram previews work without a page server.
 - The privacy notice, retention and deletion from section 7.
 - Measure how long listing one bike takes, step by step, with the shop's staff.
@@ -453,7 +444,7 @@ Every link carries its source (QR, Instagram, embed), so Leads and the Library k
 request reaches the shop and gets answered. The listing-time target is set from what was measured.
 
 **Phase 1b: what 1a proved is needed.**
-- The Library with states and Reserved expiry, logo and accent color, pin kinds, QR codes, and the embed pointed
+- The Library with states, logo and accent color, pin kinds, QR codes, and the embed pointed
   at the new URLs.
 - Shop accounts and roles, the step that turns this into a product for more than one shop.
 
@@ -478,19 +469,23 @@ links bring requests.
 
 ## 9. Owner decisions
 
-1. **Which shops first?** Recommendation: independent shops strong in used and consignment bikes. Validate with 3–5
-   shops before supporting new-bike catalogs.
-2. **Hosting**: decide after the phase 0 cost spike (Cloudflare R2/Workers/D1 vs Supabase), on egress cost per model
-   view, access control, signed uploads and operating burden.
-3. **Product name and domain**: paths on our domain (`/s/:shop/:bike`) at first, subdomains or custom domains later.
-4. **Pilot shop**: one real shop for phase 1, ideally one that sells many used bikes.
-5. **Pricing**: recommendation is per shop per month, with a cap on live bikes (for example 30), rather than per listing.
-6. **Condition notes public by default?** Recommendation: yes on the bike page, because they build trust; hidden by
-   default in Show customer.
-7. **What does "Hold it for me" mean?** Recommendation: a request with no guaranteed hold until the shop confirms.
-   Deposits come in phase 3 at the earliest.
-8. **Who captures?** The shop's staff by default; a paid capture service for busy shops is a later option.
-9. **Launch market**: languages, currency and the WhatsApp-first vs email-first default.
+Decided on 12 Nov 2026:
+
+| Question | Decision |
+|---|---|
+| Which shops and bikes first? | **New bikes only**: shops showing their current-season models. No used bikes, so no condition notes. |
+| What is the customer page for? | **Informing, not selling**: 3D, components, upgrades. Its one action is **Talk to a salesperson**. No hold, reservation or checkout. |
+| Launch market | **US**: English, USD, email or SMS replies, plus a call button. Privacy section adapted: CCPA/CPRA-style notice, and TCPA consent for texts. |
+| Bun | 1.4.4 pinned, empty trusted-scripts list, GitHub Actions on version tags. |
+
+Still open; none of these block the prototype:
+
+1. **Hosting**: decided by the phase 0 cost spike (Cloudflare R2/Workers/D1 vs Supabase).
+2. **Product name and domain.**
+3. **Pilot shop**: one US shop with a few current-season models.
+4. **Pricing**: per shop per month with a cap on live models (recommended) vs per model.
+5. **Who captures**: shop staff by default, or brands supply one scan per model for every dealer. New bikes make
+   brand scans more valuable than before.
 
 ## 10. Where the two drafts disagreed
 
@@ -500,7 +495,7 @@ links bring requests.
 | Compare on the floor | phase 2, the floor's main feature | phase 3, unproven | Phase 2, polished only after the pilot shop confirms they use it |
 | Publishing | edits go live | versioned snapshots, drafts invisible | Versioned (Codex) |
 | Stock fields | in `Bike`, with pin kinds in the scene | outside the scene | Stock in `Bike`; the scene only gains presentation fields |
-| Leads show viewed areas | yes | avoid person-level tracking | No (reversed after the red-team: a checkbox does not make it safe or clear). Per-bike aggregate counts only |
+| Messages show viewed areas | yes | avoid person-level tracking | No (reversed after the red-team: a checkbox does not make it safe or clear). Per-bike aggregate counts only |
 | Hosting | Cloudflare, for egress | decide after a prototype | Phase 0 cost spike decides |
 | Shared iPad vs kiosk | one Floor mode | kiosk only on dedicated displays | Show customer (shared, resettable) and Window mode (locked) |
 | Roles | Owner, Staff | Owner, Editor, Viewer | Owner, Editor, Contributor (capturers save drafts) |
