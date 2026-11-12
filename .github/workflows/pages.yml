@@ -1,7 +1,7 @@
 name: Publish site
 
 # Keeps https://davidpn11.github.io/bike-3d-brew/ (gh-pages, deploy from branch) in step with
-# the stack tip (see CLAUDE.md): the newest open PR whose head no other open PR uses as its base,
+# the stack tip (see CLAUDE.md): the newest open, non-draft PR whose head no other open PR uses as its base,
 # or develop when nothing is open. While the stack waits for review, develop is far behind, so
 # publishing only develop would leave the site weeks stale. tools/publish-pages.sh only replaces
 # the main site and leaves PR previews in /pr/.
@@ -31,9 +31,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number,headRefName,baseRefName > prs.json
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number,headRefName,baseRefName,isDraft > prs.json
           tip=$(node -e '
-            const prs = require("./prs.json");
+            // Drafts are claims still being built: they neither publish nor hide the PR below them.
+            const prs = require("./prs.json").filter((p) => !p.isDraft);
             const bases = new Set(prs.map((p) => p.baseRefName));
             const leaves = prs.filter((p) => !bases.has(p.headRefName)).sort((a, b) => b.number - a.number);
             console.log(leaves[0]?.headRefName ?? "develop");')
