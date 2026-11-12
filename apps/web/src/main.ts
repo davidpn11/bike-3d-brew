@@ -43,7 +43,7 @@ app.configure(view);
 
 // Test hook for the Playwright suite (docs/TESTING.md): dev server or `?e2e` only, so tests can
 // wait on app state and find pickable points on the canvas instead of sleeping or guessing pixels.
-const testHook = import.meta.env.DEV || params.has('e2e') ? { app, store, viewer, ready: false } : null;
+const testHook = import.meta.env.DEV || params.has('e2e') ? { app, store, viewer, pivotAt: (x: number, y: number) => viewer.pivotAt(x, y), ready: false } : null;
 if (testHook) (window as unknown as { __bike: typeof testHook }).__bike = testHook;
 
 boot()

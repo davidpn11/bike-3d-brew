@@ -8,6 +8,14 @@ const scale = (a: Vec3, s: number): Vec3 => [a[0] * s, a[1] * s, a[2] * s];
 const len = (a: Vec3) => Math.hypot(a[0], a[1], a[2]);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** Interpolates a point into a reusable tuple, for camera target animation without per-frame allocation. */
+export function lerpVec3Into(a: Vec3, b: Vec3, t: number, out: Vec3): Vec3 {
+  out[0] = lerp(a[0], b[0], t);
+  out[1] = lerp(a[1], b[1], t);
+  out[2] = lerp(a[2], b[2], t);
+  return out;
+}
+
 export function normalize(a: Vec3): Vec3 {
   const l = len(a);
   return l === 0 ? [0, 0, 1] : scale(a, 1 / l);
