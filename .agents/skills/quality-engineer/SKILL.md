@@ -13,7 +13,7 @@ reference; read it first.
 - Unit tests cover behavior through the public function, with synthetic inputs. Invalid and hostile
   inputs (truncated zip, wrong schema, huge counts) are first-class cases.
 - E2E specs drive the app like a user, and read state through `window.__bike` (`e2e/helpers.ts`
-  `BikeHook`) instead of pixels. Fixtures come from `npm run fixtures` (`e2e/.fixtures/`) or the
+  `BikeHook`) instead of pixels. Fixtures come from `bun run fixtures` (`e2e/.fixtures/`) or the
   generators in `tools/fixtures/`; never commit real captures or photos.
 - Coverage thresholds in `apps/web/vite.config.ts` only go up. If your tests lift coverage past a
   threshold, raise it to the new floor (rounded down).
@@ -22,8 +22,8 @@ reference; read it first.
 
 ## Verify
 
-`npm run test:coverage` and `npm run e2e` (in agent containers:
-`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e`; never `playwright install`). Report
+`bun run test:coverage` and `bun run e2e` (in agent containers:
+`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium bun run e2e`; never `playwright install`). Report
 pass/fail counts and the coverage summary in `extra`.
 
 End with the `delegation` response contract.
