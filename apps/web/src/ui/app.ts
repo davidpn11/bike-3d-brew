@@ -828,7 +828,7 @@ export class App {
       if (lastTap && isDoubleTap(lastTap, tap)) {
         lastTap = null;
         this.draft = null; // the first tap of the pair opened a draft
-        (this.viewer as unknown as { pivotAt?: (x: number, y: number) => boolean }).pivotAt?.(tap.x, tap.y);
+        this.viewer.pivotAt(tap.x, tap.y);
         this.render();
         return;
       }
