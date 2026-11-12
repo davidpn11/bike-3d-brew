@@ -34,7 +34,7 @@ nothing) and optionally the pins (`PinLayer.drawInto`); video goes through `canv
 
 | Path            | Content |
 | --------------- | ------- |
-| `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, photos?, imageCount, source?: "photos"\|"video", backend? }` (`source`/`backend` only from `tools/reconstruct`) |
+| `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, photos?, imageCount, checklist?: [{ id, label, done }], source?: "photos"\|"video", backend? }` (`checklist` is optional and written by iOS; `source`/`backend` only from `tools/reconstruct`) |
 | `model.usdz`    | reconstruction, meters, +Y up (`tools/reconstruct` writes `model.glb`, or `.usdz` / `.ply`) |
 | `poses.json`    | `{ schema: "bike-poses/1", samples: [{ sample, file, transform[16], camera? }] }` (column-major camera→model; `camera: { model, width, height, fx, fy, cx, cy }` in pixels from COLMAP; `width`/`height`/`fx`/`fy` set each photo's field of view in close-up ranking, invalid values are ignored) |
 | `images/`       | Object Capture HEIC photos (reconstruction input); `tools/reconstruct`: the JPEG frames |

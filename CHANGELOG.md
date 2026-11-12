@@ -6,6 +6,7 @@ merges the stack to `main`, the Unreleased block becomes a dated release.
 ## Unreleased
 
 ### Added
+- Capture checklist saved: the iOS app keeps each checklist item (id, label, done, pass) in the bike's `record.json`, and exported bundles carry an optional `checklist: [{id, label, done}]` in `manifest.json` (left out when empty). The viewer does not read it yet. Only the iOS CI build checks the Swift code. (#28)
 - Real intrinsics in close-ups: photo ranking uses each sample's own `camera` from `poses.json` (horizontal FOV and aspect from fx, fy, width, height) instead of the 65° iPhone assumption; implausible values fall back to 65°. (#26)
 - COLMAP binary models: `tools/reconstruct/cli.mjs poses` reads `cameras.bin`, `images.bin` and `points3D.bin` directly (no `model_converter` step); TXT is preferred when both exist, and a missing or unreadable `points3D` is a warning, not an error. Binary parsing is bounds-checked and tested against the TXT output. (#25)
 - Preview ops: `prune-previews.yml` runs daily and removes the `/pr/<n>/` preview of every closed PR, and squashes gh-pages history once it passes 200 commits (force-with-lease on the base it read); `pr-preview.yml` keeps one sticky comment with the Docs and Viewer links on each PR. (#24)
