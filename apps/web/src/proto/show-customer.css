@@ -1,0 +1,41 @@
+.p-show { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; height: calc(100dvh - 50px); min-height: 560px; padding: 10px 14px; box-sizing: border-box; color: var(--text); background: var(--bg); font: 15px/1.4 system-ui, sans-serif; position: relative; }
+.p-show .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.p-show .tools { display: flex; gap: 8px; }
+.p-show button { min-height: 44px; min-width: 44px; }
+.p-show button[aria-pressed='true'], .p-show .area[aria-current='true'] { border-color: var(--accent); background: var(--surface-2); }
+.p-show :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.p-show .body { display: grid; grid-template-columns: 1fr; gap: 12px; min-height: 0; }
+.p-show[data-compare='true'] .body { grid-template-columns: 1fr 1fr; }
+.p-show .panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 6px; min-height: 0; min-width: 0; }
+.p-show h2 { margin: 0; font-size: 17px; }
+.p-show .view { position: relative; min-height: 0; border-radius: 12px; overflow: hidden; background: var(--surface); }
+/* The screen draws its own card (◀ ▶ + component), so the presenter's built-in one is hidden. */
+.p-show .view .present-card { display: none; }
+.p-show .ph { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; text-align: center; padding: 12px; color: var(--muted); background: radial-gradient(ellipse at 50% 35%, #2b2d33, #131417 75%); }
+.p-show .ph strong { color: var(--text); font-size: 22px; }
+.p-show .card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-height: 64px; }
+.p-show .card .text { flex: 1; min-width: 0; }
+.p-show .card p { margin: 0; }
+.p-show .card .up { color: var(--upgrade); }
+.p-show .step { flex: none; width: 48px; height: 48px; border-radius: 50%; padding: 0; }
+.p-show .areas { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.p-show .area { flex: 1 0 auto; min-width: 88px; min-height: 64px; font-size: 16px; }
+.p-show .hint { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
+.p-show .ask { justify-self: center; }
+.p-show .qr { position: absolute; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; gap: 8px; justify-items: center; padding: 16px; max-width: min(320px, calc(100% - 28px)); background: var(--surface); border: 1px solid var(--accent); border-radius: 14px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); text-align: center; }
+.p-show .qr[hidden] { display: none; }
+.p-show .qr .code { width: 200px; height: 200px; border-radius: 8px; background: #fff; background-image: conic-gradient(#000 25%, #fff 0 50%, #000 0 75%, #fff 0); background-size: 25px 25px; border: 12px solid #fff; box-sizing: border-box; }
+.p-show .qr p { margin: 0; }
+.p-show .qr code { font-size: 12px; word-break: break-all; color: var(--muted); }
+.p-show.window { grid-template-rows: minmax(0, 1fr) auto; }
+.p-show .slide { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; text-align: center; }
+.p-show .big { margin: 0; font-size: clamp(26px, 5vw, 48px); }
+.p-show .big-sub { margin: 0; font-size: 20px; color: var(--muted); }
+@media (max-width: 700px) {
+  .p-show { height: auto; min-height: calc(100dvh - 50px); }
+  .p-show .body, .p-show[data-compare='true'] .body { grid-template-columns: 1fr; }
+  .p-show .view { height: 46dvh; }
+  .p-show.window .view { height: 46dvh; }
+  .p-show .area { min-width: 76px; }
+}
+.p-show .bike-present { grid-template-rows: minmax(0, 1fr); } /* no header row */

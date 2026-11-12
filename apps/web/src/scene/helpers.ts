@@ -68,3 +68,8 @@ export function captureSummary(sceneName: string, bundle: Pick<CaptureBundle, 'm
 export function presentLede(scene: Pick<BikeScene, 'brand' | 'modelName' | 'year'>): string {
   return [scene.brand, scene.modelName, scene.year].filter(Boolean).join(' · ') || 'Swipe through the highlights →';
 }
+
+/** Whether the bike page should wait for a "View in 3D" tap: data saver, a 3G-or-slower link, or under 4 GB of memory (docs/PRODUCT-VIEWS.md 4.3). */
+export function shouldDefer3d(c: { saveData?: boolean; effectiveType?: string; deviceMemory?: number }): boolean {
+  return !!c.saveData || ['slow-2g', '2g', '3g'].includes(c.effectiveType ?? '') || (c.deviceMemory !== undefined && c.deviceMemory < 4);
+}

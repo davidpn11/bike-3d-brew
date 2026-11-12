@@ -1,0 +1,25 @@
+.p-contact { color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+.p-contact.inline { max-width: 560px; margin: 24px auto; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+dialog.p-contact { position: fixed; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+dialog.p-contact::backdrop { background: rgb(0 0 0 / .6); }
+.p-contact h2 { margin: 0 32px 12px 0; font-size: 18px; }
+.p-contact form { display: grid; gap: 12px; }
+.p-contact fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.p-contact legend { padding: 0; margin-bottom: 8px; color: var(--muted); }
+.p-contact label { display: grid; gap: 4px; color: var(--muted); }
+.p-contact input[type='text'], .p-contact textarea { min-height: 44px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+.p-contact textarea { min-height: 80px; resize: vertical; }
+.p-contact button { min-height: 44px; min-width: 44px; }
+.p-contact .chip { border-radius: 999px; padding: 6px 14px; }
+.p-contact .chip[aria-pressed='true'] { background: var(--surface-2); border-color: var(--accent); }
+.p-contact .reply { align-items: center; gap: 8px 18px; }
+.p-contact .reply legend { float: left; margin: 0 18px 0 0; padding: 0; line-height: 44px; }
+.p-contact .reply label { display: flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text); }
+.p-contact .reply input { width: 22px; height: 22px; }
+.p-contact .fine { margin: 0; font-size: 13px; color: var(--muted); }
+.p-contact .err { margin: 0; color: #fca5a5; font-size: 14px; }
+.p-contact .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.p-contact a { display: inline-flex; align-items: center; min-height: 44px; color: var(--text); }
+.p-contact .close { position: absolute; top: 10px; right: 10px; border-radius: 50%; padding: 0; }
+.p-contact .done { display: grid; gap: 8px; }
+.p-contact :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
