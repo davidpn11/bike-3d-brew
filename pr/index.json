@@ -1,5 +1,12 @@
 [
   {
+    "number": 34,
+    "title": "Bun migration plan: package manager, local + GitHub Actions",
+    "branch": "claude/bun-plan",
+    "sha": "7015328",
+    "updatedAt": "2026-11-12T06:07:34-06:00"
+  },
+  {
     "number": 33,
     "title": "[roadmap] Area views with depth + long specs",
     "branch": "claude/edit-polish",
