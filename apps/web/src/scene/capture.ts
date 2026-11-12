@@ -24,7 +24,12 @@ export interface CaptureManifest {
   /** Folder of browser-friendly JPEG copies of `images/` (same file stems), when the app wrote them. */
   photos?: string;
   imageCount?: number;
+  /** Set by tools/reconstruct: what the model was reconstructed from, and with which backend. */
+  source?: CaptureSource;
+  backend?: string;
 }
+
+export type CaptureSource = 'photos' | 'video';
 
 export interface PoseSample {
   sample: number;
@@ -76,7 +81,8 @@ export function parseManifest(input: unknown): CaptureManifest {
     poses: isStr(input.poses) && input.poses ? input.poses : null,
     images: isStr(input.images) ? input.images : 'images/',
   };
-  for (const key of ['createdAt', 'device', 'systemVersion', 'photos'] as const) {
+  if (input.source === 'photos' || input.source === 'video') manifest.source = input.source;
+  for (const key of ['createdAt', 'device', 'systemVersion', 'photos', 'backend'] as const) {
     const v = optStr(input[key]);
     if (v) manifest[key] = v;
   }
