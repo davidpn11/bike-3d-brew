@@ -71,7 +71,8 @@ test.describe('snapshot / video export', () => {
     await waitForModel(page);
     const camera = () => page.evaluate(() => window.__bike!.viewer.camera.position.toArray());
     const start = await camera();
-    await page.evaluate(() => (window.__bike!.app.turntableSeconds = 1));
+    // 3 s, not 1: the encoder drops frames while it starts, and a loaded CI runner draws only a few per second.
+    await page.evaluate(() => (window.__bike!.app.turntableSeconds = 3));
     await page.getByRole('button', { name: 'Snapshot' }).click();
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Record 360° WebM' }).click()]);
     expect(download.suggestedFilename()).toBe('demo-road-bike-turntable.webm');
