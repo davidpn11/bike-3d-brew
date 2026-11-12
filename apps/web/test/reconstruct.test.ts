@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { Matrix4, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { MODEL_ORIGIN, POSE_COUNT, POSE_TARGET, capturePoses } from '../../../tools/fixtures/make-capture-bundle.mjs';
-import { colmapToPoses, parseCameras, parseImages, parsePoints3D, quatToMat3, readColmapDir } from '../../../tools/reconstruct/colmap.mjs';
+import { colmapToPoses, parseCameras, parseCamerasBin, parseImages, parseImagesBin, parsePoints3D, parsePoints3DBin, quatToMat3, readColmapDir } from '../../../tools/reconstruct/colmap.mjs';
 import { packageCapture } from '../../../tools/reconstruct/package.mjs';
 import { readCaptureBundle } from '../src/scene/capture';
 import { imageForSample, rankPhotos } from '../src/scene/photos';
@@ -78,6 +78,28 @@ function colmapText() {
   return { cameras, images: `${lines.join('\n')}\n`, points3D };
 }
 
+function colmapBinary() {
+  const chunks: Buffer[] = [];
+  const put = (size: number, value: number | bigint, method: string) => { const b = Buffer.alloc(size); (b as any)[method](value, 0); chunks.push(b); };
+  const f64 = (v: number) => put(8, v, 'writeDoubleLE');
+  const i32 = (v: number) => put(4, v, 'writeInt32LE');
+  const u64 = (v: number) => put(8, BigInt(v), 'writeBigUInt64LE');
+  const i64 = (v: number) => put(8, BigInt(v), 'writeBigInt64LE');
+  u64(1); i32(1); i32(2); u64(CAM.width); u64(CAM.height); [CAM.f, CAM.cx, CAM.cy, 0.012].forEach(f64);
+  const cameras = Buffer.concat(chunks); chunks.length = 0;
+  u64(truth.length);
+  const order = truth.map((_, i) => (i * 7) % truth.length);
+  for (const i of order) {
+    const { R, t } = toColmap(truth[i].transform); let q = mat3ToQuat(R); if (i % 3 === 0) q = q.map((v) => -v);
+    i32(i + 10); [...q, ...t].forEach(f64); i32(1); chunks.push(Buffer.from(truth[i].file), Buffer.from([0]));
+    const { u, v } = project(R, t, center);
+    if (i % 2) { u64(1); f64(u); f64(v); i64(1); } else u64(0);
+  }
+  const imageData = Buffer.concat(chunks); chunks.length = 0;
+  u64(1); u64(1); center.forEach(f64); [200, 40, 30].forEach((v) => put(1, v, 'writeUInt8')); f64(0.42); u64(1); i32(10); i32(0);
+  return { cameras, images: imageData, points3D: Buffer.concat(chunks) };
+}
+
 describe('COLMAP → bike-poses/1', () => {
   it('quaternions are Hamilton (w, x, y, z): 90° about +Z maps +X to +Y', () => {
     const R = quatToMat3([Math.SQRT1_2, 0, 0, Math.SQRT1_2]);
@@ -126,6 +148,21 @@ describe('COLMAP → bike-poses/1', () => {
 
   it('parses points3D.txt', () => {
     expect(parsePoints3D(colmapText().points3D)).toEqual([{ id: 1, xyz: center, rgb: [200, 40, 30], error: 0.42 }]);
+  });
+
+  it('binary models parse to the same records and poses as TXT', () => {
+    const txt = colmapText(), bin = colmapBinary();
+    const cameras = parseCamerasBin(bin.cameras), images = parseImagesBin(bin.images), points = parsePoints3DBin(bin.points3D);
+    expect(cameras).toEqual(parseCameras(txt.cameras));
+    expect(images).toEqual(parseImages(txt.images));
+    expect(points).toEqual(parsePoints3D(txt.points3D));
+    expect(colmapToPoses(cameras, images)).toEqual(colmapToPoses(parseCameras(txt.cameras), parseImages(txt.images)));
+  });
+
+  it('rejects truncated and impossible binary records with clear errors', () => {
+    expect(() => parseCamerasBin(Buffer.from([1]))).toThrow('cameras.bin: truncated or oversized');
+    expect(() => parseImagesBin(Buffer.from([1, 0, 0, 0, 0, 0, 0, 0]))).toThrow('images.bin: oversized count');
+    expect(() => parsePoints3DBin(Buffer.from([1, 0, 0]))).toThrow('points3D.bin: truncated or oversized');
   });
 
   it('rejects malformed files with the line number', () => {
@@ -227,5 +264,15 @@ describe('tools/reconstruct/cli.mjs', () => {
     const bad = spawnSync(process.execPath, [CLI, 'package', '--model', 'x.glb'], { cwd: dir, encoding: 'utf8' });
     expect(bad.status).toBe(1);
     expect(bad.stderr).toContain('missing --images, --source, --backend');
+  });
+
+  it('reads a binary model when TXT files are absent and prefers TXT when both exist', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'reconstruct-bin-'));
+    const bin = colmapBinary(), txt = colmapText();
+    writeFileSync(join(dir, 'cameras.bin'), bin.cameras); writeFileSync(join(dir, 'images.bin'), bin.images); writeFileSync(join(dir, 'points3D.bin'), bin.points3D);
+    expect(readColmapDir(dir).poses.samples).toHaveLength(truth.length);
+    writeFileSync(join(dir, 'cameras.txt'), txt.cameras); writeFileSync(join(dir, 'images.txt'), txt.images); writeFileSync(join(dir, 'points3D.txt'), txt.points3D);
+    expect(readColmapDir(dir).poses).toEqual(colmapToPoses(parseCameras(txt.cameras), parseImages(txt.images)));
+    rmSync(dir, { recursive: true, force: true });
   });
 });
