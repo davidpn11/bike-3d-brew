@@ -10,15 +10,15 @@ import { packageCapture, readImageDir } from './package.mjs';
 const HELP = `Usage: node tools/reconstruct/cli.mjs <command> [options]
 
 Commands:
-  poses    COLMAP TXT model → bike-poses/1
-           --colmap <dir>    folder with cameras.txt, images.txt (points3D.txt optional)
-                             (colmap model_converter --output_type TXT)
+  poses    COLMAP model → bike-poses/1
+           --colmap <dir>    folder with cameras.txt/images.txt or cameras.bin/images.bin
+                             (TXT is preferred when both are present; points3D is optional)
            -o, --out <file>  poses.json to write (default: stdout)
 
   package  reconstruction result → *.bikecapture.zip (bike-capture/1)
            --model <file>    model.glb (or .usdz / .ply)
            --images <dir>    JPEG frames the poses refer to
-           --colmap <dir>    poses from a COLMAP TXT model, or
+           --colmap <dir>    poses from a COLMAP model, or
            --poses <file>    an existing bike-poses/1 poses.json (omit both: no poses)
            --source <s>      photos | video
            --backend <b>     e.g. colmap, object-capture
@@ -52,7 +52,8 @@ function main(argv) {
 
   if (command === 'poses') {
     need(values, 'colmap');
-    const { poses, points } = readColmapDir(values.colmap);
+    const { poses, points, pointsWarning } = readColmapDir(values.colmap, { includePoints: Boolean(values.out) });
+    if (pointsWarning) console.error(`warning: ${pointsWarning}`);
     const json = JSON.stringify(poses, null, 2);
     if (!values.out) return void process.stdout.write(`${json}\n`);
     writeFileSync(values.out, json);
