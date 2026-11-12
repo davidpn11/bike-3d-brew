@@ -42,10 +42,11 @@ jobs:
     if: needs.tip.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Serialize all gh-pages writers, including preview pruning.
+    # A newer tip push supersedes a running publish. The script refetches gh-pages and retries
+    # when another writer pushes first.
     concurrency:
-      group: pages-gh-pages
-      cancel-in-progress: false
+      group: pages-main
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

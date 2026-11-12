@@ -9,7 +9,10 @@ on:
 permissions:
   contents: write
 
-# All gh-pages writers share this lock so removals and republishing cannot race.
+# One run per PR at a time; a newer push (or closing the PR) cancels the older run.
+concurrency:
+  group: pages-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -19,9 +22,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    concurrency:
-      group: pages-gh-pages
-      cancel-in-progress: false
     steps:
       # The PR head (what the branch contains), not the merge commit with its base.
       - uses: actions/checkout@v4
@@ -74,9 +74,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    concurrency:
-      group: pages-gh-pages
-      cancel-in-progress: false
     steps:
       # Any commit with the script will do; the head stays fetchable after its branch is deleted.
       - uses: actions/checkout@v4

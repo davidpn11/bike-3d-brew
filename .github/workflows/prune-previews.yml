@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: pages-gh-pages
+      group: pages-prune
       cancel-in-progress: false
     steps:
       - name: Check out published site
@@ -30,7 +30,6 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
-          const { execFileSync } = require('node:child_process');
           const open = new Set(JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/open-prs.json', 'utf8')).map((pr) => String(pr.number)));
           const root = path.join(process.cwd(), 'pr');
           if (!fs.existsSync(root)) process.exit(0);
@@ -46,11 +45,19 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A pr
             git commit -m "Prune previews for closed pull requests"
-            git push origin gh-pages
+            if ! git push origin gh-pages 2>"$RUNNER_TEMP/prune-push-error.log"; then
+              if grep -Eiq 'non-fast-forward|fetch first|rejected' "$RUNNER_TEMP/prune-push-error.log"; then
+                echo "gh-pages changed during pruning; another writer won the push race, so the next scheduled run will retry."
+                exit 0
+              fi
+              cat "$RUNNER_TEMP/prune-push-error.log"
+              exit 1
+            fi
           fi
       - name: Squash oversized gh-pages history
         run: |
-          count=$(git rev-list --count gh-pages)
+          base_sha=$(git rev-parse HEAD)
+          count=$(git rev-list --count HEAD)
           echo "gh-pages commits: $count"
           if [ "$count" -gt 200 ]; then
             # Keep the current published tree but drop old generated-site commits that make fetches grow indefinitely.
@@ -59,5 +66,8 @@ jobs:
             git checkout --orphan gh-pages-squashed
             git add -A
             git commit -m "Squash published site history"
-            git push --force origin HEAD:gh-pages
+            if ! git push --force-with-lease="gh-pages:$base_sha" origin HEAD:gh-pages; then
+              echo "gh-pages changed during history squash; another writer won the push race, so the next scheduled run will retry."
+              exit 0
+            fi
           fi
