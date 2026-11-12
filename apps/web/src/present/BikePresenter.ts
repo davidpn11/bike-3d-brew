@@ -8,15 +8,16 @@ import { type PhotoSource, Lightbox, filmstrip } from '../ui/photoViewer';
 import { PresentView } from '../ui/present';
 import { centerOnGround, loadModel } from '../viewer/loaders';
 import { PinLayer } from '../viewer/pins';
+import type { AreaRef } from '../scene/embed';
 import { Viewer } from '../viewer/Viewer';
-import './present.css';
 
 // The customer experience (read-only Present mode) as a self-contained module: give it a container
 // and a scene (or a scene URL) and it renders the bike, the pins, the Present card, leader lines,
 // close-ups and auto-play inside that container. It imports no editing code (comment editor, file
-// drop, capture import/cache, HEIC decoding), sizes itself from the container, scopes its CSS under
-// `.bike-present` and only listens to keys while focused, so it can be mounted by main.ts for
-// `?view=present`, inside an iframe page, or by a `<bike-viewer>` custom element.
+// drop, capture import/cache, HEIC decoding), sizes itself from the container and only listens to
+// keys while focused, so it can be mounted by customer.ts for `?view=present`, by embed.ts inside an
+// iframe, or into a shadow root by the `<bike-viewer>` element. It imports no CSS: each page brings
+// styles.css + ui/present.css + present/present.css (the element inlines them in its shadow root).
 
 export interface PresenterOptions {
   /** A scene object, or the URL of a published `scene.bike.json` (same origin or https). */
@@ -33,6 +34,8 @@ export interface PresenterOptions {
   kiosk?: { interval?: number; idle?: number; autoplay?: boolean };
   /** Focus the presenter after mounting, so arrow keys work right away (default false). */
   autofocus?: boolean;
+  /** The area to open on: an index in Present order or a hotspot id (default: the whole bike). */
+  area?: AreaRef;
 }
 
 export interface PresenterEvents {
@@ -66,7 +69,7 @@ export class BikePresenter {
   private pageHref: string;
 
   constructor(
-    container: HTMLElement,
+    container: HTMLElement | ShadowRoot,
     private opts: PresenterOptions,
   ) {
     this.pageHref = opts.pageHref ?? location.href;
@@ -179,7 +182,7 @@ export class BikePresenter {
       this.viewer.setModel(centerOnGround(await loadModel(url, scene.model.format)), scene.model);
       this.toast('');
       this.viewer.setView(this.viewer.overviewView());
-      this.goToArea(0);
+      this.goToArea(this.opts.area ?? 0);
       if (this.opts.kiosk?.autoplay) this.play();
       this.emit('ready', { scene });
     } catch (err) {
@@ -263,6 +266,6 @@ function pick(k: PresenterOptions['kiosk']): { interval?: number; idle?: number 
 }
 
 /** Mounts the customer view into a container (see PresenterOptions). */
-export function mountPresenter(container: HTMLElement, opts: PresenterOptions): BikePresenter {
+export function mountPresenter(container: HTMLElement | ShadowRoot, opts: PresenterOptions): BikePresenter {
   return new BikePresenter(container, opts);
 }

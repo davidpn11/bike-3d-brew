@@ -61,9 +61,9 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 
 - [x] **Shareable read-only link**: `?scene=` URL loads a published scene in Present mode with editing hidden; "Copy share link" button. Scenes + models served from `apps/web/public/scenes/<id>/`.
 - [x] **Comment polish**: leader lines from pin to card in Present mode, auto-advance/kiosk mode, comment ordering (drag to reorder), markdown-lite (bold, bullet lists) in bodies.
-- [ ] **Embeddable viewer**: an `embed.html` page + `postMessage` bridge and a `<bike-viewer>` custom element around `mountPresenter` (`present/BikePresenter.ts`), so shops can put a bike on their own site; scope the `styles.css` base rules first so it works inside Shadow DOM.
-- [ ] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
-- [ ] **Embed packaging**: `embed.html` + postMessage API + `<bike-viewer>` custom element on top of `present/BikePresenter.ts`; scope `styles.css` base rules for Shadow DOM.
+- [x] **Embeddable viewer** (was also listed as *Embed packaging*): an `embed.html` page + `postMessage` bridge and a `<bike-viewer>` custom element around `mountPresenter` (`present/BikePresenter.ts`), so shops can put a bike on their own site; scope the `styles.css` base rules first so it works inside Shadow DOM.
+- [x] **Share docs**: ARCHITECTURE (`bike-share/1`, BikePresenter controller API for the embed), TESTING-GUIDE (try the customer link on a phone), README; mobile E2E run of `share.spec.ts`.
+- [ ] **Cross-origin embed check**: an E2E run that loads `bike-viewer.js` and `embed.html` from a second origin (two preview ports) to prove CORS module loading, the `?origin=` lock end to end, and the BVH build falling back to the main thread when the worker cannot start cross-origin (shop pages); add `interval`/`idle` attributes to `<bike-viewer>`.
 - [ ] **Hotspot auto-suggest**: for captures, propose default areas (Fork, Drivetrain, Cockpit, Wheels, Saddle) by letting the user tap each part once; camera view computed from tapped point + local bounds.
 - [x] **Spec sheet**: per-bike key specs table (frame material, groupset, weight, sizes) shown in Present mode intro and exported.
 - [ ] **Spec sheet on short screens**: with 6+ rows the first Present card covers the lower half of the bike on a laptop; collapse the table to a few rows with "All specs" (or a two-column layout on wide cards).

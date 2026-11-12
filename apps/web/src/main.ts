@@ -1,4 +1,5 @@
 import './styles.css';
+import './ui/present.css';
 import { type Annotation, type BikeScene, type Hotspot, SCHEMA } from './scene/schema';
 import { checkSceneUrl, loadPublishedScene, readViewParams } from './scene/share';
 import { SceneStore, safeLocalStorage } from './scene/store';
