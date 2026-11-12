@@ -7,7 +7,10 @@ export interface Poses { schema: 'bike-poses/1'; samples: { sample: number; file
 export function parseCameras(text: string): Map<number, ColmapCamera>;
 export function parseImages(text: string): ColmapImage[];
 export function parsePoints3D(text: string): ColmapPoint[];
+export function parseCamerasBin(data: Buffer): Map<number, ColmapCamera>;
+export function parseImagesBin(data: Buffer): ColmapImage[];
+export function parsePoints3DBin(data: Buffer): ColmapPoint[];
 export function quatToMat3(q: number[]): number[][];
 export function colmapToTransform(q: number[], t: number[]): number[];
-export function colmapToPoses(cameras: Map<number, ColmapCamera>, images: ColmapImage[]): Poses;
-export function readColmapDir(dir: string): { cameras: Map<number, ColmapCamera>; images: ColmapImage[]; points: ColmapPoint[]; poses: Poses };
+export function colmapToPoses(cameras: Map<number, ColmapCamera>, images: ColmapImage[], imageFile?: string): Poses;
+export function readColmapDir(dir: string, options?: { includePoints?: boolean }): { cameras: Map<number, ColmapCamera>; images: ColmapImage[]; points: ColmapPoint[]; pointsWarning?: string; poses: Poses };
