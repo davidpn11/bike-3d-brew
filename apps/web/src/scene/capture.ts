@@ -37,6 +37,8 @@ export interface PoseSample {
   file?: string;
   /** 4×4 column-major camera→model transform (three.js `Matrix4.fromArray`). */
   transform: number[];
+  /** Pinhole intrinsics in pixels (from tools/reconstruct); absent for Object Capture poses. */
+  camera?: { width: number; height: number; fx: number; fy: number };
 }
 
 export interface CapturePoses {
@@ -104,6 +106,11 @@ export function parsePoses(input: unknown): CapturePoses {
     if (!ok) throw new CaptureBundleError(`poses.json: samples[${i}] expected {sample, transform[16]}`);
     const out: PoseSample = { sample: s.sample as number, transform: s.transform as number[] };
     if (isStr(s.file)) out.file = s.file;
+    // Untrusted: a bad camera is ignored (the ranking falls back to the iPhone default), not an error.
+    const c = s.camera;
+    if (isObj(c) && [c.width, c.height, c.fx, c.fy].every((n) => typeof n === 'number' && Number.isFinite(n) && n > 0)) {
+      out.camera = { width: c.width as number, height: c.height as number, fx: c.fx as number, fy: c.fy as number };
+    }
     return out;
   });
   return { schema: POSES_SCHEMA, samples };

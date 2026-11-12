@@ -24,8 +24,15 @@ export interface Intrinsics {
   aspect: number;
 }
 
-/** iPhone main camera (26 mm equivalent) in 4:3: about 65° × 51°. Poses carry no intrinsics. */
+/** iPhone main camera (26 mm equivalent) in 4:3: about 65° × 51°. Fallback when a sample has no `camera`. */
 export const IPHONE_WIDE: Intrinsics = { hFovDeg: 65, aspect: 4 / 3 };
+
+/** Intrinsics of one sample: hFov from fx, aspect from the tan ratio so fy ≠ fx is honoured. */
+export function sampleIntrinsics(camera: PoseSample['camera'], fallback: Intrinsics): Intrinsics {
+  if (!camera) return fallback;
+  const { width, height, fx, fy } = camera;
+  return { hFovDeg: 2 * Math.atan(width / (2 * fx)) * DEG, aspect: (width * fy) / (height * fx) };
+}
 
 export interface RankTarget {
   point: Vec3;
@@ -36,6 +43,7 @@ export interface RankTarget {
 export interface RankOptions {
   /** Reconstruction → model-root matrix (column-major). Identity when omitted. */
   toModel?: Mat4;
+  /** Fallback for samples without `camera`; defaults to IPHONE_WIDE. */
   intrinsics?: Intrinsics;
   limit?: number;
   /** Skip photos taken from almost the same spot as a better one: same direction from the target within this angle (degrees) and similar distance. */
@@ -113,18 +121,18 @@ export function imageForSample(sample: PoseSample, images: string[]): string | n
 /** Ranks photos for a target. Only photos with the target inside their frame are returned. */
 export function rankPhotos(samples: PoseSample[], images: string[], target: RankTarget, opts: RankOptions = {}): RankedPhoto[] {
   const toModel = opts.toModel ?? IDENTITY;
-  const { hFovDeg, aspect } = opts.intrinsics ?? IPHONE_WIDE;
-  const tanH = Math.tan((hFovDeg / 2) / DEG);
-  const tanV = tanH / aspect;
+  const fallback = opts.intrinsics ?? IPHONE_WIDE;
   // A little slack: a target right at the edge of the frame is still worth showing, but last.
   const slack = 0.95;
-  const halfDiag = Math.atan(Math.hypot(tanH, tanV)) * DEG;
   const side = target.side && len(target.side) > 0 ? unit(target.side) : null;
 
-  const candidates: (RankedPhoto & { dir: Vec3; facing: number })[] = [];
+  const candidates: (RankedPhoto & { dir: Vec3; facing: number; halfDiag: number })[] = [];
   for (const s of samples) {
     const path = imageForSample(s, images);
     if (!path) continue;
+    const { hFovDeg, aspect } = sampleIntrinsics(s.camera, fallback);
+    const tanH = Math.tan(hFovDeg / 2 / DEG);
+    const tanV = tanH / aspect;
     const m = mulMat4(toModel, s.transform);
     const eye: Vec3 = [m[12], m[13], m[14]];
     const right = unit([m[0], m[1], m[2]]);
@@ -140,14 +148,14 @@ export function rankPhotos(samples: PoseSample[], images: string[], target: Rank
     // Looking at the back of the surface: the target is almost certainly hidden.
     if (side && facing < -0.1) continue;
     const angleDeg = Math.acos(Math.min(1, depth / distance)) * DEG;
-    candidates.push({ sample: s.sample, path, score: 0, angleDeg, distance, dir: dirFromTarget, facing });
+    candidates.push({ sample: s.sample, path, score: 0, angleDeg, distance, dir: dirFromTarget, facing, halfDiag: Math.atan(Math.hypot(tanH, tanV)) * DEG });
   }
   if (!candidates.length) return [];
 
   // Closeness is relative to the closest usable photo, so scores do not depend on model units.
   const nearest = Math.min(...candidates.map((c) => c.distance));
   for (const c of candidates) {
-    const centered = Math.max(0, 1 - c.angleDeg / halfDiag);
+    const centered = Math.max(0, 1 - c.angleDeg / c.halfDiag);
     const close = nearest / c.distance;
     c.score = side ? 0.45 * centered + 0.35 * close + 0.2 * ((c.facing + 1) / 2) : 0.55 * centered + 0.45 * close;
   }
