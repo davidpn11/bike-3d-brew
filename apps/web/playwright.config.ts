@@ -60,7 +60,7 @@ export default defineConfig({
   ],
   webServer: {
     // The production build, like GitHub Pages serves it. E2E_SKIP_BUILD reuses an existing dist/.
-    command: `${process.env.E2E_SKIP_BUILD ? '' : 'npx vite build --config apps/web/vite.config.ts && '}npx vite preview --config apps/web/vite.config.ts --port ${PORT} --strictPort`,
+    command: `${process.env.E2E_SKIP_BUILD ? '' : './node_modules/.bin/vite build --config apps/web/vite.config.ts && '}./node_modules/.bin/vite preview --config apps/web/vite.config.ts --port ${PORT} --strictPort`,
     cwd: repoRoot,
     url: `http://localhost:${PORT}`,
     // Never reuse a server already on the port: with parallel worktrees it may be another checkout's
