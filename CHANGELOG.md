@@ -6,6 +6,7 @@ merges the stack to `main`, the Unreleased block becomes a dated release.
 ## Unreleased
 
 ### Added
+- Product views plan (`docs/PRODUCT-VIEWS.md`): the commercial screens for bike shops (Studio: Library, Bike workspace, Leads, Captures, Settings; the customer Bike page with Show customer and Window modes; Storefront; Embed; Request form; a later Platform console), with wireframes, navigation, what we will not build, data model, phases 0–3 and owner decisions; written from two independent drafts (Claude and Codex). (#PR)
 - Spec sheet on short screens: the Present spec table shows 4 rows with an "All specs (k)" / "Fewer specs" toggle, in two columns on wide cards; on wide stages the 3D view ends above the card, as it already did on phones, so the bike is no longer covered. (#27)
 - Capture checklist saved: the iOS app keeps each checklist item (id, label, done, pass) in the bike's `record.json`, and exported bundles carry an optional `checklist: [{id, label, done}]` in `manifest.json` (left out when empty). The viewer does not read it yet. Only the iOS CI build checks the Swift code. (#28)
 - Real intrinsics in close-ups: photo ranking uses each sample's own `camera` from `poses.json` (horizontal FOV and aspect from fx, fy, width, height) instead of the 65° iPhone assumption; implausible values fall back to 65°. (#26)
