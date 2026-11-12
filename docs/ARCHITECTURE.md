@@ -36,7 +36,7 @@ nothing) and optionally the pins (`PinLayer.drawInto`); video goes through `canv
 | --------------- | ------- |
 | `manifest.json` | `{ schema, name, createdAt, device, systemVersion, mode: "object"\|"area", model, poses, images, photos?, imageCount, checklist?: [{ id, label, done }], source?: "photos"\|"video", backend? }` (`checklist` is optional and written by iOS; `source`/`backend` only from `tools/reconstruct`) |
 | `model.usdz`    | reconstruction, meters, +Y up (`tools/reconstruct` writes `model.glb`, or `.usdz` / `.ply`) |
-| `poses.json`    | `{ schema: "bike-poses/1", samples: [{ sample, file, transform[16], camera? }] }` (column-major camera→model; `camera: { model, width, height, fx, fy, cx, cy }` in pixels from COLMAP, not read by the viewer yet) |
+| `poses.json`    | `{ schema: "bike-poses/1", samples: [{ sample, file, transform[16], camera? }] }` (column-major camera→model; `camera: { model, width, height, fx, fy, cx, cy }` in pixels from COLMAP; `width`/`height`/`fx`/`fy` set each photo's field of view in close-up ranking, invalid values are ignored) |
 | `images/`       | Object Capture HEIC photos (reconstruction input); `tools/reconstruct`: the JPEG frames |
 | `photos/`       | optional: JPEG copies of `images/`, same file stems, ≤ 2048 px long edge, EXIF orientation baked into the pixels (orientation 1). Listed as `manifest.photos` |
 | `record.json`   | app-internal record |
@@ -269,7 +269,7 @@ opens a full-screen viewer (arrows / swipe, pinch / wheel / double-tap zoom, Esc
   itself and never enter the mapping. A unit test runs the fixture USDZ through three's
   `USDLoader` + `centerOnGround` and checks the expected close-ups win.
 - **Ranking** (`src/scene/photos.ts`, pure): keep photos whose frustum contains the target
-  (assumed iPhone wide camera, 65° × 51°, landscape sensor; poses carry no intrinsics), drop
+  (per-sample `camera` intrinsics when present, else an assumed iPhone wide camera, 65° × 51°, landscape sensor), drop
   cameras behind the surface (`side` hint), score `0.45·centered + 0.35·closeness + 0.2·facing`
   (closeness relative to the nearest usable photo, so units do not matter), and skip near-duplicate
   viewpoints. Occlusion is not tested.
