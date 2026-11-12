@@ -1,7 +1,7 @@
 name: Publish site
 
 # Keeps https://davidpn11.github.io/bike-3d-brew/ (gh-pages, deploy from branch) in step with
-# the stack tip (see CLAUDE.md): the newest open PR whose head no other open PR uses as its base,
+# the stack tip (see CLAUDE.md): the newest open, non-draft PR whose head no other open PR uses as its base,
 # or develop when nothing is open. While the stack waits for review, develop is far behind, so
 # publishing only develop would leave the site weeks stale. tools/publish-pages.sh only replaces
 # the main site and leaves PR previews in /pr/.
@@ -14,16 +14,12 @@ permissions:
   contents: write
   pull-requests: read
 
-# A newer push supersedes a running publish. Preview runs use their own groups; the
-# script refetches gh-pages and retries when another run pushed first.
-concurrency:
-  group: pages-main
-  cancel-in-progress: true
-
 jobs:
-  publish:
+  # Its own job with no concurrency group: a push to a non-tip branch must not cancel a running publish.
+  tip:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      publish: ${{ steps.tip.outputs.publish }}
     steps:
       - name: Is this branch the stack tip?
         id: tip
@@ -31,18 +27,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number,headRefName,baseRefName > prs.json
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number,headRefName,baseRefName,isDraft > prs.json
           tip=$(node -e '
-            const prs = require("./prs.json");
+            // Drafts are claims still being built: they neither publish nor hide the PR below them.
+            const prs = require("./prs.json").filter((p) => !p.isDraft);
             const bases = new Set(prs.map((p) => p.baseRefName));
             const leaves = prs.filter((p) => !bases.has(p.headRefName)).sort((a, b) => b.number - a.number);
             console.log(leaves[0]?.headRefName ?? "develop");')
           echo "Stack tip: $tip, pushed: $BRANCH" >> "$GITHUB_STEP_SUMMARY"
           echo "publish=$([ "$tip" = "$BRANCH" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-      - if: steps.tip.outputs.publish == 'true'
-        uses: actions/checkout@v4
-      - if: steps.tip.outputs.publish == 'true'
-        uses: actions/setup-node@v4
+
+  publish:
+    needs: tip
+    if: needs.tip.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # A newer tip push supersedes a running publish. Preview runs use their own groups; the
+    # script refetches gh-pages and retries when another run pushed first.
+    concurrency:
+      group: pages-main
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -50,8 +57,7 @@ jobs:
             package-lock.json
             apps/docs/package-lock.json
       # Pushes go through the checkout's token; the commit needs an author.
-      - if: steps.tip.outputs.publish == 'true'
-        run: |
+      - run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           tools/publish-pages.sh --source "${{ github.ref_name }}"
