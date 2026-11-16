@@ -32,13 +32,13 @@ xcodebuild -runFirstLaunch
 xcodebuild -downloadPlatform iOS         # device support + the iOS Simulator runtime
 ```
 
-Then open Xcode once, add your Apple ID (Settings → Accounts), and copy your **Team ID** from there. Free
+Then open Xcode once, add your Apple ID (Settings → **Apple Accounts** in Xcode 27, or Signing & Capabilities → Team → **Add an Account…**), and copy your **Team ID** from there. Free
 "Personal Team" accounts work. Put it in your shell profile, so command-line builds sign without touching
 `project.yml`:
 
 ```sh
 # ~/.zshrc
-export BIKE_TEAM_ID=XXXXXXXXXX                    # Xcode → Settings → Accounts → your team
+export BIKE_TEAM_ID=XXXXXXXXXX                    # Xcode → Settings → Apple Accounts → your team
 export BIKE_BUNDLE_ID=com.<yourname>.bikecapture  # must be unique to your team
 export BIKE_DEVICE="<your iPhone's name>"         # as shown by `xcrun devicectl list devices`
 ```

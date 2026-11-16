@@ -30,7 +30,7 @@ error into Claude Code or Codex in this repo ("the iOS app fails with: …") and
    ```sh
    sudo xcode-select -s /Applications/Xcode.app
    ```
-3. **Add your Apple ID** in Xcode → Settings → Accounts → **+** → Apple ID.
+3. **Add your Apple ID** in Xcode → Settings → **Apple Accounts** (Xcode 27; "Accounts" in older versions) → **Sign In…**. If you cannot find it, the target's Signing & Capabilities → Team → **Add an Account…** does the same.
 4. **Generate the project.** `xcodegen` is already installed on this Mac: `brew install xcodegen` otherwise.
    ```sh
    cd apps/ios
