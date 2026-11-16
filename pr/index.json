@@ -1,5 +1,12 @@
 [
   {
+    "number": 39,
+    "title": "iOS: app icon",
+    "branch": "claude/app-icon",
+    "sha": "c164636",
+    "updatedAt": "2026-11-16T05:28:12-06:00"
+  },
+  {
     "number": 38,
     "title": "Docs: demo guide, iPhone capture to web viewer",
     "branch": "claude/demo-guide",
