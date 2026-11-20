@@ -5,7 +5,6 @@ import { LeaderLayer } from '../viewer/leaders';
 import type { Viewer } from '../viewer/Viewer';
 import { h } from './dom';
 import { markdownBlock } from './markdown';
-import './present.css';
 
 export interface PresentActions {
   go(step: number): void;

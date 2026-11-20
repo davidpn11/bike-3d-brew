@@ -14,6 +14,21 @@ Drop a `.bikecapture.zip` from the iPhone app (or a `.glb`, `.usdz`, `.ply`) ont
 tap the bike and add comments, save camera views as areas; **Present** steps through areas for
 a customer.
 
+**Share** gives customers a read-only link (`?scene=…&view=present`). To put a bike on a shop's own
+site, use an iframe or the custom element (live demo: `/app/embed-demo.html`):
+
+```html
+<iframe src="https://davidpn11.github.io/bike-3d-brew/app/embed.html?scene=scenes/demo/scene.bike.json&area=hs-fork"
+        style="width:100%;height:440px;border:0" allow="fullscreen; web-share"></iframe>
+
+<script type="module" src="https://davidpn11.github.io/bike-3d-brew/app/bike-viewer.js"></script>
+<bike-viewer src="https://davidpn11.github.io/bike-3d-brew/app/scenes/demo/scene.bike.json" area="hs-cockpit"></bike-viewer>
+```
+
+The iframe takes commands over `postMessage` (`{ type: "bike-embed/1", cmd: "next" }`); the
+element exposes `element.presenter` and DOM events. Details in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#embedding-on-a-shops-site).
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md) and
 [apps/ios/README.md](apps/ios/README.md). Inspired by
 [wesbos/3d-model-anything](https://github.com/wesbos/3d-model-anything).

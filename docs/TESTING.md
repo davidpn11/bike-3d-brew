@@ -100,7 +100,7 @@ and shown from real images of the fixture.
 Playwright drives the **production build** (`vite build` + `vite preview` on port 4190, started
 by the config's `webServer`) in two projects: `desktop` (1280×800, every spec) and `mobile`
 (iPhone 14 viewport with touch, DPR 1 to keep CPU rendering fast; only the specs where layout and
-touch matter: view, edit, present, photos). WebGL runs on SwiftShader
+touch matter: view, edit, present, photos, share, embed). WebGL runs on SwiftShader
 (`--use-angle=swiftshader --enable-unsafe-swiftshader`), so no GPU is needed. CI splits the
 suite into two parallel shards (`--shard=1/2`, `2/2`).
 
@@ -189,6 +189,11 @@ missing.
   rows with a value and only on the first card, Export carries them; the customer link shows the published sheet.
 - `files.spec.ts` also drops the committed binary USDC fixture and checks it renders with its
   diffuse and normal textures decoded.
+- `share.spec.ts`: the customer link (`?view=present`, `&area=`), Share, the share package →
+  `publish-scene` → `?scene` round trip, kiosk and comment polish; on desktop and mobile.
+- `embed.spec.ts`: on `embed-demo.html`, the iframe's `bike-embed/1` bridge (commands move the
+  bike, events come back, malformed messages are ignored) and the `<bike-viewer>` element
+  (attributes, events, styles kept inside its shadow root, teardown on removal); desktop and mobile.
 - `perf.spec.ts`: an idle stage renders 0 frames, orbiting renders and stops again with pins moved, canvas snapshots work without a preserved drawing buffer, and Meshopt / Draco / KTX2 GLBs (from `tools/fixtures/make-compressed-glb.mjs`) open with self-hosted decoders and no foreign requests.
 
 The viewer renders on demand: to wait for a picture to settle use `viewer.rendering === false`; `viewer.renderCount` counts drawn frames.

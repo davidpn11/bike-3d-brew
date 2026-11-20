@@ -16,6 +16,13 @@ PR that adds something testable extends the "What each PR adds" table at the bot
    **https://davidpn11.github.io/bike-3d-brew/app/samples/synthetic-bike.bikecapture.zip**,
    then in the viewer tap **Open…** and pick it from Files. A red low-poly bike replaces the demo
    and the scene is named "Synthetic test bike".
+4. Try what a customer gets: open
+   **https://davidpn11.github.io/bike-3d-brew/app/?scene=scenes/demo/scene.bike.json&view=present**
+   on the phone. Only the bike, its name and price, and the Present card: swipe the card or tap
+   ‹ › to change area, tap a pin or a comment to fly to it, tap **Share** for the share sheet.
+   Add `&area=hs-fork` to open on the fork, or `&kiosk=1&interval=4` for auto-play.
+5. Embedding on a shop's site: **https://davidpn11.github.io/bike-3d-brew/app/embed-demo.html**
+   shows the bike in an iframe driven by the buttons under it, and as a `<bike-viewer>` element.
 
 The site is republished automatically on every push to the stack tip (the newest open PR nothing else is stacked on, or `develop` when none is open). Each open PR also gets its
 own copy at `https://davidpn11.github.io/bike-3d-brew/pr/<n>/` (viewer at `/pr/<n>/app/`),
@@ -76,4 +83,5 @@ the viewer. If the model does not show, note what the viewer says and add it to
 | #13 Spec sheet | In **Edit**, the **Spec sheet** section lists the demo's specs: change a value, remove a row, **+ Add spec** and Tab from the name to the value. Clear a value: that row disappears from **Present** but stays in the editor. **Present** shows a "Key specs" table on the first card only; **Export** has a `specs` array. The customer link (`?scene=scenes/demo/scene.bike.json&view=present`) shows it too, on a phone as part of the bottom sheet. |
 | #15 Auto-publish + PR previews | Open the home page: **PR previews** lists open PRs with Viewer and Docs links; open `/bike-3d-brew/pr/15/app/` and the demo bike loads. Push to a PR and its preview updates a few minutes later (Actions → "PR preview"); close it and it disappears from the list. Merging into `develop` updates the main site (Actions → "Publish site"). |
 | #17 Site follows the stack tip | The home page has no credits box any more. Push to the top PR of the stack (or press *Run workflow* on Actions → "Publish site" from it): the main site shows that branch a few minutes later (the footer names it). Pushes to other branches skip publishing. |
+| #20 Embeddable viewer + share docs | Open `/bike-3d-brew/app/embed-demo.html` (also on the phone): the top bike is an iframe; **Next ›**, **Drivetrain**, **Green screen**, **Get state** drive it and the events show up in the log. The bottom one is a `<bike-viewer>` element opening on the Cockpit: it looks the same as the customer link while the page around it keeps its own serif font. Copy a snippet from the page into any HTML file to embed on another site. Customer links now take `&area=hs-fork`. |
 | #18 Undo/redo for the whole scene | In **Edit**, add a comment, move it with ↑, delete it, save a view as an area, then press Ctrl/Cmd+Z (or ↶ Undo at the top of the panel) step by step: each change comes back in order; Shift+Ctrl/Cmd+Z, Ctrl+Y or ↷ Redo replays them. Ctrl/Cmd+Z inside a text field only undoes your typing. Click the 1 cm nudge buttons quickly: one Undo puts them all back. Reload: the scene is as you left it (the history itself starts fresh). |

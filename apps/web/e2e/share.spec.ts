@@ -51,6 +51,12 @@ test.describe('customer link (read-only present)', () => {
     expect(errors).toEqual([]);
   });
 
+  test('?area= opens the link on an area', async ({ page }) => {
+    await openApp(page, `${DEMO_LINK}&area=hs-cockpit`);
+    await expect(title(page)).toHaveText('Cockpit');
+    await expect(stepLabel(page)).toHaveText('4 / 7');
+  });
+
   test('swiping the card changes area', async ({ page }) => {
     await openApp(page, DEMO_LINK);
     const box = (await card(page).boundingBox())!;

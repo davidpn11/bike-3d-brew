@@ -1,4 +1,5 @@
-:root {
+/* :host too: the <bike-viewer> element (present/element.ts) inlines this file in its shadow root. */
+:root, :host {
   --bg: #111214;
   --surface: #1a1b1f;
   --surface-2: #24262b;
