@@ -73,3 +73,11 @@ export function presentLede(scene: Pick<BikeScene, 'brand' | 'modelName' | 'year
 export function shouldDefer3d(c: { saveData?: boolean; effectiveType?: string; deviceMemory?: number }): boolean {
   return !!c.saveData || ['slow-2g', '2g', '3g'].includes(c.effectiveType ?? '') || (c.deviceMemory !== undefined && c.deviceMemory < 4);
 }
+
+/** Two taps this close in time and place are a double-tap (pivot the orbit), not two comment pins. */
+export const DOUBLE_TAP = { ms: 350, px: 24 } as const;
+export const DEPTH_HINT = 'Double-click a part to orbit around it, zoom toward the pointer, then Save view.';
+
+export function isDoubleTap(a: { x: number; y: number; t: number }, b: { x: number; y: number; t: number }): boolean {
+  return b.t - a.t <= DOUBLE_TAP.ms && Math.hypot(b.x - a.x, b.y - a.y) <= DOUBLE_TAP.px;
+}
