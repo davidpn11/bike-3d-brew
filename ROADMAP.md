@@ -85,6 +85,7 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 
 ## Milestone 4: iOS app depth
 
+- [~] **Capture fallbacks** (owner's first device test): orbits never ticked and there was no way to finish, because Finish / Another pass only appear after Object Capture reports a completed scan pass. Manual "orbit done", Finish always reachable, stall hints, on-screen diagnostics and logs.
 - [ ] **iOS UI tests on the Simulator**: XCUITest target + `-UITestFixture` launch argument that seeds a synthetic bike (from `tools/fixtures`), tests for library → detail → Export capture bundle (manifest checked), `xcodebuild test` in `ios.yml` on a Simulator. Capture itself needs LiDAR and stays a device test.
 - [ ] **In-app viewer**: RealityKit/SceneKit view of `model.usdz` with the same areas and comments (read `bike-scene/1` JSON), so sales staff can present from the phone offline.
 - [x] **Capture guidance for bikes**: checklist overlay (3 orbits: hub height, saddle height, top-down; close-ups of fork crown, dropouts, rear derailleur, cockpit), shot counter per pass, tips for reflective paint (dulling spray / polarizer), turntable support. Done: checklist in the capture screen (orbits ticked by Object Capture's pass detection, close-ups ticked by hand, shots per pass). Turntable: not possible with `ObjectCaptureSession` (ARKit world tracking needs the object still); documented in the app and README.
