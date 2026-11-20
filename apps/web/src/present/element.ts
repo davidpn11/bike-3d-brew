@@ -1,6 +1,7 @@
 import base from '../styles.css?inline';
 import card from '../ui/present.css?inline';
 import own from './present.css?inline';
+import theme from '../themes/bikebrew.css?inline';
 import { parseArea } from '../scene/embed';
 import { type BikePresenter, type PresenterEvents, mountPresenter } from './BikePresenter';
 
@@ -10,7 +11,7 @@ import { type BikePresenter, type PresenterEvents, mountPresenter } from './Bike
 // re-dispatched on the element (`ready`, `error`, `areachange`, `commentopen`); `presenter` is the
 // controller API (goToArea, next, prev, play, pause, setBackground, openComment).
 
-const CSS = `${base}\n${card}\n${own}\n:host { display: block; position: relative; height: 480px; contain: content; }`;
+const CSS = `${base}\n${card}\n${own}\n${theme}\n:host { display: block; position: relative; height: 480px; contain: content; }`;
 const EVENTS: (keyof PresenterEvents)[] = ['ready', 'error', 'areachange', 'commentopen'];
 
 export class BikeViewerElement extends HTMLElement {

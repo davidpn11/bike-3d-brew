@@ -1,6 +1,8 @@
 import '../styles.css';
 import '../ui/present.css';
 import './present.css';
+import '../themes/bikebrew.css';
+import '../themes/bikebrew-font.css';
 import { parseArea } from '../scene/embed';
 import { readViewParams } from '../scene/share';
 import { mountPresenter } from './BikePresenter';

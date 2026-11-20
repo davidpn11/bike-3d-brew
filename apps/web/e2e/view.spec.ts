@@ -91,3 +91,11 @@ test.describe('demo bike', () => {
     await expect(page.getByRole('button', { name: /^Whole bike/ })).toHaveClass(/\bon\b/);
   });
 });
+
+test('brand theme is a token override that the data-theme attribute switches', async ({ page }) => {
+  await openApp(page);
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+  expect(await accent()).toBe('#0eb994');
+  await page.evaluate(() => document.documentElement.removeAttribute('data-theme'));
+  expect(await accent()).toBe('#ff5a1f');
+});

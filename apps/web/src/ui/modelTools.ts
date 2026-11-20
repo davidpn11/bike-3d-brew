@@ -156,7 +156,7 @@ export class ModelTools {
         h('button', { type: 'button', title: 'Box the bike: drop the floor and anything not attached to it', onclick: () => this.fitCrop() }, 'Fit to bike'),
         crop ? h('button', { type: 'button', class: 'danger', title: 'Remove the crop box', onclick: () => this.setCropGrounded(undefined) }, 'Clear') : null,
       ),
-      crop?.enabled ? h('p', { class: 'hint' }, 'Drag the orange handles on the box faces, or type the corners (model units).') : null,
+      crop?.enabled ? h('p', { class: 'hint' }, 'Drag the handles on the box faces, or type the corners (model units).') : null,
       crop ? fields('max') : null,
       crop ? fields('min') : null,
     );

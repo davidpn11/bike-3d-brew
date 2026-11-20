@@ -45,9 +45,11 @@ export class CropBoxEditor {
     this.group.matrixAutoUpdate = false;
     this.group.visible = false;
     const overlay = { depthTest: false, depthWrite: false, transparent: true };
-    this.lines = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xff5a1f, opacity: 0.9, ...overlay }));
+    // Brand accent from the active CSS theme; the literal covers a container outside the stylesheet.
+    const accent = getComputedStyle(host.eventTarget).getPropertyValue('--accent').trim() || '#ff5a1f';
+    this.lines = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: accent, opacity: 0.9, ...overlay }));
     this.lines.renderOrder = 10;
-    this.handleMat = new THREE.MeshBasicMaterial({ color: 0xff5a1f, ...overlay });
+    this.handleMat = new THREE.MeshBasicMaterial({ color: accent, ...overlay });
     this.activeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, ...overlay });
     const sphere = new THREE.SphereGeometry(1, 16, 12);
     for (const axis of AXES) {

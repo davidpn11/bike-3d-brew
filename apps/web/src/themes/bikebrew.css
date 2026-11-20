@@ -1,0 +1,20 @@
+/* Brand theme: gobikeandbrew.ca (values from the shop's theme settings). Tokens only: a new brand
+   is a copy of this file with other values. On with <html data-theme="bikebrew"> or
+   <bike-viewer theme="bikebrew">; without the attribute the neutral defaults in styles.css apply. */
+:root[data-theme='bikebrew'], :host([theme='bikebrew']) {
+  --bg: #121212;
+  --surface: #1d1d1d;
+  --surface-2: #272727;
+  --line: #3a3a3a;
+  --text: #fff;
+  --text-2: #d6d6d6;
+  /* The shop's #707070 is too faint for 14px text on --surface. */
+  --muted: #a0a0a0;
+  --accent: #0eb994;
+  /* White on this teal is 2.5:1; the dark surface colour gives about 7.5:1. */
+  --on-accent: #121212;
+  --overlay: rgb(18 18 18 / .9);
+  --font: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 6px;
+  --radius-btn: 999px;
+}
