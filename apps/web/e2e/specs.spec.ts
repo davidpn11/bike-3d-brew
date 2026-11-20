@@ -64,6 +64,34 @@ test.describe('spec sheet', () => {
     expect(errors).toEqual([]);
   });
 
+  test('a long spec value wraps in the editor and in Present', async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openApp(page);
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    const editor = page.locator('.spec-sheet');
+    const value = editor.getByLabel('Weight value');
+    const oneLine = (await value.boundingBox())!.height;
+    const long = 'Size 56 without pedals, 7.9 kg; size 54 7.7 kg; size 58 8.1 kg. Weighed in the shop on a calibrated scale, tubeless set-up with sealant, 2025 build.';
+    await value.fill(long);
+    await value.press('Tab');
+    await expect.poll(async () => (await scene(page)).specs?.find((r) => r.label === 'Weight')?.value).toBe(long);
+    // Re-rendered after saving: the field grows to its text (capped at 4 lines).
+    await expect.poll(async () => (await editor.getByLabel('Weight value').boundingBox())!.height).toBeGreaterThan(oneLine * 1.8);
+    await editor.scrollIntoViewIfNeeded();
+    await snap(page, testInfo, 'specs-editor-long');
+
+    await page.getByRole('button', { name: 'Present', exact: true }).click();
+    const cell = specTable(page).locator('td', { hasText: 'Size 56 without' }).locator('.spec-val');
+    await expect(cell).toBeVisible();
+    expect(await cell.evaluate((el) => el.clientHeight < el.scrollHeight)).toBe(true); // clamped to 3 lines
+    await expect(specTable(page).locator('td', { hasText: 'Size 56 without' })).toHaveAttribute('title', long);
+    await snap(page, testInfo, 'specs-present-long');
+    await page.getByRole('button', { name: /^All specs/ }).click();
+    expect(await cell.evaluate((el) => el.clientHeight >= el.scrollHeight)).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
   test('long spec sheets collapse behind an All specs toggle', async ({ page }, testInfo) => {
     const errors = collectErrors(page);
     await page.setViewportSize({ width: 1366, height: 768 });
