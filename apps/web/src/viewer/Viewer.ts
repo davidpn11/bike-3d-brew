@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { easeInOutCubic, lerpView, viewForBox } from '../scene/camera';
+import { easeInOutCubic, lerpVec3Into, lerpView, viewForBox } from '../scene/camera';
 import { type Box, insideBox } from '../scene/crop';
 import { BACKDROP_STOPS, turntableAngle } from '../scene/exportMedia';
 import type { BackgroundMode, CameraView, CropBox, ModelRef, Vec3 } from '../scene/schema';
@@ -50,6 +50,7 @@ export class Viewer {
 
   private ground: THREE.Mesh;
   private flight: { from: CameraView; to: CameraView; start: number; duration: number; resolve: () => void } | null = null;
+  private pivotMotion: { from: Vec3; to: Vec3; start: number } | null = null;
   private frameListeners = new Set<FrameListener>();
   private raycaster = new THREE.Raycaster();
   private resizeObserver: ResizeObserver;
@@ -71,6 +72,7 @@ export class Viewer {
   private readonly clipPlanes = Array.from({ length: 6 }, () => new THREE.Plane());
   private clippedMaterials = false;
   private readonly scratch = new THREE.Vector3();
+  private readonly pivotTargetScratch: Vec3 = [0, 0, 0];
   private readonly rootInverse = new THREE.Matrix4();
   readonly cropEditor: CropBoxEditor;
 
@@ -102,6 +104,7 @@ export class Viewer {
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 0.12;
     this.controls.maxDistance = 10;
+    this.controls.zoomToCursor = true;
     this.controls.target.set(0, 0.5, 0);
     // Any user input cancels an in-progress fly-to instead of fighting it.
     this.controls.addEventListener('start', () => this.cancelFlight());
@@ -192,9 +195,9 @@ export class Viewer {
     return this.background;
   }
 
-  /** True while a fly-to animation is running (E2E tests wait on it instead of sleeping). */
+  /** True while a fly-to or pivot animation is running (E2E tests wait on it instead of sleeping). */
   get flying(): boolean {
-    return this.flight !== null;
+    return this.flight !== null || this.pivotMotion !== null;
   }
 
   /** Replaces the displayed model; `object` should already be centered (see centerOnGround). */
@@ -480,6 +483,24 @@ export class Viewer {
     });
   }
 
+  /** Moves the orbit center to the surface under a client-space point, keeping the camera in place. */
+  pivotAt(clientX: number, clientY: number): boolean {
+    const hit = this.pick(clientX, clientY);
+    if (!hit) return false;
+    this.cancelFlight();
+    const target = this.toWorld(hit.position);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.controls.target.copy(target);
+      this.controls.update();
+      this.camera.updateMatrixWorld();
+      this.requestRender({ shadows: false });
+      return true;
+    }
+    this.pivotMotion = { from: this.controls.target.toArray() as Vec3, to: target.toArray() as Vec3, start: performance.now() };
+    this.requestRender({ shadows: false });
+    return true;
+  }
+
   /** Raycasts the model under a client-space point. */
   pick(clientX: number, clientY: number): PickResult | null {
     const rect = this.renderer.domElement.getBoundingClientRect();
@@ -688,6 +709,7 @@ export class Viewer {
   }
 
   private cancelFlight(): void {
+    this.pivotMotion = null;
     if (!this.flight) return;
     const { resolve } = this.flight;
     this.flight = null;
@@ -718,6 +740,13 @@ export class Viewer {
         this.flight = null;
         resolve();
       }
+    }
+    if (this.pivotMotion) {
+      moving = true;
+      const { from, to, start } = this.pivotMotion;
+      const t = Math.min(1, (now - start) / 300);
+      this.controls.target.set(...lerpVec3Into(from, to, easeInOutCubic(t), this.pivotTargetScratch));
+      if (t >= 1) this.pivotMotion = null;
     }
     // update() returns true while the camera still moves (input, damping, a flight step).
     if (this.controls.update()) moving = true;
