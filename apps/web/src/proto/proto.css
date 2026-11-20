@@ -1,0 +1,6 @@
+/* Prototype shell only; each screen adds its own rules under its root class (.p-<screen>). */
+.proto-tabs { position: sticky; top: 0; z-index: 10; display: flex; gap: 4px; overflow-x: auto; padding: 8px 12px; background: var(--panel, #17181c); border-bottom: 1px solid var(--line, #2a2c33); }
+.proto-tabs a { flex: none; padding: 8px 12px; border-radius: 8px; color: var(--muted, #a4a7b0); text-decoration: none; font: 500 14px/1 system-ui, sans-serif; }
+.proto-tabs a[aria-current='page'] { background: var(--surface, #23252b); color: var(--text, #f2f3f5); }
+.proto-note { margin-left: auto; align-self: center; font: 12px system-ui, sans-serif; color: var(--muted, #a4a7b0); white-space: nowrap; }
+.proto-view { min-height: calc(100dvh - 50px); }

@@ -14,7 +14,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       // The app, the iframe embed and its demo page; `bike-viewer.js` keeps a stable name so shops can link it.
-      input: { main: `${root}index.html`, embed: `${root}embed.html`, 'embed-demo': `${root}embed-demo.html`, 'bike-viewer': `${root}src/present/element.ts` },
+      input: { main: `${root}index.html`, embed: `${root}embed.html`, 'embed-demo': `${root}embed-demo.html`, proto: `${root}proto.html`, 'bike-viewer': `${root}src/present/element.ts` },
       output: { entryFileNames: (chunk) => (chunk.name === 'bike-viewer' ? 'bike-viewer.js' : 'assets/[name]-[hash].js') },
     },
     // E2E_COVERAGE=1 (bun run e2e:coverage): source maps and readable code, so V8 coverage maps back to src/ precisely.
@@ -39,6 +39,7 @@ export default defineConfig({
         'src/present/embed.ts', // iframe page bootstrap + postMessage bridge (e2e/embed.spec.ts)
         'src/present/element.ts', // <bike-viewer> custom element (e2e/embed.spec.ts)
         'src/ui/heic.worker.ts', // Web Worker running libheif WASM
+        'src/proto/**', // phase 0 clickable prototype with made-up data, covered by e2e/proto*.spec.ts
         'src/**/*.d.ts', // type declarations only
       ],
       // json: coverage-final.json, merged with the E2E report by tools/coverage/e2e-coverage.mjs.

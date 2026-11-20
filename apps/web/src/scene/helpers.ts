@@ -69,6 +69,11 @@ export function presentLede(scene: Pick<BikeScene, 'brand' | 'modelName' | 'year
   return [scene.brand, scene.modelName, scene.year].filter(Boolean).join(' · ') || 'Swipe through the highlights →';
 }
 
+/** Whether the bike page should wait for a "View in 3D" tap: data saver, a 3G-or-slower link, or under 4 GB of memory (docs/PRODUCT-VIEWS.md 4.3). */
+export function shouldDefer3d(c: { saveData?: boolean; effectiveType?: string; deviceMemory?: number }): boolean {
+  return !!c.saveData || ['slow-2g', '2g', '3g'].includes(c.effectiveType ?? '') || (c.deviceMemory !== undefined && c.deviceMemory < 4);
+}
+
 /** Two taps this close in time and place are a double-tap (pivot the orbit), not two comment pins. */
 export const DOUBLE_TAP = { ms: 350, px: 24 } as const;
 export const DEPTH_HINT = 'Double-click a part to orbit around it, zoom toward the pointer, then Save view.';

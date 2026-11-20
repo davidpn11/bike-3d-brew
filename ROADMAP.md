@@ -98,7 +98,8 @@ Top priority: any photo set or video of a bike (any camera) must become a `bike-
 Commercial plan (screens for shops, the shop floor and customers; phases; owner decisions): [docs/PRODUCT-VIEWS.md](docs/PRODUCT-VIEWS.md).
 
 - [x] **Product views plan**: Studio, Bike page, Show customer / Window mode, Storefront, Embed, Request form, Leads, Captures, Platform console; wireframes, data model, phases 0–3, owner decisions.
-- [~] **Clickable prototype (phase 0)**: `/app/proto/` with tabs Studio · Bike workspace · Bike page · Show customer · Storefront · Talk to a salesperson, for **new bikes** in the **US** (English, USD, email/SMS): components and upgrades on the demo bike with made-up data, no checkout or holds; checked on laptop, iPad and phone sizes.
+- [x] **Clickable prototype (phase 0)**: `/app/proto.html` with tabs Studio · Bike workspace · Bike page · Show customer · Storefront · Talk to a salesperson, for new bikes in the US (English, USD, email/SMS), on the demo bike with made-up data (`src/proto/data.ts`). Done: real 3D on the bike page, workspace and Show customer; components and upgrades fly the camera to their area; contact sheet with email/SMS (TCPA line) and call; 3D deferred on Save-Data, 2G/3G or < 4 GB memory with a timeout and Retry; E2E on desktop and phone.
+- [ ] **Prototype polish from owner review**: whatever the owner flags after clicking through the prototype; known: Show customer's stage is short on a 1024×768 iPad (bike small next to its touch-size pins), the bike page poster is a placeholder (use a Snapshot export), Compare's second bike has no capture.
 - [ ] **Hosting cost spike**: tenant auth, signed upload, public reads and the cost of 1,000 views of a 20 MB model on Cloudflare (R2/Workers/D1) vs Supabase; result in docs/PRODUCT-VIEWS.md section 9.
 
 - [ ] **Catalog page**: list of bikes (cards with turntable thumbnails), search/filter, each opening its scene.
