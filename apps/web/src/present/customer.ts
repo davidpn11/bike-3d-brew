@@ -28,7 +28,7 @@ export const presenter = mountPresenter(host, {
 
 // Same test hook shape as main.ts (docs/TESTING.md), read-only: `store.scene` is the shown scene.
 if (import.meta.env.DEV || params.has('e2e')) {
-  const hook = { app: presenter, presenter, viewer: presenter.viewer, store: { get scene() { return presenter.scene; } }, ready: false };
+  const hook = { app: presenter, presenter, viewer: presenter.viewer, pivotAt: (x: number, y: number) => presenter.viewer.pivotAt(x, y), store: { get scene() { return presenter.scene; } }, ready: false };
   (window as unknown as { __bike: typeof hook }).__bike = hook;
   void presenter.ready.then(() => (hook.ready = true));
 }

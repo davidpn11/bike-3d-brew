@@ -257,6 +257,7 @@ test.describe('comment polish in Edit mode', () => {
 
     if (testInfo.project.name === 'desktop') {
       const handle = page.locator('.comments .comment').nth(1).locator('.drag');
+      await handle.scrollIntoViewIfNeeded(); // the panel is longer now; the handle sat at the viewport edge
       const box = (await handle.boundingBox())!;
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
