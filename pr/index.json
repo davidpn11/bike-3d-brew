@@ -1,5 +1,12 @@
 [
   {
+    "number": 41,
+    "title": "Fix flaky idle-render E2E (stored-captures refresh redrew the stage)",
+    "branch": "claude/idle-render-flake",
+    "sha": "426742d",
+    "updatedAt": "2026-11-20T10:24:09-06:00"
+  },
+  {
     "number": 40,
     "title": "[roadmap] iOS capture fallbacks",
     "branch": "claude/ios-capture-fallbacks",

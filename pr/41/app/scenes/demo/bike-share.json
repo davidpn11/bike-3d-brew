@@ -1,0 +1,9 @@
+{
+  "schema": "bike-share/1",
+  "id": "demo",
+  "name": "Demo Road Bike",
+  "createdAt": "2026-10-27T00:00:00.000Z",
+  "scene": "scene.bike.json",
+  "model": null,
+  "photos": []
+}
