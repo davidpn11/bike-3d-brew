@@ -105,9 +105,10 @@ Keep captures outside the repo.
 2. **+** → name it → **Object mode** (background removed automatically) or **Area mode** (no detection box; crop later in the viewer).
 3. Fit the box to the bike, **Start capture**, walk slowly around it. Tap **Checklist** for the plan:
    three orbits (hub height, saddle height, top-down; each ticks itself when Object Capture
-   completes the pass, with its shot count) and close-ups of the fork crown, dropouts, rear
-   derailleur and cockpit (tick them yourself).
-4. **Finish** → **Build 3D model** (keep the app in the foreground; a few minutes).
+   completes a pass, or tap **Mark orbit done** if it does not) and close-ups of the fork crown,
+   dropouts, rear derailleur and cockpit (tick them yourself). **Finish** stays available during
+   capture; under 20 shots, the app asks you to confirm because reconstruction may fail.
+4. **Build 3D model** (keep the app in the foreground; a few minutes).
 5. **View in 3D / AR**, or **Export capture bundle** → AirDrop to your computer → drop the
    zip / `model.usdz` onto the web viewer to add areas and sales comments.
 
@@ -120,3 +121,13 @@ viewer shows close-ups without decoding HEIC.
 
 Status: written in a Linux cloud session and compiled in CI (`.github/workflows/ios.yml`);
 not yet run on a device. See `docs/ARCHITECTURE.md` → Open questions.
+
+For capture diagnostics, tap the shot counter to show the phase, total shots, Object Capture and
+manual pass counts, and camera tracking state. On a connected device, stream the capture logs with:
+
+```sh
+log stream --predicate 'subsystem == "com.bike3dbrew.capture"'
+```
+
+If a capture fails or is cancelled after photos were taken, it remains in the library as a failed
+record; **Build 3D model** can still reconstruct from its saved images.

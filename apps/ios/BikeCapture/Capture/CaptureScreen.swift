@@ -6,6 +6,8 @@ struct CaptureScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: CaptureModel
     @State private var showChecklist = false
+    @State private var confirmFewShots = false
+    @State private var stallTick = Date.now
     let onCaptured: (BikeRecord) -> Void
 
     init(record: BikeRecord, onCaptured: @escaping (BikeRecord) -> Void) {
@@ -36,6 +38,19 @@ struct CaptureScreen: View {
         }
         .onChange(of: model.phase) { _, phase in
             if phase == .completed { complete() }
+            if case .failed(let message) = phase { preserveCapture(error: message) }
+        }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                stallTick = .now
+            }
+        }
+        .alert("Very few shots", isPresented: $confirmFewShots) {
+            Button("Keep capturing", role: .cancel) { }
+            Button("Finish anyway", role: .destructive) { model.finish() }
+        } message: {
+            Text("The model may fail with fewer than 20 photos. Finish and keep these images anyway?")
         }
         .statusBarHidden()
     }
@@ -44,13 +59,24 @@ struct CaptureScreen: View {
         HStack {
             Button("Cancel", role: .cancel) {
                 model.cancel()
-                library.update(model.record.id) { $0.status = .failed; $0.lastError = "Capture cancelled" }
+                preserveCapture(error: "Capture cancelled")
                 dismiss()
             }
             .buttonStyle(.bordered)
             Spacer()
             if model.phase == .capturing || model.phase == .passComplete {
-                Text("Pass \(model.guide.pass) · \(model.guide.shotsPerPass(totalShots: model.shotCount).last ?? 0) shots")
+                VStack(alignment: .trailing, spacing: 3) {
+                    Button { model.toggleDiagnostics() } label: {
+                        Text("Pass \(model.guide.pass) · \(model.shotCount) shots")
+                            .font(.footnote.monospacedDigit())
+                    }
+                    .buttonStyle(.plain)
+                    if model.diagnosticsVisible {
+                        Text(model.diagnosticLine)
+                            .font(.caption2.monospaced())
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
                     .font(.footnote.monospacedDigit())
                     .padding(8)
                     .background(.ultraThinMaterial, in: Capsule())
@@ -107,31 +133,38 @@ struct CaptureScreen: View {
 
     @ViewBuilder
     private var controls: some View {
+        let _ = stallTick
         switch model.phase {
         case .starting, .finishing:
             ProgressView().controlSize(.large)
         case .ready:
             if model.record.mode == .object {
-                hint("Stand back so the whole bike is in frame, on a plain floor with even light. Shiny paint? See the checklist tips.")
+                hint(model.stallHint ?? "Stand back so the whole bike is in frame, on a plain floor with even light. Shiny paint? See the checklist tips.")
                 bigButton("Detect bike") { model.startDetecting() }
             } else {
-                hint("Area mode: walk slowly around the bike, keeping it centered.")
+                hint(model.stallHint ?? "Area mode: walk slowly around the bike, keeping it centered.")
                 bigButton("Start capture") { model.startCapturing() }
             }
         case .detecting:
-            hint("Drag the box edges so it fits the bike from tyre to bar tape.")
+            hint(model.stallHint ?? "Drag the box edges so it fits the bike from tyre to bar tape.")
             HStack {
                 Button("Reset box") { model.resetDetection() }.buttonStyle(.bordered)
                 bigButton("Start capture") { model.startCapturing() }
             }
         case .capturing:
-            hint("\(model.guide.nextOrbit?.detail ?? "Extra pass: get close to the fork crown, dropouts, rear derailleur and cockpit.") Walk all the way around.")
+            VStack(spacing: 10) {
+                hint(model.stallHint ?? "\(model.guide.nextOrbit?.detail ?? "Extra pass: get close to the fork crown, dropouts, rear derailleur and cockpit.") Walk all the way around.")
+                HStack {
+                    Button("Mark orbit done") { model.markOrbitDone() }.buttonStyle(.bordered)
+                    bigButton("Finish") { requestFinish() }
+                }
+            }
         case .passComplete:
             VStack(spacing: 10) {
                 hint(model.guide.nextOrbit.map { "Orbit done. Next: \($0.title.lowercased()). \($0.detail)" } ?? "All three orbits done. Add a close-up pass for the parts still open in the checklist, or finish.")
                 HStack {
                     Button("Another pass") { model.newPass() }.buttonStyle(.bordered)
-                    bigButton("Finish") { model.finish() }
+                    bigButton("Finish") { requestFinish() }
                 }
             }
         case .completed:
@@ -140,7 +173,7 @@ struct CaptureScreen: View {
             VStack {
                 hint(message)
                 bigButton("Close") {
-                    library.update(model.record.id) { $0.status = .failed; $0.lastError = message }
+                    preserveCapture(error: message)
                     dismiss()
                 }
             }
@@ -157,6 +190,25 @@ struct CaptureScreen: View {
         }
         if let record = library.bikes.first(where: { $0.id == id }) { onCaptured(record) }
         dismiss()
+    }
+
+    private func requestFinish() {
+        if model.shotCount < 20 {
+            confirmFewShots = true
+        } else {
+            model.finish()
+        }
+    }
+
+    private func preserveCapture(error: String) {
+        let id = model.record.id
+        let count = library.imageCount(for: id)
+        library.update(id) {
+            $0.status = .failed
+            $0.imageCount = count
+            $0.lastError = error
+            $0.checklist = model.guide.checklist
+        }
     }
 
     private func hint(_ text: String) -> some View {

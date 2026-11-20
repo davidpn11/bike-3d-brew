@@ -33,12 +33,15 @@ struct CaptureGuide {
     /// a turntable spinning it would look like a moving scene and break tracking.
     static let turntableNote = "No turntable: the bike must stay still while you walk around it. Do not flip it between passes."
 
-    /// Shots of the passes before the current one.
+    /// Shots of completed passes before the current one.
     private(set) var finishedPassShots: [Int] = []
     private(set) var completedPasses = 0
+    private(set) var automaticallyCompletedPasses = 0
+    private(set) var manuallyCompletedPasses = 0
     private(set) var ticked: Set<String> = []
     private var tickedPasses: [String: Int] = [:]
     private var passStart = 0
+    private var activePassCompleted = false
 
     var pass: Int { finishedPassShots.count + 1 }
     var orbitsDone: Int { min(Self.orbits.count, completedPasses) }
@@ -53,7 +56,7 @@ struct CaptureGuide {
         return ticked.contains(item.id)
     }
 
-    /// Close-ups only: orbits are ticked by Object Capture's own pass detection.
+    /// Close-ups only: orbits are ticked automatically or with the manual fallback.
     mutating func toggle(_ item: Item) {
         guard !Self.orbits.contains(item) else { return }
         if ticked.remove(item.id) == nil {
@@ -75,14 +78,24 @@ struct CaptureGuide {
     }
 
     /// Shots per pass, the last one being the pass in progress (from the session's live total).
-    func shotsPerPass(totalShots: Int) -> [Int] { finishedPassShots + [max(0, totalShots - passStart)] }
+    func shotsPerPass(totalShots: Int) -> [Int] {
+        finishedPassShots + [activePassCompleted ? 0 : max(0, totalShots - passStart)]
+    }
 
-    mutating func passCompleted() {
-        completedPasses = max(completedPasses, pass)
+    @discardableResult
+    mutating func passCompleted(totalShots: Int, manual: Bool) -> Bool {
+        guard !activePassCompleted else { return false }
+        finishedPassShots.append(max(0, totalShots - passStart))
+        passStart = totalShots
+        completedPasses += 1
+        activePassCompleted = true
+        if manual { manuallyCompletedPasses += 1 } else { automaticallyCompletedPasses += 1 }
+        return true
     }
 
     mutating func beginPass(totalShots: Int) {
-        finishedPassShots.append(max(0, totalShots - passStart))
+        guard activePassCompleted else { return }
         passStart = totalShots
+        activePassCompleted = false
     }
 }
