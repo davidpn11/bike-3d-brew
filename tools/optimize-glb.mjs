@@ -6,7 +6,7 @@
 //   --compress meshopt|draco|none   geometry compression (default meshopt: smallest decoder, fastest decode)
 //   --simplify <ratio>              keep this fraction of triangles (0–1), e.g. 0.5; off by default
 //   --error <fraction>              simplifier error limit as a fraction of the mesh radius (default 0.001)
-//   --textures keep|webp|ktx2       webp needs `npm i -D sharp`; ktx2 needs KTX-Software's `toktx` on PATH
+//   --textures keep|webp|ktx2       webp needs `bun add -d sharp`; ktx2 needs KTX-Software's `toktx` on PATH
 //   --max-texture <px>              downscale textures larger than this (needs sharp), e.g. 2048
 //
 // Always: dedup + weld (indexed geometry) + prune. USDZ captures go through tools/usdz-to-glb.py
@@ -47,7 +47,7 @@ export async function optimizeGlb(input, options = {}) {
   steps.push(prune());
   if (textures === 'webp' || options.maxTexture) {
     const sharp = await import('sharp').then((m) => m.default).catch(() => null);
-    if (!sharp) throw new Error('--textures webp / --max-texture need sharp: npm i -D sharp');
+    if (!sharp) throw new Error('--textures webp / --max-texture need sharp: bun add -d sharp');
     const size = options.maxTexture;
     steps.push(textureCompress({ encoder: sharp, targetFormat: textures === 'webp' ? 'webp' : undefined, resize: size ? [size, size] : undefined }));
   }

@@ -37,8 +37,8 @@ then wait for all of them. Do small glue edits yourself only when a task would b
 
 ## 3. Verify
 
-Send `claude-runner` (one brief, in order): `npm run typecheck`, `npm run test:coverage`, `npm run build`,
-`npm run e2e`. For `apps/ios/**`, the `ios-engineer` verify ladder too. Fix failures by re-briefing
+Send `claude-runner` (one brief, in order): `bun run typecheck`, `bun run test:coverage`, `bun run build`,
+`bun run e2e`. For `apps/ios/**`, the `ios-engineer` verify ladder too. Fix failures by re-briefing
 the owning role, not by editing their files yourself.
 
 ## 4. Review across families

@@ -20,7 +20,7 @@ can spin, zoom into named areas (fork, drivetrain, cockpit…) and read pinned s
 ## Quality bar for every PR
 
 - Pure logic in `apps/web/src/scene/` with unit tests; coverage does not go down.
-- `npm run typecheck`, `npm test`, `npm run build` and the E2E suite pass; CI green.
+- `bun run typecheck`, `bun run test`, `bun run build` and the E2E suite pass; CI green.
 - UI changes verified in Chromium with screenshots, at desktop and phone sizes.
 - Docs (ROADMAP, CHANGELOG, ARCHITECTURE, guides) updated in the same PR.
 

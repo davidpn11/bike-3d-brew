@@ -45,7 +45,7 @@ node tools/optimize-glb.mjs model.glb model-phone.glb --textures ktx2    # needs
 ## Measuring
 
 ```sh
-npm run build
+bun run build
 node tools/bench/bench.mjs --skip-build [--model big.usdz] [--pins 50] [--viewport 390x844] [--out result.json]
 # big.usdz: tools/fixtures/make-usdc.py object-capture big.usdz --detail 90 --tex 2048 (needs usd-core)
 ```

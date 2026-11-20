@@ -75,12 +75,12 @@ fi
 
 build_site() {
   echo "==> Building viewer"
-  [[ -d node_modules ]] || npm ci --no-audit --no-fund
-  npm run build
+  [[ -d node_modules ]] || bun install --frozen-lockfile
+  bun run build
 
   echo "==> Building docs"
-  [[ -d apps/docs/node_modules ]] || npm --prefix apps/docs ci --no-audit --no-fund
-  npm --prefix apps/docs run build
+  [[ -d apps/docs/node_modules ]] || bun install --cwd apps/docs --frozen-lockfile
+  bun run --cwd apps/docs build
 
   echo "==> Assembling site"
   mkdir -p "$site/app"

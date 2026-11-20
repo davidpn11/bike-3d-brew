@@ -1,4 +1,4 @@
 # Orca workspace hooks, shared by every Claude Code and Codex worktree of this repo.
 scripts:
   setup: |
-    npm ci
+    bun install --frozen-lockfile

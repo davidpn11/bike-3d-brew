@@ -30,7 +30,7 @@ existing module that does something similar. Reuse what exists:
 
 ## Verify
 
-`npm run typecheck` and `npm test`. For a UI change, run `npm run dev`, open
+`bun run typecheck` and `bun run test`. For a UI change, run `bun run dev`, open
 `http://localhost:5190/?e2e`, drive the flow and take a screenshot (Orca browser, Claude browser
 pane or Playwright). A new UI flow needs an E2E spec: say so in the report so `quality-engineer`
 gets the task, or write it yourself if the brief allows `apps/web/e2e/`.

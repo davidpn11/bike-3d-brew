@@ -49,13 +49,18 @@ jobs:
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}-${{ hashFiles('apps/docs/bun.lock') }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            apps/docs/package-lock.json
+      - run: bun install --frozen-lockfile
+      - run: bun install --cwd apps/docs --frozen-lockfile
       # Pushes go through the checkout's token; the commit needs an author.
       - run: |
           git config --global user.name "github-actions[bot]"

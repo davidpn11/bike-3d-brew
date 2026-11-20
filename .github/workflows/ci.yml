@@ -10,21 +10,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
       # Unit tests with coverage; fails when coverage drops below the thresholds in apps/web/vite.config.ts.
-      - run: npm run test:coverage
+      - run: bun run test:coverage
       - name: Coverage summary
         if: always()
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             node -e "const t=require('./coverage/coverage-summary.json').total;console.log('### Unit test coverage\n\n| | % |\n|---|---|\n'+['lines','statements','functions','branches'].map(k=>'| '+k+' | '+t[k].pct+' |').join('\n'))" >> "$GITHUB_STEP_SUMMARY"
           fi
-      - run: npm run build
+      - run: bun run build
 
   e2e:
     runs-on: ubuntu-latest
@@ -36,16 +42,22 @@ jobs:
         shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      - run: bun install --frozen-lockfile
       # Headless shell only: the suite renders WebGL with SwiftShader, no GPU needed.
-      - run: npx playwright install --with-deps --only-shell chromium
+      - run: bunx playwright install --with-deps --only-shell chromium
       # The Playwright web server builds dist/ and serves it with `vite preview`. With E2E_COVERAGE the
       # build keeps source maps and each shard writes coverage-e2e/coverage-final.json (V8 → Istanbul).
-      - run: npm run e2e:coverage -- --shard=${{ matrix.shard }}/2
+      - run: bun run e2e:coverage -- --shard=${{ matrix.shard }}/2
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -67,17 +79,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run test:coverage
+      - run: bun install --frozen-lockfile
+      - run: bun run test:coverage
       - uses: actions/download-artifact@v4
         with:
           pattern: coverage-e2e-*
           path: coverage-e2e
-      - run: npm run coverage:merge
+      - run: bun run coverage:merge
       - name: Coverage summary
         run: |
           node -e "const s=require('./coverage-all/coverage-summary.json');const row=(n,t)=>'| '+n+' | '+['lines','statements','functions','branches'].map(k=>t[k].pct).join(' | ')+' |';const f=Object.keys(s).filter(k=>/(ui\/app|viewer\/Viewer|src\/main)\.ts$/.test(k));console.log('### Unit + E2E coverage\n\n| | lines | statements | functions | branches |\n|---|---|---|---|---|\n'+[row('all files',s.total),...f.map(k=>row(k.split('apps/web/')[1],s[k]))].join('\n'))" >> "$GITHUB_STEP_SUMMARY"
@@ -93,12 +111,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-docs-${{ hashFiles('apps/docs/bun.lock') }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/docs/package-lock.json
-      - run: npm --prefix apps/docs ci
-      - run: npm --prefix apps/docs test
-      - run: npm --prefix apps/docs run typecheck
-      - run: npm --prefix apps/docs run build
+      - run: bun install --cwd apps/docs --frozen-lockfile
+      - run: bun run --cwd apps/docs test
+      - run: bun run --cwd apps/docs typecheck
+      - run: bun run --cwd apps/docs build

@@ -31,7 +31,7 @@ what was measured). Know the pieces before adding one:
 
 ## Verify
 
-`npm run typecheck`, `npm test`, and for rendering changes `npm run e2e -- perf.spec.ts view.spec.ts`
-plus a screenshot of the demo bike and a fixture capture (`npm run fixtures`).
+`bun run typecheck`, `bun run test`, and for rendering changes `bun run e2e -- perf.spec.ts view.spec.ts`
+plus a screenshot of the demo bike and a fixture capture (`bun run fixtures`).
 
 End with the `delegation` response contract; put measured numbers in `extra`.
