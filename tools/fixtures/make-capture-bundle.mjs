@@ -1,16 +1,23 @@
 #!/usr/bin/env node
-// Generates synthetic iPhone capture bundles (`bike-capture/1`, see docs/ARCHITECTURE.md) for
-// tests: a low-poly, vertex-colored bike as ASCII USDZ and GLB, poses.json with cameras orbiting
-// the bike, tiny placeholder photos, plus broken variants for error paths. Output is
-// deterministic (fixed zip mtimes, rounded floats), so it never needs to be committed.
+// The one generator of synthetic iPhone capture bundles (`bike-capture/1`, see
+// docs/ARCHITECTURE.md): one low-poly, vertex-colored bike (ASCII USDZ or GLB), one pose layout
+// (three orbit rings, plus close-ups of the key areas), placeholder or rendered photos. Variants:
 //
-//   node tools/fixtures/make-capture-bundle.mjs [outDir]   # default: apps/web/e2e/.fixtures
+//   node tools/fixtures/make-capture-bundle.mjs [outDir]          # E2E variants (default: apps/web/e2e/.fixtures)
+//   node tools/fixtures/make-capture-bundle.mjs --sample out.zip [--name "Synthetic test bike"]
+//       # the Pages site sample: GLB, orbit poses, no photos (createdAt from SOURCE_DATE_EPOCH)
+//   node tools/fixtures/make-capture-bundle.mjs --photos out.zip [--images <dir of IMG_*.jpg|png>]
+//       # USDZ off-origin like a real reconstruction, orbit + close-up poses, one photo per pose
+//       # (placeholders, or renders from tools/fixtures/render-photos.mjs)
 //
-// Importable too: `buildFixtures()` returns { [filename]: Uint8Array }.
+// Output is deterministic (fixed zip mtimes, rounded floats), so it never needs to be committed.
+// Importable too: `buildFixtures()` returns { [filename]: Uint8Array }; `buildPhotoBundle()`,
+// `buildSampleBundle()` return one zip.
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import { deflateSync } from 'node:zlib';
 import { zipSync } from 'fflate';
 import * as THREE from 'three';
@@ -28,6 +35,11 @@ const RINGS = [
   { height: 1.7, radius: 1.3, count: 8 },
 ];
 export const POSE_COUNT = RINGS.reduce((n, r) => n + r.count, 0);
+/** The point every orbit camera looks at (bike coordinates). */
+export const POSE_TARGET = [0, 0.55, 0];
+/** Where the photo bundle's bike sits in its own space, like an Object Capture reconstruction (never centered); centerOnGround undoes it. */
+export const MODEL_ORIGIN = [0.21, 0.07, -0.13];
+export const PHOTO_NAME = 'Fixture Photo Bike';
 
 const r4 = (n) => Math.round(n * 1e4) / 1e4 + 0; // + 0 turns -0 into 0
 const r6 = (n) => Math.round(n * 1e6) / 1e6 + 0;
@@ -93,8 +105,8 @@ function wheelGeometries(x) {
   ];
 }
 
-/** A ~1.7 m low-poly bike standing on y=0, facing +X, drive side +Z (like the demo bike). */
-export function createFixtureBike() {
+/** A ~1.7 m low-poly bike standing on y=0, facing +X, drive side +Z (like the demo bike), shifted by `origin`. */
+export function createFixtureBike(origin = [0, 0, 0]) {
   const rear = [-0.5, 0.34, 0];
   const front = [0.5, 0.34, 0];
   const bb = [-0.08, 0.27, 0];
@@ -140,6 +152,7 @@ export function createFixtureBike() {
       tubeGeometry([bb[0], bb[1] - 0.1, 0.06], [rear[0], rear[1] - 0.05, 0.06], 0.003),
     ]),
   );
+  if (origin.some(Boolean)) for (const mesh of root.children) mesh.geometry.translate(...origin);
   return root;
 }
 
@@ -210,22 +223,50 @@ export async function bikeToGlb(root) {
 
 // ------------------------------------------------------------------ poses and photos
 
-/** Cameras on three rings around the bike, each looking at it (camera→model, column-major). */
-export function orbitPoses(target = [0, 0.55, 0]) {
+const add = (a, b) => a.map((v, i) => v + b[i]);
+
+/** Column-major camera→model matrix for a camera at `eye` looking at `target`. */
+export function lookAtTransform(eye, target, up = [0, 1, 0]) {
+  const e = new THREE.Vector3(...eye);
+  // Matrix4.lookAt builds a basis whose +Z points from target to eye: a camera looking down -Z.
+  return new THREE.Matrix4().lookAt(e, new THREE.Vector3(...target), new THREE.Vector3(...up)).setPosition(e).toArray().map(r6);
+}
+
+/** Cameras on three rings around a bike at `origin`, each looking at it. */
+export function orbitPoses(origin = [0, 0, 0]) {
   const samples = [];
-  const m = new THREE.Matrix4();
-  const t = new THREE.Vector3(...target);
   for (const ring of RINGS) {
     for (let i = 0; i < ring.count; i++) {
       const a = (i / ring.count) * Math.PI * 2;
-      const eye = new THREE.Vector3(Math.cos(a) * ring.radius, ring.height, Math.sin(a) * ring.radius);
-      // Matrix4.lookAt builds a basis whose +Z points from target to eye: a camera looking down -Z.
-      m.lookAt(eye, t, new THREE.Vector3(0, 1, 0)).setPosition(eye);
+      const eye = add(origin, [Math.cos(a) * ring.radius, ring.height, Math.sin(a) * ring.radius]);
       const n = samples.length;
-      samples.push({ sample: n, file: imageName(n), transform: m.toArray().map(r6) });
+      samples.push({ sample: n, file: imageName(n), transform: lookAtTransform(eye, add(origin, POSE_TARGET)) });
     }
   }
   return { schema: 'bike-poses/1', samples };
+}
+
+/** Close-ups a careful shooter adds after the orbits (bike coordinates). */
+const CLOSEUPS = [
+  { target: [0.41, 0.68, 0], eye: [0.92, 0.77, 0.35] }, // fork crown / head tube
+  { target: [0.5, 0.34, 0], eye: [0.85, 0.45, 0.45] }, // front hub
+  { target: [-0.08, 0.27, 0.07], eye: [0.02, 0.42, 0.6] }, // chainring
+  { target: [-0.5, 0.34, 0.07], eye: [-0.7, 0.5, 0.55] }, // rear hub, drive side
+  { target: [0.46, 0.9, 0], eye: [0.2, 1.4, 0.3] }, // cockpit from above
+  { target: [-0.26, 1.0, 0], eye: [-0.58, 1.38, 0.4] }, // saddle
+  { target: [-0.22, 0.8, 0], eye: [-0.35, 0.9, -0.55] }, // seat cluster, non-drive side
+  { target: [0.38, 0.78, 0], eye: [0.56, 0.89, -0.6] }, // head tube, non-drive side
+];
+export const CLOSEUP_COUNT = CLOSEUPS.length;
+
+/** Orbit poses followed by close-ups, numbered like Object Capture samples (bike at `origin`). */
+export function capturePoses(origin = MODEL_ORIGIN) {
+  const poses = orbitPoses(origin);
+  for (const { target, eye } of CLOSEUPS) {
+    const n = poses.samples.length;
+    poses.samples.push({ sample: n, file: imageName(n), transform: lookAtTransform(add(origin, eye), add(origin, target)) });
+  }
+  return poses;
 }
 
 const imageName = (n) => `IMG_${String(n).padStart(4, '0')}.png`;
@@ -259,6 +300,12 @@ export function placeholderPng(rgb, size = 8) {
   const raw = Buffer.concat(Array.from({ length: size }, () => row));
   const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
   return new Uint8Array(png);
+}
+
+/** Placeholder photo `i` of `n`: a gray that gets lighter around the orbit. */
+function placeholderPhoto(i, n) {
+  const shade = 90 + Math.round((150 * i) / n);
+  return placeholderPng([shade, shade, Math.min(255, shade + 20)]);
 }
 
 // ------------------------------------------------------------------ bundles
@@ -299,10 +346,7 @@ export async function buildFixtures() {
   const glb = await bikeToGlb(bike);
   const poses = orbitPoses();
   const images = {};
-  poses.samples.forEach((s, i) => {
-    const shade = 90 + Math.round((150 * i) / POSE_COUNT);
-    images[`images/${s.file}`] = placeholderPng([shade, shade, Math.min(255, shade + 20)]);
-  });
+  poses.samples.forEach((s, i) => (images[`images/${s.file}`] = placeholderPhoto(i, POSE_COUNT)));
   const ios = { 'manifest.json': manifest(), 'model.usdz': usdz, 'poses.json': poses, ...images, 'record.json': { schema: 'bike-record/1', fixture: true } };
   const brokenPoses = { schema: 'bike-poses/1', samples: [{ sample: 0, transform: [1, 0, 0] }] };
   return {
@@ -317,6 +361,29 @@ export async function buildFixtures() {
   };
 }
 
+/**
+ * The bundle the photo close-up tests open: the bike off-origin, orbit + close-up poses and one
+ * photo per pose. `images` ({ ext, data } in pose order) replaces the placeholders.
+ */
+export function buildPhotoBundle({ name = PHOTO_NAME, images = null } = {}) {
+  const poses = capturePoses();
+  const n = poses.samples.length;
+  if (images && images.length !== n) throw new Error(`The photo bundle needs ${n} photos (one per pose), got ${images.length}`);
+  const files = {};
+  poses.samples.forEach((s, i) => {
+    if (images) s.file = s.file.replace(/png$/, images[i].ext);
+    files[`images/${s.file}`] = images ? images[i].data : placeholderPhoto(i, n);
+  });
+  const model = bikeToUsdz(createFixtureBike(MODEL_ORIGIN));
+  return zipBundle({ 'manifest.json': manifest({ name, imageCount: n }), 'model.usdz': model, 'poses.json': poses, ...files, 'record.json': { schema: 'bike-record/1', fixture: true } });
+}
+
+/** The sample on the Pages site (tools/publish-pages.sh): the bike as GLB, orbit poses, no photos. */
+export async function buildSampleBundle({ name = 'Synthetic test bike', createdAt = FIXTURE_CREATED_AT } = {}) {
+  const meta = { name, createdAt, device: 'Synthetic (tools/fixtures/make-capture-bundle.mjs)', model: 'model.glb', imageCount: 0 };
+  return zipBundle({ 'manifest.json': manifest(meta), 'model.glb': await bikeToGlb(createFixtureBike()), 'poses.json': orbitPoses() }, 'synthetic-export/');
+}
+
 export async function writeFixtures(outDir) {
   const fixtures = await buildFixtures();
   mkdirSync(outDir, { recursive: true });
@@ -327,7 +394,29 @@ export async function writeFixtures(outDir) {
 const here = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_OUT_DIR = resolve(here, '../../apps/web/e2e/.fixtures');
 
+function writeZip(out, zip) {
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, zip);
+  console.log(`wrote ${out} (${(zip.length / 1024).toFixed(0)} KB)`);
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const out = resolve(process.argv[2] ?? DEFAULT_OUT_DIR);
-  for (const file of await writeFixtures(out)) console.log(file);
+  const { values: opt, positionals } = parseArgs({ allowPositionals: true, options: { sample: { type: 'string' }, photos: { type: 'string' }, name: { type: 'string' }, images: { type: 'string' } } });
+  if (opt.sample) {
+    // SOURCE_DATE_EPOCH (seconds, set by tools/publish-pages.sh) stamps the sample with the commit time.
+    const epoch = process.env.SOURCE_DATE_EPOCH;
+    const createdAt = epoch ? new Date(Number(epoch) * 1000).toISOString().replace(/\.\d+Z$/, 'Z') : undefined;
+    writeZip(resolve(opt.sample), await buildSampleBundle({ name: opt.name, createdAt }));
+  } else if (opt.photos) {
+    const dir = opt.images;
+    const images = dir
+      ? readdirSync(dir)
+          .filter((f) => /\.(jpe?g|png|heic)$/i.test(f))
+          .sort()
+          .map((f) => ({ ext: f.split('.').pop().toLowerCase(), data: readFileSync(join(dir, f)) }))
+      : null;
+    writeZip(resolve(opt.photos), buildPhotoBundle({ name: opt.name, images }));
+  } else {
+    for (const file of await writeFixtures(resolve(positionals[0] ?? DEFAULT_OUT_DIR))) console.log(file);
+  }
 }

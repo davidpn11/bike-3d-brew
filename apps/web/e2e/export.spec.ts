@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, openApp, readDownload, snap, waitForModel } from './helpers';
 
 /** The top-left pixel (RGBA) and the share of fully opaque pixels of a PNG, decoded by the browser. */

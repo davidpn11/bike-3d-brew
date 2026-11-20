@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { PHOTO_BUNDLE, collectErrors, fixture, openApp, openViaPicker, snap, toast, waitReady } from './helpers';
 
 // Photo close-ups: capture photos whose camera poses look most directly at an area, shown as a

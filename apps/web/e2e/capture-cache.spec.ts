@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, fixture, modelPoint, openApp, openViaPicker, scene, tapCanvas, toast, waitForModel, waitReady } from './helpers';
 
 // Opened capture bundles are kept in OPFS (IndexedDB fallback) so a reload reopens them without

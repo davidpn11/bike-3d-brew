@@ -43,8 +43,9 @@ jobs:
       - run: npm ci
       # Headless shell only: the suite renders WebGL with SwiftShader, no GPU needed.
       - run: npx playwright install --with-deps --only-shell chromium
-      # The Playwright web server builds dist/ and serves it with `vite preview`.
-      - run: npm run e2e -- --shard=${{ matrix.shard }}/2
+      # The Playwright web server builds dist/ and serves it with `vite preview`. With E2E_COVERAGE the
+      # build keeps source maps and each shard writes coverage-e2e/coverage-final.json (V8 → Istanbul).
+      - run: npm run e2e:coverage -- --shard=${{ matrix.shard }}/2
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -52,6 +53,38 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-e2e-${{ matrix.shard }}
+          path: coverage-e2e/coverage-final.json
+          retention-days: 7
+
+  # Unit + E2E coverage in one report, so code only the browser runs (ui/app.ts, Viewer.ts,
+  # main.ts) shows up. Informational: the ratchet thresholds stay on the unit report (web job).
+  coverage:
+    needs: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-e2e-*
+          path: coverage-e2e
+      - run: npm run coverage:merge
+      - name: Coverage summary
+        run: |
+          node -e "const s=require('./coverage-all/coverage-summary.json');const row=(n,t)=>'| '+n+' | '+['lines','statements','functions','branches'].map(k=>t[k].pct).join(' | ')+' |';const f=Object.keys(s).filter(k=>/(ui\/app|viewer\/Viewer|src\/main)\.ts$/.test(k));console.log('### Unit + E2E coverage\n\n| | lines | statements | functions | branches |\n|---|---|---|---|---|\n'+[row('all files',s.total),...f.map(k=>row(k.split('apps/web/')[1],s[k]))].join('\n'))" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-all
+          path: coverage-all/
           retention-days: 14
 
   # Docs + progress site (apps/docs, Fumadocs static export). Its deps live in apps/docs only,

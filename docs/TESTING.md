@@ -7,6 +7,7 @@ Three layers, cheapest first. CI (`.github/workflows/ci.yml`) runs all of them o
 | Unit | `apps/web/test/*.test.ts` | Vitest, Node (happy-dom per file where needed) | `npm test` |
 | Coverage | same tests, V8 coverage | Vitest | `npm run test:coverage` |
 | End-to-end | `apps/web/e2e/*.spec.ts` | Playwright, Chromium + SwiftShader WebGL | `npm run e2e` |
+| Merged coverage | unit + E2E V8 coverage | Playwright + `tools/coverage/e2e-coverage.mjs` | `npm run e2e:coverage && npm run coverage:merge` |
 
 Fixtures for both come from one generator: `tools/fixtures/make-capture-bundle.mjs`.
 
@@ -33,7 +34,8 @@ Fixtures for both come from one generator: `tools/fixtures/make-capture-bundle.m
 
 ### What is not unit-tested, and why
 
-Excluded from coverage in `apps/web/vite.config.ts`, each covered by the E2E suite instead:
+Excluded from unit coverage in `apps/web/vite.config.ts`, each covered by the E2E suite instead
+(and counted in the merged report, see "E2E coverage" below):
 
 | File | Why it cannot run in Node |
 | --- | --- |
@@ -52,18 +54,46 @@ prints the totals in its step summary). At the time of writing: lines 99.8%, sta
 functions 98%, branches 92.8%. When you raise
 coverage, raise the thresholds in the same PR. Never lower them to make a PR pass.
 
+### E2E coverage
+
+`E2E_COVERAGE=1` (`npm run e2e:coverage`) makes the suite measure what the browser runs:
+
+- the build keeps source maps and skips minification (`apps/web/vite.config.ts`), so coverage
+  maps back to `src/` line by line;
+- every Chromium test starts `page.coverage` (`apps/web/e2e/test.ts`, the `test` all specs import;
+  WebKit has no V8 coverage and is skipped); each worker merges its tests' V8 data and writes one
+  file to `coverage-e2e/raw/`;
+- the global teardown converts it with `ast-v8-to-istanbul` (the converter Vitest uses) to
+  `coverage-e2e/coverage-final.json`, `src/` files only.
+
+`npm run coverage:merge` then merges `coverage/coverage-final.json` (unit, needs
+`npm run test:coverage` first) with every `coverage-e2e/**/coverage-final.json` into
+`coverage-all/` (text summary, HTML, `coverage-summary.json`). For files both runs measure, the
+E2E counts are kept only on the statements, functions and branches the unit report has: the
+production bundler and Vitest's transform place a few of them differently, and unmatched
+locations would count twice. Files only the browser runs (`ui/app.ts`, `viewer/Viewer.ts`,
+`main.ts`, `entry.ts`, the customer presenter) come from E2E alone. At the time of writing:
+lines 97.3%, statements 95.9%, functions 92.9%, branches 90.5% (`ui/app.ts` 87% lines,
+`Viewer.ts` 96%). `THRESHOLDS` in `tools/coverage/e2e-coverage.mjs` is the merged ratchet, set
+just under those; same rule as the unit thresholds. Code that gets tree-shaken out of the build
+is absent from the E2E data rather than counted as uncovered, and the Web Worker
+(`heic.worker.ts`) is not measured.
+
+CI runs both E2E shards with `E2E_COVERAGE`, uploads each shard's `coverage-final.json`, and a
+`coverage` job merges them with a fresh unit run, checks the merged thresholds, prints the totals
+(and `app.ts` / `Viewer.ts` / `main.ts`) in its step summary and uploads `coverage-all/`. So CI's
+E2E runs the unminified build; a local `npm run e2e` still tests the minified production build.
+
 ## Fixtures
 
-Four generators, each with a job. All output is synthetic; no real capture is ever committed.
+All output is synthetic; no real capture is ever committed.
 
 | Generator | Output | Used by |
 | --- | --- | --- |
-| `tools/fixtures/make-capture-bundle.mjs` | the bundle variants below (USDZ, GLB, flat, broken…), deterministic | E2E (global setup), `fixtures.test.ts`, `viewer-node.test.ts`, `npm run fixtures` |
-| `tools/fixtures/make-capture.mjs` (+ `render-photos.mjs`) | a USDZ bundle off-origin like a real reconstruction, orbit + close-up poses, placeholder or **rendered** photos | `photos.test.ts`, `capture.test.ts`, E2E photo close-ups (`bike-photos.bikecapture.zip`), `npm run fixture:photos` |
+| `tools/fixtures/make-capture-bundle.mjs` | one bike geometry and one pose layout, as: the bundle variants below (USDZ, GLB, flat, broken…); the photo bundle (`--photos`, `buildPhotoBundle()`); the Pages sample (`--sample`, `buildSampleBundle()`). Deterministic | E2E (global setup), `fixtures.test.ts`, `photos.test.ts`, `capture.test.ts`, `viewer-node.test.ts`, `npm run fixtures`, `tools/publish-pages.sh` |
+| `tools/fixtures/render-photos.mjs` | JPEG renders of the photo bundle's bike from each of its poses | E2E photo close-ups (`bike-photos.bikecapture.zip`), `npm run fixture:photos` |
+| `tools/fixtures/make-bike-capture.mjs` | tilted and area-mode bundles of the demo bike | E2E auto-orient and crop (`tilted-bike`, `area-bike`) |
 | `tools/fixtures/make-usdc.py` | binary USDC (crate) packages in `apps/web/test/fixtures/` (committed, small) | `usdz.test.ts`, E2E "binary USDC loads textured"; needs Pixar USD to regenerate |
-| `tools/make-test-bundle.mjs` | GLB bundle "Synthetic test bike" | the sample on the Pages site (`tools/publish-pages.sh`), manual testing |
-
-Folding the three JS generators into one is a ROADMAP follow-up.
 
 ### `make-capture-bundle.mjs`
 
@@ -88,9 +118,24 @@ committed. What it makes:
 
 The photos are PNG stand-ins: real captures have HEIC, which Node cannot encode.
 
+Two more variants, written on request:
+
+```sh
+node tools/fixtures/make-capture-bundle.mjs --photos out.zip [--images <dir>]   # npm run fixture:capture
+node tools/fixtures/make-capture-bundle.mjs --sample out.zip [--name "…"]      # the Pages sample
+```
+
+- `--photos`: the same bike moved off-origin by `MODEL_ORIGIN` (like a real reconstruction, which
+  is never centered: the viewer's `centerOnGround` undoes it), the orbit poses plus 8 close-ups
+  (fork crown, front hub, chainring, rear hub, cockpit, saddle, and two non-drive-side shots), and
+  one photo per pose: placeholders, or the files of `--images` in sorted order (40 needed).
+- `--sample`: the bike as GLB, the orbit poses and no photos, in a `synthetic-export/` folder;
+  `createdAt` comes from `SOURCE_DATE_EPOCH` when set (`tools/publish-pages.sh` sets the commit
+  time).
+
 ### Rendered-photo bundle
 
-The E2E global setup (`apps/web/e2e/global-setup.ts`) also renders the `make-capture.mjs` bike
+The E2E global setup (`apps/web/e2e/global-setup.ts`) also renders the `--photos` variant's bike
 from each of its poses with `render-photos.mjs` (headless Chromium, three.js, the iPhone wide
 camera's field of view) and writes `bike-photos.bikecapture.zip`, so photo close-ups are ranked
 and shown from real images of the fixture.
@@ -118,6 +163,7 @@ npm run e2e:webkit                            # iPhone profile in WebKit (Safari
 npm run e2e -- --project=desktop files.spec   # one project, one file
 npm run e2e -- -g "present mode"              # by title
 npm run e2e:ui                                # Playwright UI mode
+npm run e2e:coverage                          # with V8 coverage (see "E2E coverage"); then npm run coverage:merge
 E2E_SKIP_BUILD=1 npm run e2e                  # reuse an existing dist/
 E2E_PORT=4290 npm run e2e                     # another port: give each parallel worktree its own (a busy port fails fast)
 E2E_REUSE=1 npm run e2e                       # reuse a server already running on the port

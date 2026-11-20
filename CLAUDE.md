@@ -17,7 +17,7 @@ iPhone photos + LiDAR → three.js), adapted from rooms to a single object.
 - `apps/docs/`: Fumadocs (Next.js static export) docs + progress site. Own `package.json`; its pages are
   generated from the repo's markdown by `scripts/sync-content.mjs` (README, ROADMAP, CHANGELOG, `docs/*.md`),
   so edit the markdown, never `apps/docs/content/`.
-- `tools/`: offline helpers (USDZ → GLB, `make-test-bundle.mjs` synthetic capture bundle, `publish-pages.sh`; `tools/fixtures/make-capture.mjs` USDZ-based fixture bundle, `render-photos.mjs` renders its photos from the poses; `make-capture-bundle.mjs` E2E fixture variants).
+- `tools/`: offline helpers (USDZ → GLB, `publish-pages.sh`; `tools/fixtures/make-capture-bundle.mjs` the one synthetic-bundle generator: E2E variants, `--photos` bundle with close-up poses, `--sample` Pages sample; `render-photos.mjs` renders its photos from the poses; `tools/coverage/e2e-coverage.mjs` E2E V8 coverage → Istanbul, merged with the unit report).
 - `docs/ARCHITECTURE.md`: data contracts and pipeline. Keep it current when contracts change.
 - `ROADMAP.md`: the backlog.
 
@@ -34,7 +34,8 @@ npm run e2e         # Playwright, apps/web/e2e (builds + serves dist/ itself)
 npm run fixtures    # synthetic *.bikecapture.zip fixtures → apps/web/e2e/.fixtures/
 npm run docs:dev    # docs site, http://localhost:5191/bike-3d-brew/ (installs: npm --prefix apps/docs ci)
 npm run docs:build  # → apps/docs/out/
-node tools/make-test-bundle.mjs /tmp/test.bikecapture.zip   # synthetic capture bundle
+npm run e2e:coverage && npm run coverage:merge   # E2E V8 coverage merged with the unit report → coverage-all/
+node tools/fixtures/make-capture-bundle.mjs --sample /tmp/test.bikecapture.zip   # synthetic capture bundle
 tools/publish-pages.sh [--source <branch>]   # build docs + viewer, push to gh-pages (the live site)
 tools/publish-pages.sh --pr <n> --no-push --out /tmp/site   # PR-preview build (basePath /bike-3d-brew/pr/<n>), local only
 ```

@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { publishScene } from '../../../tools/publish-scene.mjs';
 import { collectErrors, fixture, modelPoint, openApp, openViaPicker, readDownload, scene, snap, tapCanvas, toast, waitForCamera, waitForModel } from './helpers';
 

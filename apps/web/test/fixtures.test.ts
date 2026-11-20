@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { USDLoader } from 'three/examples/jsm/loaders/USDLoader.js';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { FIXTURE_NAME, POSE_COUNT, buildFixtures, orbitPoses } from '../../../tools/fixtures/make-capture-bundle.mjs';
+import { FIXTURE_NAME, POSE_COUNT, POSE_TARGET, buildFixtures, orbitPoses } from '../../../tools/fixtures/make-capture-bundle.mjs';
 import { CaptureBundleError, readCaptureBundle, sceneFromCapture } from '../src/scene/capture';
 
 // The synthetic capture bundles the E2E suite drops on the viewer (tools/fixtures). Checking them
@@ -70,9 +70,9 @@ describe('capture bundle fixtures', () => {
   });
 
   it('poses orbit the bike with every camera looking at it', () => {
-    const { samples } = orbitPoses([0, 0.55, 0]);
+    const { samples } = orbitPoses();
     expect(samples).toHaveLength(POSE_COUNT);
-    const target = new THREE.Vector3(0, 0.55, 0);
+    const target = new THREE.Vector3(...POSE_TARGET);
     for (const s of samples) {
       const m = new THREE.Matrix4().fromArray(s.transform);
       const eye = new THREE.Vector3().setFromMatrixPosition(m);

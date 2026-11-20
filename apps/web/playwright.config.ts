@@ -13,6 +13,7 @@ export default defineConfig({
   testDir: './e2e',
   outputDir: `${repoRoot}/test-results`,
   globalSetup: './e2e/global-setup.ts',
+  globalTeardown: './e2e/global-teardown.ts',
   fullyParallel: true,
   forbidOnly: CI,
   // One retry on CI so a runner hiccup does not block a PR; flaky tests still show up as "flaky" in the report.

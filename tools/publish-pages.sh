@@ -86,7 +86,7 @@ build_site() {
   mkdir -p "$site/app"
   cp -R apps/docs/out/. "$site/"
   cp -R dist/. "$site/app/"
-  node tools/make-test-bundle.mjs "$site/app/samples/synthetic-bike.bikecapture.zip"
+  node tools/fixtures/make-capture-bundle.mjs --sample "$site/app/samples/synthetic-bike.bikecapture.zip"
   touch "$site/.nojekyll"
   if [[ -n "$pr" ]]; then
     PR="$pr" TITLE="$pr_title" SRC="$source_note" SHA="$sha" node -e '

@@ -22,9 +22,8 @@ export const FIXTURE_DIR = fileURLToPath(new URL('./.fixtures', import.meta.url)
 export const fixture = (name: string) => `${FIXTURE_DIR}/${name}`;
 /** Committed binary USDC (crate) package shaped like Object Capture output: textured, one mesh. */
 export const USDC_FIXTURE = fileURLToPath(new URL('../test/fixtures/object-capture-like.usdz', import.meta.url));
-/** Bundle with rendered photos (global-setup.ts); PHOTO_ORBIT orbit shots plus the generator's close-ups. */
+/** Bundle with rendered photos (global-setup.ts): the generator's orbit shots plus its close-ups. */
 export const PHOTO_BUNDLE = 'bike-photos.bikecapture.zip';
-export const PHOTO_ORBIT = 16;
 
 /** Makes the capture cache unavailable (no OPFS, no IndexedDB), as in some private modes. */
 export async function blockCaptureStorage(page: Page): Promise<void> {

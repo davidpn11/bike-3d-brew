@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, snap } from './helpers';
 
 // embed-demo.html: a stand-in shop page with the iframe embed (embed.html + bike-embed/1 bridge)

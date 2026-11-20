@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test';
 import { collectErrors, modelPoint, openApp, openViaPicker, fixture, tapCanvas, toast, waitForModel } from './helpers';
 
 // Private windows, disabled site data and some embedded browsers throw on any localStorage access.

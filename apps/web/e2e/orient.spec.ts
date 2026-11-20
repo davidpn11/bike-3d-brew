@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, fixture, modelPoint, openApp, openViaPicker, scene, snap, tapCanvas, toast, waitForCamera, waitForModel } from './helpers';
 
 /** World-space size and lowest point of the model as currently placed (exact vertex bounds). */

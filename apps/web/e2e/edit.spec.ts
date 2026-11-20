@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import { collectErrors, modelPoint, openApp, scene, snap, tapCanvas } from './helpers';
 
 async function enterEdit(page: Page): Promise<void> {

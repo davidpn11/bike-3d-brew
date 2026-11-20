@@ -19,7 +19,11 @@ import { sourceToModelRoot } from '../src/viewer/captureSpace';
 import { USDLoader } from 'three/examples/jsm/loaders/USDLoader.js';
 import { centerOnGround } from '../src/viewer/loaders';
 import { loadUsd } from '../src/viewer/usd/usdz';
-import { MODEL_ORIGIN, bikeCenter, capturePoses, lookAtTransform, makeUsdz, orbitPoses } from '../../../tools/fixtures/make-capture.mjs';
+import { MODEL_ORIGIN, POSE_COUNT, POSE_TARGET, bikeToUsdz, capturePoses, createFixtureBike, lookAtTransform, orbitPoses } from '../../../tools/fixtures/make-capture-bundle.mjs';
+
+const makeUsdz = () => bikeToUsdz(createFixtureBike(MODEL_ORIGIN));
+/** The photo of the k-th close-up (they follow the orbit shots). */
+const closeup = (k: number) => `images/IMG_${String(POSE_COUNT + k).padStart(4, '0')}.jpg`;
 
 const pose = (sample: number, eye: Vec3, target: Vec3, file?: string): PoseSample => ({ sample, transform: lookAtTransform(eye, target), ...(file ? { file } : {}) });
 const images = (n: number) => Array.from({ length: n }, (_, i) => `images/IMG_${String(i).padStart(4, '0')}.HEIC`);
@@ -37,10 +41,10 @@ describe('matrix helpers', () => {
   });
 
   it('fixture poses look down -Z at the bike', () => {
-    const [s] = orbitPoses(4);
+    const [s] = orbitPoses(MODEL_ORIGIN).samples;
     const eye: Vec3 = [s.transform[12], s.transform[13], s.transform[14]];
     const forward = transformDir(s.transform, [0, 0, -1]);
-    const toCenter = bikeCenter().map((v, i) => v - eye[i]);
+    const toCenter = POSE_TARGET.map((v, i) => v + MODEL_ORIGIN[i] - eye[i]);
     const cos = (forward[0] * toCenter[0] + forward[1] * toCenter[1] + forward[2] * toCenter[2]) / Math.hypot(...toCenter);
     expect(cos).toBeGreaterThan(0.9999);
   });
@@ -135,17 +139,17 @@ describe('rankPhotos', () => {
     modelRoot.rotation.set(0, 1.2, 0);
     modelRoot.add(centerOnGround(object));
     const toModel = sourceToModelRoot(modelRoot)!;
-    const poses = capturePoses(24);
-    const imgs = poses.map((p) => `images/${p.file}.jpg`);
+    const poses = capturePoses().samples;
+    const imgs = poses.map((p) => `images/${p.file.replace('.png', '.jpg')}`);
     // Points the user would tap, in model-root space: reconstruction coordinates mapped like the viewer does.
     const inModelRoot = (p: Vec3) => transformPoint(toModel, p.map((v, i) => v + MODEL_ORIGIN[i]) as Vec3);
     const hub = rankPhotos(poses, imgs, { point: inModelRoot([0.5, 0.34, 0.03]), side: [0, 0, 1] }, { toModel });
-    expect(hub[0].path).toBe('images/IMG_0025.jpg'); // the front-hub close-up
-    const fork = rankPhotos(poses, imgs, { point: inModelRoot([0.44, 0.66, 0]), side: [1, 0.2, 0.5] }, { toModel });
-    expect(fork[0].path).toBe('images/IMG_0024.jpg'); // the fork-crown close-up
+    expect(hub[0].path).toBe(closeup(1)); // the front-hub close-up
+    const fork = rankPhotos(poses, imgs, { point: inModelRoot([0.41, 0.68, 0]), side: [1, 0.2, 0.5] }, { toModel });
+    expect(fork[0].path).toBe(closeup(0)); // the fork-crown close-up
     // The non-drive-side close-up of the seat cluster never shows up for a drive-side comment.
-    const seat = rankPhotos(poses, imgs, { point: inModelRoot([-0.17, 0.74, 0.02]), side: [0, 0, 1] }, { toModel });
-    expect(seat.map((r) => r.path)).not.toContain('images/IMG_0030.jpg');
+    const seat = rankPhotos(poses, imgs, { point: inModelRoot([-0.22, 0.8, 0.02]), side: [0, 0, 1] }, { toModel });
+    expect(seat.map((r) => r.path)).not.toContain(closeup(6));
   });
 });
 
@@ -157,9 +161,9 @@ describe('close-ups through the app USDZ loader', () => {
     const a = sourceToModelRoot(stock)!;
     const b = sourceToModelRoot(ours)!;
     expect(b.every((v, i) => Math.abs(v - a[i]) < 1e-6)).toBe(true);
-    const poses = capturePoses(24);
-    const fork = rankPhotos(poses, poses.map((p) => `images/${p.file}.jpg`), { point: transformPoint(b, [0.44 + MODEL_ORIGIN[0], 0.66 + MODEL_ORIGIN[1], MODEL_ORIGIN[2]]), side: [1, 0.2, 0.5] }, { toModel: b });
-    expect(fork[0].path).toBe('images/IMG_0024.jpg');
+    const poses = capturePoses().samples;
+    const fork = rankPhotos(poses, poses.map((p) => `images/${p.file.replace('.png', '.jpg')}`), { point: transformPoint(b, [0.41 + MODEL_ORIGIN[0], 0.68 + MODEL_ORIGIN[1], MODEL_ORIGIN[2]]), side: [1, 0.2, 0.5] }, { toModel: b });
+    expect(fork[0].path).toBe(closeup(0));
   });
 });
 

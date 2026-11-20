@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, expect, test } from './test';
 import type { Vec3 } from '../src/scene/schema';
 import { collectErrors, fixture, openApp, openViaPicker, scene, snap, tapCanvas, toast, waitForCamera, waitForModel } from './helpers';
 

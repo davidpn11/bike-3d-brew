@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Matrix4, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
-import { bikeCenter, capturePoses } from '../../../tools/fixtures/make-capture.mjs';
+import { MODEL_ORIGIN, POSE_COUNT, POSE_TARGET, capturePoses } from '../../../tools/fixtures/make-capture-bundle.mjs';
 import { colmapToPoses, parseCameras, parseImages, parsePoints3D, quatToMat3, readColmapDir } from '../../../tools/reconstruct/colmap.mjs';
 import { packageCapture } from '../../../tools/reconstruct/package.mjs';
 import { readCaptureBundle } from '../src/scene/capture';
@@ -56,8 +56,9 @@ const project = (R: Mat3, t: number[], X: number[]) => {
   return { z: p[2], u: (CAM.f * p[0]) / p[2] + CAM.cx, v: (CAM.f * p[1]) / p[2] + CAM.cy };
 };
 
-const truth = capturePoses(24, true).map((s, i) => ({ ...s, file: `frames/frame_${String(i + 1).padStart(5, '0')}.jpg` }));
-const center = bikeCenter();
+const truth = capturePoses().samples.map((s, i) => ({ ...s, file: `frames/frame_${String(i + 1).padStart(5, '0')}.jpg` }));
+// The orbit cameras' look-at point, in reconstruction space.
+const center = POSE_TARGET.map((v, i) => v + MODEL_ORIGIN[i]) as [number, number, number];
 
 /** COLMAP TXT model like `colmap model_converter --output_type TXT` writes it. */
 function colmapText() {
@@ -115,7 +116,7 @@ describe('COLMAP → bike-poses/1', () => {
       expect(local.z).toBeLessThan(0); // in front of the -Z camera
       expect(CAM.cx + (CAM.f * local.x) / -local.z).toBeCloseTo(cv.u, 6);
       expect(CAM.cy - (CAM.f * local.y) / -local.z).toBeCloseTo(cv.v, 6); // image v grows down, camera +Y is up
-      if (sample.sample >= 24) continue;
+      if (sample.sample >= POSE_COUNT) continue;
       // The orbit cameras look at the bike center: it lands on the principal point.
       const c = project(R, img.t, center);
       expect(c.u).toBeCloseTo(CAM.cx, 2);
@@ -175,7 +176,7 @@ describe('package → bike-capture/1', () => {
       s.transform.forEach((v, k) => expect(v).toBeCloseTo(truth[i].transform[k], 5));
     });
     // Close-ups work on the result: every orbit camera looks at the bike center.
-    expect(rankPhotos(b.poses!.samples, b.images, { point: center }, { limit: 100 }).length).toBeGreaterThanOrEqual(24);
+    expect(rankPhotos(b.poses!.samples, b.images, { point: center }, { limit: 100 }).length).toBeGreaterThanOrEqual(POSE_COUNT);
   });
 
   it('packages a model without poses', async () => {
