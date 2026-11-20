@@ -583,6 +583,9 @@ export class Viewer {
   async recordTurntable(opts: { mimeType: string; size: { width: number; height: number }; seconds: number; backdrop: BackgroundMode; overlay?: Overlay; onProgress?: (done: number) => void }): Promise<Blob> {
     this.cancelFlight();
     const canvas = Object.assign(document.createElement('canvas'), opts.size);
+    // In the document (invisible) while recording: Chromium only hands a canvas's frames to captureStream
+    // reliably when the canvas takes part in the page's paint; a detached one can record a header-only file.
+    canvas.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none';
     const ctx = canvas.getContext('2d')!;
     const scale = opts.size.width / this.viewport.width;
     // Frames are pushed explicitly after each draw: a timed capture (captureStream(30)) can sample
@@ -607,6 +610,7 @@ export class Viewer {
       opts.onProgress?.(t);
     };
     this.controls.enabled = false;
+    document.body.append(canvas);
     try {
       frame(0);
       recorder.start();
@@ -625,6 +629,7 @@ export class Viewer {
     } finally {
       if (recorder.state !== 'inactive') recorder.stop();
       for (const track of stream.getTracks()) track.stop();
+      canvas.remove();
       this.camera.position.copy(start);
       this.camera.lookAt(target);
       this.controls.enabled = true;
