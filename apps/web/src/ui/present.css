@@ -43,6 +43,7 @@
 .present-card table.specs { width: 100%; margin: 8px 0 0; border-collapse: collapse; font-size: 14px; }
 .present-card table.specs caption { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 0 4px; }
 .present-card table.specs th, .present-card table.specs td { padding: 6px 0; border-top: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.present-card .specs-toggle { margin-top: 6px; padding: 4px 0; background: none; border: 0; color: var(--accent, inherit); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 .present-card table.specs th { width: 38%; padding-right: 12px; font-weight: 500; color: var(--muted); }
 
 /* Markdown-lite comment bodies. */
@@ -62,6 +63,17 @@
 .leader-layer .off { display: none; }
 .viewport[data-background='studio'] ~ .leader-layer line:not(.active) { stroke: rgb(17 18 20 / .45); }
 .viewport[data-background='studio'] ~ .leader-layer circle:not(.active) { fill: rgb(17 18 20 / .55); }
+
+/* Wide stages: the bike also renders above the floating card (it floats 16px off the bottom). */
+.stage[data-present] .viewport { bottom: calc(var(--present-card-h, 0px) + 16px); }
+/* Cards >= 480px wide: spec rows in two columns so 4 specs take 2 rows. Roles are set in present.ts because
+   display: grid drops the native table semantics in some browsers. */
+@container (min-width: 500px) {
+  .present-card table.specs tbody { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+  .present-card table.specs tr { display: grid; grid-template-columns: 42% 1fr; }
+  .present-card table.specs th { width: auto; }
+  .present-card table.specs tr[hidden] { display: none; }
+}
 
 /* Narrow stages (phones): the card is a bottom sheet and the bike renders in the space above it, so
    pins are never hidden behind the card. --present-card-h is set by PresentView. */

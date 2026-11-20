@@ -33,3 +33,11 @@ export function specsForEdit(specs: readonly SpecRow[] | undefined): SpecRow[] {
 export function visibleSpecs(specs: readonly SpecRow[] | undefined): SpecRow[] {
   return (specs ?? []).filter((r) => r.value.trim());
 }
+
+/** Rows shown before the "All specs" toggle, so the card stays clear of the bike on a laptop screen. */
+export const SPEC_COLLAPSED_ROWS = 4;
+
+/** Collapse only when it hides at least two rows; a toggle for one hidden row saves nothing. */
+export function specsCollapsible(count: number): boolean {
+  return count > SPEC_COLLAPSED_ROWS + 1;
+}

@@ -307,6 +307,15 @@ describe('PresentView', () => {
     const specRows = [...view.el.querySelectorAll('table.specs tr')].map((tr) => [...tr.children].map((c) => c.textContent));
     expect(specRows).toEqual([['Weight', '8.2 kg']]);
     expect(view.el.querySelector('table.specs caption')!.textContent).toBe('Key specs');
+    expect(view.el.querySelector('.specs-toggle')).toBeNull();
+    render(0, { scene: { ...scene, specs: Array.from({ length: 8 }, (_, i) => ({ label: `L${i}`, value: `V${i}` })) } });
+    const toggle = view.el.querySelector<HTMLButtonElement>('.specs-toggle')!;
+    const hiddenRows = () => view.el.querySelectorAll('table.specs tr[hidden]').length;
+    expect([toggle.textContent, toggle.getAttribute('aria-expanded'), hiddenRows()]).toEqual(['All specs (8)', 'false', 4]);
+    toggle.click();
+    expect([toggle.textContent, toggle.getAttribute('aria-expanded'), hiddenRows()]).toEqual(['Fewer specs', 'true', 0]);
+    toggle.click();
+    expect(hiddenRows()).toBe(4);
     render(1, { photos: document.createElement('figure') });
     expect(view.el.querySelector('header strong')!.textContent).toBe('Fork');
     const notes = view.el.querySelectorAll('li.note');

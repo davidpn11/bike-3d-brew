@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SCHEMA, parseScene } from '../src/scene/schema';
-import { SPEC_DEFAULT_LABELS, SPEC_LIMITS, cleanSpecs, parseSpecs, specsForEdit, visibleSpecs } from '../src/scene/specs';
+import { SPEC_COLLAPSED_ROWS, SPEC_DEFAULT_LABELS, SPEC_LIMITS, cleanSpecs, parseSpecs, specsCollapsible, specsForEdit, visibleSpecs } from '../src/scene/specs';
 
 const base = { schema: SCHEMA, id: 'b', name: 'B', model: { url: 'demo:road', format: 'demo' } };
 
@@ -37,5 +37,10 @@ describe('spec sheet', () => {
     expect(copy[0]).not.toBe(saved[0]);
     expect(visibleSpecs(undefined)).toEqual([]);
     expect(visibleSpecs([{ label: 'Weight', value: ' ' }, { label: '', value: 'Lifetime warranty' }])).toEqual([{ label: '', value: 'Lifetime warranty' }]);
+  });
+
+  it('collapses only when at least two rows would be hidden', () => {
+    expect(specsCollapsible(SPEC_COLLAPSED_ROWS + 1)).toBe(false);
+    expect(specsCollapsible(SPEC_COLLAPSED_ROWS + 2)).toBe(true);
   });
 });
