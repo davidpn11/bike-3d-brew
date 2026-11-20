@@ -37,6 +37,7 @@ struct CaptureGuide {
     private(set) var finishedPassShots: [Int] = []
     private(set) var completedPasses = 0
     private(set) var ticked: Set<String> = []
+    private var tickedPasses: [String: Int] = [:]
     private var passStart = 0
 
     var pass: Int { finishedPassShots.count + 1 }
@@ -55,7 +56,22 @@ struct CaptureGuide {
     /// Close-ups only: orbits are ticked by Object Capture's own pass detection.
     mutating func toggle(_ item: Item) {
         guard !Self.orbits.contains(item) else { return }
-        if ticked.remove(item.id) == nil { ticked.insert(item.id) }
+        if ticked.remove(item.id) == nil {
+            ticked.insert(item.id)
+            tickedPasses[item.id] = pass
+        } else {
+            tickedPasses.removeValue(forKey: item.id)
+        }
+    }
+
+    var checklist: [BikeRecord.ChecklistItem] {
+        let orbits = Self.orbits.enumerated().map { index, item in
+            BikeRecord.ChecklistItem(id: item.id, label: item.title, done: index < orbitsDone, pass: index < orbitsDone ? index + 1 : nil)
+        }
+        let closeUps = Self.closeUps.map { item in
+            BikeRecord.ChecklistItem(id: item.id, label: item.title, done: ticked.contains(item.id), pass: tickedPasses[item.id])
+        }
+        return orbits + closeUps
     }
 
     /// Shots per pass, the last one being the pass in progress (from the session's live total).

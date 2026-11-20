@@ -153,6 +153,7 @@ struct CaptureScreen: View {
         library.update(id) {
             $0.status = .captured
             $0.imageCount = count
+            $0.checklist = model.guide.checklist
         }
         if let record = library.bikes.first(where: { $0.id == id }) { onCaptured(record) }
         dismiss()
