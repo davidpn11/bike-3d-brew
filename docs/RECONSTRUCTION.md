@@ -109,7 +109,7 @@ package     → bike-capture/1 zip: model.glb (or .usdz), poses.json (viewer con
 
 **Built so far** (`node tools/reconstruct/cli.mjs --help`):
 
-- `poses --colmap <sparse_txt> [-o poses.json]` (`colmap.mjs`): reads COLMAP's TXT model and writes
+- `poses --colmap <sparse_model> [-o poses.json]` (`colmap.mjs`): reads COLMAP's TXT or binary model directly (TXT wins when both are present; no `model_converter` step needed) and writes
   `bike-poses/1`. Samples are ordered by image name, `file` is the image basename, and each sample
   keeps the real intrinsics as `camera` (pixels; `SIMPLE_*`/`RADIAL*` models give fx = fy = f;
   distortion is not kept). The model frame is COLMAP's world frame (arbitrary scale and up), which
@@ -130,7 +130,7 @@ COLMAP on Linux today (a CPU-only sparse model, enough to check the poses):
 sudo apt-get install colmap ffmpeg            # Ubuntu 24.04: colmap 3.9.1
 ffmpeg -i bike.mp4 -vf "fps=2,scale=1920:-2" frames/%05d.jpg
 colmap automatic_reconstructor --workspace_path work --image_path frames --dense 0 --use_gpu 0
-colmap model_converter --input_path work/sparse/0 --output_path work/sparse_txt --output_type TXT
+node tools/reconstruct/cli.mjs poses --colmap work/sparse/0 -o work/poses.json
 ```
 
 For a dense textured mesh use OpenMVS (`InterfaceCOLMAP` → `DensifyPointCloud` → `ReconstructMesh`

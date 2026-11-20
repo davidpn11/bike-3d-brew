@@ -5,11 +5,76 @@
 // -Z and +Y up (three.js), so: T_c2w = [Rᵀ | -Rᵀt], then flip the camera's Y and Z axes.
 // The model frame is COLMAP's world frame, which OpenMVS keeps for the mesh it builds from it.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Camera models whose first parameter is a single focal length; the rest start with fx, fy.
 const SINGLE_FOCAL = new Set(['SIMPLE_PINHOLE', 'SIMPLE_RADIAL', 'RADIAL', 'SIMPLE_RADIAL_FISHEYE', 'RADIAL_FISHEYE']);
+// COLMAP 3.12 src/colmap/sensor/models.h, enum order / parameter count.
+const CAMERA_MODELS = [
+  ['SIMPLE_PINHOLE', 3], ['PINHOLE', 4], ['SIMPLE_RADIAL', 4], ['RADIAL', 5], ['OPENCV', 8], ['OPENCV_FISHEYE', 8],
+  ['FULL_OPENCV', 12], ['FOV', 5], ['SIMPLE_RADIAL_FISHEYE', 4], ['RADIAL_FISHEYE', 5], ['THIN_PRISM_FISHEYE', 12],
+];
+
+class BinaryReader {
+  constructor(data, file) { this.data = data; this.file = file; this.offset = 0; }
+  need(size) {
+    if (!Number.isSafeInteger(size) || size < 0 || size > this.data.length - this.offset) {
+      throw new Error(`${this.file}: truncated or oversized binary model at byte ${this.offset}`);
+    }
+  }
+  u8() { this.need(1); return this.data[this.offset++]; }
+  i32() { this.need(4); const v = this.data.readInt32LE(this.offset); this.offset += 4; return v; }
+  u32() { this.need(4); const v = this.data.readUInt32LE(this.offset); this.offset += 4; return v; }
+  u64() { this.need(8); const v = this.data.readBigUInt64LE(this.offset); this.offset += 8; if (v > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`${this.file}: oversized count/value at byte ${this.offset - 8}`); return Number(v); }
+  i64() { this.need(8); const v = this.data.readBigInt64LE(this.offset); this.offset += 8; if (v < BigInt(Number.MIN_SAFE_INTEGER) || v > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`${this.file}: oversized value at byte ${this.offset - 8}`); return Number(v); }
+  f64() { this.need(8); const v = this.data.readDoubleLE(this.offset); this.offset += 8; if (!Number.isFinite(v)) throw new Error(`${this.file}: non-finite value at byte ${this.offset - 8}`); return v; }
+  count(minBytes) { const n = this.u64(); if (n > Math.floor((this.data.length - this.offset) / minBytes)) throw new Error(`${this.file}: oversized count ${n} at byte ${this.offset - 8}`); return n; }
+  name() { const start = this.offset; while (this.offset < this.data.length && this.data[this.offset] !== 0) this.offset++; if (this.offset === this.data.length) throw new Error(`${this.file}: unterminated image name at byte ${start}`); const name = this.data.toString('utf8', start, this.offset); this.offset++; return name; }
+  done() { if (this.offset !== this.data.length) throw new Error(`${this.file}: unexpected trailing bytes at byte ${this.offset}`); }
+}
+
+function intrinsics(modelId, width, height, params, file) {
+  const model = CAMERA_MODELS[modelId];
+  if (!model || params.length !== model[1]) throw new Error(`${file}: unsupported camera model id ${modelId}`);
+  const [name] = model;
+  const [fx, fy, cx, cy] = SINGLE_FOCAL.has(name) ? [params[0], params[0], params[1], params[2]] : params;
+  return { model: name, width, height, params, fx, fy, cx, cy };
+}
+
+export function parseCamerasBin(data) {
+  const r = new BinaryReader(data, 'cameras.bin'), out = new Map(), count = r.count(24);
+  for (let i = 0; i < count; i++) {
+    const id = r.u32(), modelId = r.i32(), width = r.u64(), height = r.u64(), model = CAMERA_MODELS[modelId];
+    if (!model) throw new Error(`cameras.bin: unsupported camera model id ${modelId}`);
+    const params = Array.from({ length: model[1] }, () => r.f64());
+    out.set(id, { ...intrinsics(modelId, width, height, params, 'cameras.bin'), id });
+  }
+  r.done(); return out;
+}
+
+export function parseImagesBin(data) {
+  const r = new BinaryReader(data, 'images.bin'), out = [], count = r.count(64);
+  for (let i = 0; i < count; i++) {
+    const id = r.u32(), q = Array.from({ length: 4 }, () => r.f64()), t = Array.from({ length: 3 }, () => r.f64()), cameraId = r.u32(), name = r.name();
+    const len = Math.hypot(...q); if (!len) throw new Error('images.bin: zero quaternion');
+    const observations = r.count(24);
+    r.need(observations * 24);
+    r.offset += observations * 24;
+    out.push({ id, q: q.map((v) => v === 0 ? 0 : v / len), t, cameraId, name });
+  }
+  r.done(); return out;
+}
+
+export function parsePoints3DBin(data) {
+  const r = new BinaryReader(data, 'points3D.bin'), out = [], count = r.count(51);
+  for (let i = 0; i < count; i++) {
+    const id = r.u64(), xyz = Array.from({ length: 3 }, () => r.f64()), rgb = [r.u8(), r.u8(), r.u8()], error = r.f64(), track = r.count(8);
+    r.need(track * 8); r.offset += track * 8;
+    out.push({ id, xyz, rgb, error });
+  }
+  r.done(); return out;
+}
 
 /** Non-comment lines with their 1-based line numbers. Blank lines are kept: images.txt pairs lines. */
 function lines(text) {
@@ -96,13 +161,13 @@ export function colmapToTransform(q, t) {
  * order for numbered frames); `file` is the basename, which is what `package` puts in images/.
  * `camera` carries the real intrinsics (pixels); the viewer ignores it today.
  */
-export function colmapToPoses(cameras, images) {
+export function colmapToPoses(cameras, images, imageFile = 'images.txt') {
   const sorted = [...images].sort((a, b) => a.name.localeCompare(b.name, 'en', { numeric: true }));
   return {
     schema: 'bike-poses/1',
     samples: sorted.map((img, sample) => {
       const cam = cameras.get(img.cameraId);
-      if (!cam) throw new Error(`images.txt: image ${img.name} uses unknown camera ${img.cameraId}`);
+      if (!cam) throw new Error(`${imageFile}: image ${img.name} uses unknown camera ${img.cameraId}`);
       const { width, height, fx, fy, cx, cy } = cam;
       return {
         sample,
@@ -114,16 +179,26 @@ export function colmapToPoses(cameras, images) {
   };
 }
 
-/** Reads a COLMAP TXT model folder (cameras.txt, images.txt, points3D.txt optional). */
-export function readColmapDir(dir) {
+/** Reads a COLMAP model folder; sparse points are optional and loaded only on request. */
+export function readColmapDir(dir, { includePoints = false } = {}) {
+  const binary = !existsSync(join(dir, 'cameras.txt'));
+  if (binary && !existsSync(join(dir, 'cameras.bin'))) throw new Error(`COLMAP model directory has neither cameras.txt nor cameras.bin: ${dir}`);
+  if (binary && !existsSync(join(dir, 'images.bin'))) throw new Error(`COLMAP binary model is missing images.bin: ${dir}`);
+  if (binary) {
+    const read = (f) => readFileSync(join(dir, f));
+    const cameras = parseCamerasBin(read('cameras.bin'));
+    const images = parseImagesBin(read('images.bin'));
+    const { points, pointsWarning } = includePoints ? readPoints(() => read('points3D.bin'), parsePoints3DBin) : { points: [], pointsWarning: undefined };
+    return { cameras, images, points, pointsWarning, poses: colmapToPoses(cameras, images, 'images.bin') };
+  }
   const read = (f) => readFileSync(join(dir, f), 'utf8');
   const cameras = parseCameras(read('cameras.txt'));
   const images = parseImages(read('images.txt'));
-  let points = [];
-  try {
-    points = parsePoints3D(read('points3D.txt'));
-  } catch (err) {
-    if (err.code !== 'ENOENT') throw err;
-  }
-  return { cameras, images, points, poses: colmapToPoses(cameras, images) };
+  const { points, pointsWarning } = includePoints ? readPoints(() => read('points3D.txt'), parsePoints3D) : { points: [], pointsWarning: undefined };
+  return { cameras, images, points, pointsWarning, poses: colmapToPoses(cameras, images) };
+}
+
+function readPoints(read, parse) {
+  try { return { points: parse(read()), pointsWarning: undefined }; }
+  catch (err) { return { points: [], pointsWarning: `could not read optional sparse points: ${err.message}` }; }
 }
