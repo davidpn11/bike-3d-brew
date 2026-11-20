@@ -1,5 +1,12 @@
 [
   {
+    "number": 40,
+    "title": "[roadmap] iOS capture fallbacks",
+    "branch": "claude/ios-capture-fallbacks",
+    "sha": "b2ec58d",
+    "updatedAt": "2026-11-20T09:46:45-06:00"
+  },
+  {
     "number": 39,
     "title": "iOS: app icon",
     "branch": "claude/app-icon",
