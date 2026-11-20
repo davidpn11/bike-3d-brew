@@ -31,6 +31,8 @@ The iframe takes commands over `postMessage` (`{ type: "bike-embed/1", cmd: "nex
 element exposes `element.presenter` and DOM events. Details in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#embedding-on-a-shops-site).
 
+To capture a real bike and see it in the viewer, follow [docs/DEMO-CAPTURE.md](docs/DEMO-CAPTURE.md).
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md) and
 [apps/ios/README.md](apps/ios/README.md). Inspired by
 [wesbos/3d-model-anything](https://github.com/wesbos/3d-model-anything).
