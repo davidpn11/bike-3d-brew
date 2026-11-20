@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- App icon source: a bike wheel with a camera as the hub. Rendered to AppIcon.png (1024 px, opaque). -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#2a2d34"/><stop offset="1" stop-color="#121317"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a45"/><stop offset="1" stop-color="#ff5a1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="372" fill="none" stroke="#0b0c0e" stroke-width="86"/>
+  <circle cx="512" cy="512" r="372" fill="none" stroke="#f2f3f5" stroke-width="58"/>
+  <circle cx="512" cy="512" r="326" fill="none" stroke="#8c919c" stroke-width="14"/>
+  <g stroke="#b9bdc6" stroke-width="9" stroke-linecap="round"><line x1="577.8" y1="536.0" x2="844.0" y2="512.0"/><line x1="565.6" y1="557.0" x2="824.0" y2="625.6"/><line x1="546.9" y1="572.7" x2="766.3" y2="725.4"/><line x1="524.1" y1="580.9" x2="678.0" y2="799.5"/><line x1="499.8" y1="580.9" x2="569.7" y2="839.0"/><line x1="476.9" y1="572.6" x2="454.3" y2="839.0"/><line x1="458.3" y1="556.9" x2="346.0" y2="799.5"/><line x1="446.2" y1="535.9" x2="257.7" y2="725.4"/><line x1="442.0" y1="511.9" x2="200.0" y2="625.6"/><line x1="446.2" y1="488.0" x2="180.0" y2="512.0"/><line x1="458.4" y1="467.0" x2="200.0" y2="398.4"/><line x1="477.1" y1="451.3" x2="257.7" y2="298.6"/><line x1="499.9" y1="443.1" x2="346.0" y2="224.5"/><line x1="524.2" y1="443.1" x2="454.3" y2="185.0"/><line x1="547.1" y1="451.4" x2="569.7" y2="185.0"/><line x1="565.7" y1="467.1" x2="678.0" y2="224.5"/><line x1="577.8" y1="488.1" x2="766.3" y2="298.6"/><line x1="582.0" y1="512.1" x2="824.0" y2="398.4"/></g>
+  <g transform="translate(512 512)">
+    <rect x="-70" y="-148" width="120" height="44" rx="14" fill="url(#body)"/>
+    <rect x="-176" y="-118" width="352" height="236" rx="46" fill="url(#body)"/>
+    <circle r="92" fill="#17181c"/>
+    <circle r="92" fill="none" stroke="#f2f3f5" stroke-width="16"/>
+    <circle r="50" fill="#2b3a55"/>
+    <circle cx="-18" cy="-20" r="15" fill="#f2f3f5" opacity=".85"/>
+    <circle cx="124" cy="-76" r="14" fill="#17181c" opacity=".55"/>
+  </g>
+</svg>
