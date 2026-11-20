@@ -98,7 +98,7 @@ Notes:
 - The `ingest` step extracts frames, keeps the sharpest frame per short time window (variance of the
   Laplacian) and only adds a frame when the view has changed enough, aiming for 80–200 frames.
 
-## Pipeline (planned shape: `tools/reconstruct/`)
+## Pipeline (`tools/reconstruct/`)
 
 ```
 ingest      photos/ and/or videos → frames/ (sharp, deduplicated, EXIF-upright JPEG ≤ 3000 px) + coverage report
@@ -106,6 +106,22 @@ reconstruct --backend object-capture|colmap   frames/ → model + camera poses
 package     → bike-capture/1 zip: model.glb (or .usdz), poses.json (viewer convention), images/*.jpg, manifest.json
             (source: "photos"|"video", backend), optional mesh crop to the dominant object
 ```
+
+**Built so far** (`node tools/reconstruct/cli.mjs --help`):
+
+- `poses --colmap <sparse_txt> [-o poses.json]` (`colmap.mjs`): reads COLMAP's TXT model and writes
+  `bike-poses/1`. Samples are ordered by image name, `file` is the image basename, and each sample
+  keeps the real intrinsics as `camera` (pixels; `SIMPLE_*`/`RADIAL*` models give fx = fy = f;
+  distortion is not kept). The model frame is COLMAP's world frame (arbitrary scale and up), which
+  OpenMVS keeps for the mesh, so the viewer's auto-orient stands the bike up.
+- `package --model <glb|usdz|ply> --images <frames> (--colmap <dir> | --poses <file>) --source photos|video --backend <b> [--name] [-o]`
+  (`package.mjs`): flat zip with `manifest.json`, `model.<ext>`, `poses.json`, `images/*.jpg`
+  (stored, not deflated). It refuses non-JPEG frames, duplicate names and poses whose image is missing.
+- Tests (`apps/web/test/reconstruct.test.ts`): COLMAP text synthesized from the fixture's ground-truth
+  cameras (via COLMAP's own `x = R·X + t` definition, with shuffled image ids and sign-flipped
+  quaternions) must convert back to the same transforms, project points to the same pixels in the
+  converted three.js camera, and package into a zip that the viewer's `readCaptureBundle` opens with
+  every pose matched to its photo.
 
 Status and the next steps are in [ROADMAP.md](../ROADMAP.md) (Milestone 1.5). For the commands to try
 COLMAP on Linux today (a CPU-only sparse model, enough to check the poses):
