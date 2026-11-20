@@ -6,6 +6,7 @@ merges the stack to `main`, the Unreleased block becomes a dated release.
 ## Unreleased
 
 ### Added
+- Real intrinsics in close-ups: photo ranking uses each sample's own `camera` from `poses.json` (horizontal FOV and aspect from fx, fy, width, height) instead of the 65° iPhone assumption; implausible values fall back to 65°. (#26)
 - COLMAP binary models: `tools/reconstruct/cli.mjs poses` reads `cameras.bin`, `images.bin` and `points3D.bin` directly (no `model_converter` step); TXT is preferred when both exist, and a missing or unreadable `points3D` is a warning, not an error. Binary parsing is bounds-checked and tested against the TXT output. (#25)
 - Preview ops: `prune-previews.yml` runs daily and removes the `/pr/<n>/` preview of every closed PR, and squashes gh-pages history once it passes 200 commits (force-with-lease on the base it read); `pr-preview.yml` keeps one sticky comment with the Docs and Viewer links on each PR. (#24)
 - Agent setup: `CLAUDE.md` is now `AGENTS.md` (shared by Claude Code and Codex, `CLAUDE.md` imports it) with a table of which tool runs each role; one persona skill per role in `.agents/skills/` (web, viewer, iOS, quality, docs, security, junior, plus `architect` and `delegation`), platform-prefixed wrappers in `.claude/agents/claude-<role>.md` and `.codex/agents/codex-<role>.toml`, and `orca.yaml` with the worktree setup script. (#23)
