@@ -1,7 +1,7 @@
 import { viewForPoint } from '../scene/camera';
 import { shouldAutoOrient } from '../scene/orient';
 import { type CaptureBundle, bundleNameOf, captureModelRef, looksLikeZip, readCaptureBundle, sceneFromCapture } from '../scene/capture';
-import { captureSummary, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
+import { DEPTH_HINT, isDoubleTap, captureSummary, distance, nearestHotspot, presentLede, resolveModelUrl, slugify, wrapStep } from '../scene/helpers';
 import { type CachedCapture, type CaptureCache, formatBytes } from '../scene/captureCache';
 import {
   DEFAULT_SNAPSHOT_SCALE,
@@ -167,6 +167,7 @@ export class App {
     try {
       const object = await loadModel(url, ref.format);
       this.viewer.setModel(centerOnGround(object), ref);
+      this.lastTap = null;
       this.loadedModelKey = key;
       this.captureSpace = ref.url === this.captureUrl ? sourceToModelRoot(this.viewer.modelRoot) : null;
       this.rankCache.clear();
@@ -191,9 +192,13 @@ export class App {
     if (this.mode === 'present') this.present.kiosk.play();
   }
 
+  /** Pending first tap of a possible double-tap; dropped on mode and model changes so it can't turn the next tap into a pivot. */
+  private lastTap: { x: number; y: number; t: number } | null = null;
+
   setMode(mode: Mode): void {
     if (this.mode === mode) return;
     this.mode = mode;
+    this.lastTap = null;
     this.draft = null;
     document.body.dataset.mode = mode;
     if (mode === 'present') this.goToStep(0);
@@ -227,6 +232,14 @@ export class App {
     this.render();
     const hotspot = this.store.scene.hotspots.find((x) => x.id === id);
     await this.viewer.flyTo(hotspot ? hotspot.view : this.viewer.overviewView());
+  }
+
+  /** Saves the camera as the area's view and makes the area the active one, so the click visibly did something. */
+  private setAreaView(hs: Hotspot): void {
+    this.activeHotspot = hs.id;
+    this.activeAnnotation = null;
+    this.store.updateHotspot(hs.id, { view: this.viewer.getView() });
+    this.toast(`View saved for “${hs.name}”.`, 'info');
   }
 
   async focusAnnotation(id: string): Promise<void> {
@@ -448,7 +461,7 @@ export class App {
             ? h(
                 'span',
                 { class: 'row-actions' },
-                h('button', { type: 'button', title: 'Use current camera for this area', onclick: () => this.store.updateHotspot(hs.id, { view: this.viewer.getView() }) }, 'Set view'),
+                h('button', { type: 'button', title: 'Save the current camera as this area’s view', onclick: () => this.setAreaView(hs) }, 'Set view'),
                 h('button', { type: 'button', title: 'Rename', onclick: () => this.renameHotspot(hs) }, 'Rename'),
                 h('button', { type: 'button', class: 'danger', title: 'Delete area', onclick: () => this.deleteHotspot(hs) }, '×'),
               )
@@ -462,6 +475,7 @@ export class App {
         {},
         h('h2', {}, 'Areas'),
         areas,
+        editing ? h('p', { class: 'hint' }, DEPTH_HINT) : null,
         editing ? h('button', { type: 'button', class: 'add', onclick: () => this.addHotspotFromView() }, '+ Save current view as area') : null,
       ),
     );
@@ -526,20 +540,25 @@ export class App {
   private specsEditor(scene: BikeScene): HTMLElement {
     const list = h('div', { class: 'spec-rows' });
     const save = () => {
-      const rows = [...list.querySelectorAll<HTMLElement>('.spec-row')].map((r) => ({ label: r.querySelector<HTMLInputElement>('[name=label]')!.value, value: r.querySelector<HTMLInputElement>('[name=value]')!.value }));
+      const rows = [...list.querySelectorAll<HTMLElement>('.spec-row')].map((r) => ({ label: r.querySelector<HTMLInputElement>('[name=label]')!.value, value: r.querySelector<HTMLTextAreaElement>('[name=value]')!.value }));
       const specs = cleanSpecs(rows);
       this.store.update({ specs: specs.length ? specs : undefined });
     };
     // `change` fires before Tab moves focus: save once it has landed, so the re-render can put it back.
     const saveSoon = () => setTimeout(save);
+    // Grows with its text; CSS max-height caps it at 4 lines and scrolls beyond.
+    const grow = (t: HTMLTextAreaElement) => ((t.style.height = 'auto'), (t.style.height = `${t.scrollHeight}px`));
     const row = (r: SpecRow, i: number) => {
       const el: HTMLElement = h(
         'div',
         { class: 'spec-row' },
         h('input', { name: 'label', dataset: { focus: `spec-${i}-label` }, value: r.label, placeholder: 'Spec', 'aria-label': 'Spec name', onchange: saveSoon }),
-        h('input', { name: 'value', dataset: { focus: `spec-${i}-value` }, value: r.value, placeholder: 'Value', 'aria-label': `${r.label || 'Spec'} value`, onchange: saveSoon }),
+        h('textarea', { name: 'value', rows: 1, dataset: { focus: `spec-${i}-value` }, placeholder: 'Value', 'aria-label': `${r.label || 'Spec'} value`, onchange: saveSoon, oninput: (e: Event) => grow(e.target as HTMLTextAreaElement) }),
         h('button', { type: 'button', class: 'danger', title: 'Remove row', 'aria-label': `Remove ${r.label || 'row'}`, onclick: () => (el.remove(), save()) }, '×'),
       );
+      const value = el.querySelector<HTMLTextAreaElement>('[name=value]')!;
+      value.value = r.value;
+      requestAnimationFrame(() => grow(value)); // scrollHeight is 0 before layout
       return el;
     };
     list.append(...specsForEdit(scene.specs).map(row));
@@ -807,7 +826,18 @@ export class App {
       if (!down) return;
       const isTap = Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6 && performance.now() - down.t < 500;
       down = null;
-      if (!isTap || this.mode !== 'edit') return;
+      if (!isTap || this.mode === 'present') return;
+      const tap = { x: e.clientX, y: e.clientY, t: performance.now() };
+      // One detector for mouse and touch (dblclick is unreliable on touch): the second tap pivots instead of pinning.
+      if (this.lastTap && isDoubleTap(this.lastTap, tap)) {
+        this.lastTap = null;
+        this.draft = null; // the first tap of the pair opened a draft
+        this.viewer.pivotAt(tap.x, tap.y);
+        this.render();
+        return;
+      }
+      this.lastTap = tap;
+      if (this.mode !== 'edit') return;
       const hit = this.viewer.pick(e.clientX, e.clientY);
       if (!hit) return;
       this.draft = { position: hit.position, normal: hit.normal };
