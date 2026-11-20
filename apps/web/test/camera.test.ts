@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { easeInOutCubic, fitDistance, lerpView, normalize, viewForBox, viewForPoint } from '../src/scene/camera';
+import { easeInOutCubic, fitDistance, lerpVec3Into, lerpView, normalize, viewForBox, viewForPoint } from '../src/scene/camera';
 import type { CameraView, Vec3 } from '../src/scene/schema';
 
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -36,6 +36,12 @@ describe('camera math', () => {
     expect(easeInOutCubic(0)).toBe(0);
     expect(easeInOutCubic(1)).toBe(1);
     expect(easeInOutCubic(0.25)).toBeLessThan(easeInOutCubic(0.75));
+  });
+
+  it('interpolates an orbit target into reusable storage', () => {
+    const out: Vec3 = [0, 0, 0];
+    expect(lerpVec3Into([1, 2, 3], [5, 6, 7], 0.25, out)).toBe(out);
+    expect(out).toEqual([2, 3, 4]);
   });
 
   it('normalize returns unit vectors and a safe default for zero', () => {

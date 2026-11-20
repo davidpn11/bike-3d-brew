@@ -75,6 +75,7 @@ test.describe('edit mode', () => {
     await page.locator('form.editor').getByRole('button', { name: 'Cancel' }).click();
     await expect(page.locator('form.editor')).toHaveCount(0);
 
+    await page.waitForTimeout(400); // past the double-tap window, or this second tap would pivot
     await tapCanvas(page, await modelPoint(page));
     await expect(page.locator('form.editor')).toHaveCount(1);
     await page.locator('#panel h2', { hasText: 'Areas' }).click(); // move focus out of the form
@@ -114,6 +115,56 @@ test.describe('edit mode', () => {
     await renamed.getByTitle('Delete area').click();
     await expect(renamed).toHaveCount(0);
     expect((await scene(page)).hotspots).toHaveLength(6);
+  });
+
+  test('Set view saves the camera, marks the area and is restored on return', async ({ page }) => {
+    await openApp(page);
+    await enterEdit(page);
+    const row = page.locator('.areas li', { hasText: 'Fork' });
+    await row.locator('> button').click();
+    // Orbit/zoom somewhere else, then save it as the Fork view.
+    await page.evaluate(() => window.__bike!.viewer.setView({ position: [0.9, 0.7, 1.1], target: [0.1, 0.5, 0.0] }));
+    await row.getByRole('button', { name: 'Set view' }).click();
+    await expect(page.locator('.toast')).toContainText('View saved');
+    await expect(row.locator('> button')).toHaveClass(/\bon\b/);
+    const saved = (await scene(page)).hotspots.find((h) => h.name === 'Fork')!.view;
+    expect(saved.position).toEqual([0.9, 0.7, 1.1]);
+    // Another area, then back: the saved view comes back (and survives undo/redo).
+    await page.locator('.areas li', { hasText: 'Drivetrain' }).locator('> button').click();
+    await page.locator('.areas li', { hasText: 'Fork' }).locator('> button').click();
+    const now = await page.evaluate(() => window.__bike!.viewer.getView());
+    expect(now.position[0]).toBeCloseTo(0.9, 2);
+    expect(now.target[1]).toBeCloseTo(0.5, 2);
+    await page.getByRole('button', { name: /Undo/ }).click();
+    expect((await scene(page)).hotspots.find((h) => h.name === 'Fork')!.view.position).not.toEqual([0.9, 0.7, 1.1]);
+    await page.getByRole('button', { name: /Redo/ }).click();
+    expect((await scene(page)).hotspots.find((h) => h.name === 'Fork')!.view.position).toEqual([0.9, 0.7, 1.1]);
+  });
+
+  test('double-click pivots without adding a comment', async ({ page }) => {
+    await openApp(page);
+    await enterEdit(page);
+    const p = await modelPoint(page);
+    const before = (await scene(page)).annotations.length;
+    await page.evaluate(() => {
+      const v = window.__bike!.viewer as unknown as { pivotAt?: (x: number, y: number) => boolean; __n?: number };
+      v.__n = 0;
+      const orig = v.pivotAt;
+      v.pivotAt = (x, y) => (v.__n!++, orig ? orig.call(v, x, y) : true);
+    });
+    await page.mouse.dblclick(p.x, p.y);
+    await expect(page.locator('form.editor')).toHaveCount(0);
+    expect((await scene(page)).annotations).toHaveLength(before);
+    expect(await page.evaluate(() => (window.__bike!.viewer as unknown as { __n: number }).__n)).toBe(1);
+  });
+
+  test('a tap in View mode does not turn the first Edit tap into a pivot', async ({ page }) => {
+    await openApp(page);
+    const p = await modelPoint(page);
+    await tapCanvas(page, p);
+    await enterEdit(page); // well inside the double-tap window
+    await tapCanvas(page, p);
+    await expect(page.locator('form.editor')).toHaveCount(1);
   });
 
   test('edits the bike details', async ({ page }) => {
