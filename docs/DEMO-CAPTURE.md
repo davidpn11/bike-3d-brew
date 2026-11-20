@@ -68,7 +68,8 @@ With a free Apple ID the app stops opening after **7 days**. Plug the phone in a
 3. Fit the box around the whole bike, including the wheels and the bars, then tap **Start capture**.
 4. Walk **slowly** all the way around, holding the phone steady. Tap **Checklist** to see the plan:
    - **Three orbits**: one at hub height, one at saddle height, one from above. Each ticks itself when the pass
-     completes and shows its shot count.
+     completes and shows its shot count; tap **Mark orbit done** when automatic completion does not
+     arrive. **Finish** is available during capture; finishing below 20 shots requires confirmation.
    - **Close-ups**: fork crown, dropouts, rear derailleur and cockpit. Tick these yourself.
 5. Follow the on-screen hints ("move slower", "move closer"). A good capture has about **100–200 shots** in
    **10–15 minutes**.
