@@ -1000,7 +1000,8 @@ export class App {
     const cache = await this.cache;
     this.storedCaptures = cache ? await cache.list() : [];
     if (!this.storedCaptures.length) this.openMenu = false;
-    this.render();
+    // Only the Open menu depends on the list; a full render() would redraw the idle stage (it lands after the IndexedDB open, i.e. late).
+    this.renderTopbar(this.store.scene);
   }
 
   private resolveModelUrl(ref: ModelRef): string | null {

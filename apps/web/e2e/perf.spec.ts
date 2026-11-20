@@ -66,6 +66,20 @@ test('an idle stage draws nothing; orbiting draws and stops again', async ({ pag
   expect(errors).toEqual([]);
 });
 
+// Root cause of a CI flake: the stored-captures list resolves after IndexedDB opens (slow on CI), possibly after the stage went idle.
+test('refreshing the stored-captures list does not redraw an idle stage', async ({ page }) => {
+  await openApp(page);
+  await settled(page);
+  const renders = await page.evaluate(async () => {
+    const { app, viewer } = window.__bike!;
+    const start = viewer.renderCount;
+    await (app as unknown as { refreshStored(): Promise<void> }).refreshStored();
+    await new Promise((r) => setTimeout(r, 200));
+    return viewer.renderCount - start;
+  });
+  expect(renders).toBe(0);
+});
+
 test('a canvas snapshot still has the bike on it (no preserved drawing buffer needed)', async ({ page }) => {
   await openApp(page);
   await settled(page);
