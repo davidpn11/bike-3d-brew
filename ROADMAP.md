@@ -1,7 +1,7 @@
 # Roadmap
 
 The backlog autonomous sessions work through, top to bottom. Each item is sized for one
-session / one PR. Protocol is in [CLAUDE.md](CLAUDE.md#autonomous-session-protocol).
+session / one PR. Protocol is in [AGENTS.md](AGENTS.md#autonomous-session-protocol).
 
 Markers: `[ ]` open · `[~]` in progress (draft PR open) · `[x]` done (in an open or merged PR).
 

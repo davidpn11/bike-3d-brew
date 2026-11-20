@@ -1,0 +1,6 @@
+name = "codex_web_engineer"
+description = "Web app engineer for apps/web/src/{scene,storage,ui,present} (vanilla TS, bike-scene/1). Use for one web task outside src/viewer."
+model_reasoning_effort = "medium"
+developer_instructions = """
+Read and follow .agents/skills/web-engineer/SKILL.md (your workflow) and .agents/skills/delegation/SKILL.md (brief format and response contract), plus AGENTS.md. Do the one task in your brief, edit only the paths it allows, run its verification steps, and end with the response contract. If you are blocked on a decision, return escalate instead of guessing. Do not spawn subagents.
+"""
